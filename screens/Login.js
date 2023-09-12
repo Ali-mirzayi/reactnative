@@ -1,14 +1,9 @@
-import React, { useState, useLayoutEffect } from "react";
-import {
-	Text,
-	SafeAreaView,
-	View,
-	TextInput,
-	Pressable,
-	Alert,
-} from "react-native";
+import React, { useState } from "react";
+import { Text, SafeAreaView, View, TextInput, Pressable, Alert } from "react-native";
 import { styles } from "../utils/styles";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { StatusBar } from 'expo-status-bar';
+import Animated from "react-native-reanimated";
 
 const Login = ({ navigation }) => {
 	const [username, setUsername] = useState("");
@@ -21,7 +16,6 @@ const Login = ({ navigation }) => {
 		}
 	};
 
-
 	const handleSignIn = () => {
 		if (username.trim()) {
 			storeUsername();
@@ -30,23 +24,15 @@ const Login = ({ navigation }) => {
 		}
 	};
 
-	useLayoutEffect(() => {
-		const getUsername = async () => {
-			try {
-				const value = await AsyncStorage.getItem("username");
-				if (value !== null) {
-					// navigation.navigate("Chat");
-				}
-			} catch (e) {
-				console.error("Error while loading username!");
-			}
-		};
-		getUsername();
-	}, []);
-
 	return (
 		<SafeAreaView style={styles.loginscreen}>
+			<StatusBar style="auto" />
 			<View style={styles.loginscreen}>
+				<Animated.Image
+					source={{ uri: 'https://img.freepik.com/premium-photo/long-shot-man-exploring-nature_23-2149884252.jpg?w=1060' }}
+					style={{ width: 350, height: 250, margin: 50, borderRadius: 10 }}
+					sharedTransitionTag="tag"
+				/>
 				<Text style={styles.loginheading}>Sign in</Text>
 				<View style={styles.logininputContainer}>
 					<TextInput

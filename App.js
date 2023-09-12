@@ -1,37 +1,39 @@
-import { useEffect, useLayoutEffect, useState } from 'react';
-import { StatusBar } from 'expo-status-bar';
+import "react-native-gesture-handler"
 import { StyleSheet, Text, View } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
 import { useAssets } from 'expo-asset';
-// import SocketIOClient from 'socket.io-client';
-import Login from "./screens/Login";
-// import Messaging from "./screens/Messaging";
-import Chat from "./screens/Chat";
+import Navigation from "./Navigation";
+import { useLayoutEffect, useState } from "react";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 function App() {
-  const Stack = createStackNavigator();
+  const [user, setUser] = useState();
+  const [loading, setLoading] = useState(true);
 
-  return (
-    <NavigationContainer>
-      <Stack.Navigator>
-        <Stack.Screen
-          name='Login'
-          component={Login}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name='Chat'
-          component={Chat}
-          options={{
-            title: "Chats",
-            headerShown: false,
-          }}
-        />
-        {/* <Stack.Screen name='Messaging' component={Messaging} /> */}
-      </Stack.Navigator>
-    </NavigationContainer>
-  );
+  useLayoutEffect(() => {
+    const getUsername = async () => {
+      try {
+        setLoading(true);
+        const value = await AsyncStorage.getItem("username");
+        if (value !== null) {
+          setUser(value)
+        }
+        setLoading(false);
+      } catch (e) {
+        console.error("Error while loading username!");
+        setLoading(false);
+      }
+    };
+    getUsername();
+  }, []);
+
+  return (<>
+    {
+      loading ?
+        <View><Text>Wait ...</Text></View >
+        :
+        <Navigation user={user}/>
+    }
+  </>);
 }
 
 const styles = StyleSheet.create({
@@ -49,6 +51,10 @@ function Main() {
     require('./assets/icon-square.png'),
     require('./assets/user.png'),
     require('./assets/welcome.png'),
+    require('./assets/mirza64.png'),
+    require('./assets/mirza96.png'),
+    require('./assets/mirza128.png'),
+    require('./assets/mirza256.png'),
   );
   if (!assets) {
     return <Text>loading...</Text>
