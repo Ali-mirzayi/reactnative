@@ -1,0 +1,115 @@
+import { NavigationContainer } from '@react-navigation/native'
+import Login from "./screens/Login";
+import { CardStyleInterpolators, createStackNavigator } from '@react-navigation/stack';
+import Messaging from "./screens/Messaging";
+import Chat from "./screens/Chat";
+import LoginPrev from './screens/LoginPrev';
+import { Easing } from 'react-native';
+import { TransitionSpec } from '@react-navigation/stack/lib/typescript/src/types';
+import { useEffect } from 'react';
+import socket from './utils/socket';
+
+export type LoginNavigationProps = {
+    LoginPrev: undefined;
+    Login: undefined;
+    Chat: undefined;
+};
+
+export type RootStackParamList = {
+    LoginNavigation?: undefined;
+    Chat: { user: string | undefined };
+    Messaging: { user: string | undefined,id?: string };
+};
+
+const config: TransitionSpec = {
+    animation: 'spring',
+    config: {
+        stiffness: 1000,
+        damping: 50,
+        mass: 3,
+        overshootClamping: false,
+        restDisplacementThreshold: 0.01,
+        restSpeedThreshold: 0.01
+    }
+}
+
+const closeConfig: TransitionSpec = {
+    animation: 'timing',
+    config: {
+        duration: 250,
+        easing: Easing.linear
+    }
+}
+
+const LoginNavigation = () => {
+    const Stack = createStackNavigator<LoginNavigationProps>();
+    return (
+        <Stack.Navigator initialRouteName='LoginPrev' screenOptions={{
+            gestureEnabled: true,
+            gestureDirection: "horizontal",
+            transitionSpec: {
+                open: config,
+                close: closeConfig
+            },
+            cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS
+        }}>
+            <Stack.Group>
+                <Stack.Screen
+                    name='LoginPrev'
+                    component={LoginPrev}
+                    options={{ headerShown: false, presentation: 'modal' }}
+                />
+            </Stack.Group>
+            <Stack.Group screenOptions={{ presentation: "modal" }}>
+                <Stack.Screen
+                    name='Login'
+                    component={Login}
+                    options={{ headerShown: false }}
+                />
+            </Stack.Group>
+        </Stack.Navigator>
+    )
+}
+
+export default function Navigation({ user }: { user: string | undefined }) {
+    const Stack = createStackNavigator<RootStackParamList>();
+    useEffect(()=>{
+		socket.connect();
+
+		return () => {
+		  socket.disconnect();
+		};
+	},[])
+    return (
+        <NavigationContainer>
+            <Stack.Navigator screenOptions={{ headerShown: false }}>
+                {user ?
+                    null
+                    :
+                    <Stack.Screen
+                        name='LoginNavigation'
+                        component={LoginNavigation}
+                        options={{ headerShown: false, presentation: 'card' }} />
+                }
+                <Stack.Screen
+                    name='Chat'
+                    component={Chat}
+                    initialParams={{ user }}
+                    options={{
+                        title: "Chats",
+                        headerShown: false,
+                    }}
+                />
+                <Stack.Screen
+                    name='Messaging'
+                    component={Messaging}
+                    initialParams={{ user }}
+                    options={{
+                        title: "Messaging",
+                        headerShown: false,
+                    }}
+                />
+            </Stack.Navigator>
+        </NavigationContainer>
+    )
+}
