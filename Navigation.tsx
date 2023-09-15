@@ -4,10 +4,12 @@ import { CardStyleInterpolators, createStackNavigator } from '@react-navigation/
 import Messaging from "./screens/Messaging";
 import Chat from "./screens/Chat";
 import LoginPrev from './screens/LoginPrev';
-import { Easing } from 'react-native';
+import { Easing, Text, View } from 'react-native';
 import { TransitionSpec } from '@react-navigation/stack/lib/typescript/src/types';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import socket from './utils/socket';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+// import { Text, View } from '@tamagui/core';
 
 export type LoginNavigationProps = {
     LoginPrev: undefined;
@@ -17,8 +19,8 @@ export type LoginNavigationProps = {
 
 export type RootStackParamList = {
     LoginNavigation?: undefined;
-    Chat: { user: string | undefined };
-    Messaging: { user: string | undefined,id?: string };
+    Chat: { user: string | undefined,setChat:React.Dispatch<React.SetStateAction<number>> };
+    Messaging: { user: string | undefined, contact: string | undefined};
 };
 
 const config: TransitionSpec = {
@@ -71,45 +73,67 @@ const LoginNavigation = () => {
     )
 }
 
-export default function Navigation({ user }: { user: string | undefined }) {
+export default function Navigation() {
     const Stack = createStackNavigator<RootStackParamList>();
-    useEffect(()=>{
-		socket.connect();
-
-		return () => {
-		  socket.disconnect();
-		};
-	},[])
+    const [user, setUser] = useState<string | undefined>();
+    const [loading, setLoading] = useState(true);
+    const [chat, setChat] = useState(1);
+    useEffect(() => {
+        socket.connect();
+        (async () => {
+            try {
+              setLoading(true);
+              const value = await AsyncStorage.getItem("username");
+              if (value !== null) {
+                setUser(value)
+              }
+              setLoading(false);
+            } catch (e) {
+              console.error("Error while loading username!");
+              setLoading(false);
+            }
+          })();
+        return () => {
+            socket.disconnect();
+        };
+    }, [chat])
     return (
-        <NavigationContainer>
-            <Stack.Navigator screenOptions={{ headerShown: false }}>
-                {user ?
-                    null
+        <>
+            {
+                loading ?
+                    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}><Text>Wait ...</Text></View >
                     :
-                    <Stack.Screen
-                        name='LoginNavigation'
-                        component={LoginNavigation}
-                        options={{ headerShown: false, presentation: 'card' }} />
-                }
-                <Stack.Screen
-                    name='Chat'
-                    component={Chat}
-                    initialParams={{ user }}
-                    options={{
-                        title: "Chats",
-                        headerShown: false,
-                    }}
-                />
-                <Stack.Screen
-                    name='Messaging'
-                    component={Messaging}
-                    initialParams={{ user }}
-                    options={{
-                        title: "Messaging",
-                        headerShown: false,
-                    }}
-                />
-            </Stack.Navigator>
-        </NavigationContainer>
+                    <NavigationContainer>
+                        <Stack.Navigator screenOptions={{ headerShown: false }}>
+                            {user ?
+                                null
+                                :
+                                <Stack.Screen
+                                    name='LoginNavigation'
+                                    component={LoginNavigation}
+                                    options={{ headerShown: false, presentation: 'card' }} />
+                            }
+                            <Stack.Screen
+                                name='Chat'
+                                component={Chat}
+                                initialParams={{ user,setChat }}
+                                options={{
+                                    title: "Chats",
+                                    headerShown: false,
+                                }}
+                            />
+                            <Stack.Screen
+                                name='Messaging'
+                                component={Messaging}
+                                initialParams={{ user,contact:undefined }}
+                                options={{
+                                    title: "Messaging",
+                                    headerShown: false,
+                                }}
+                            />
+                        </Stack.Navigator>
+                    </NavigationContainer>
+            }
+        </>
     )
 }

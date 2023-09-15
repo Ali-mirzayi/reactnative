@@ -4,36 +4,17 @@ import { useAssets } from 'expo-asset';
 import Navigation from "./Navigation";
 import { useLayoutEffect, useState } from "react";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { TamaguiProvider } from '@tamagui/core';
+import config from './tamagui.config';
+import { useRoute } from "@react-navigation/native";
+// import '@tamagui/core'
 
 function App() {
-  const [user, setUser] = useState<string | undefined>();
-  const [loading, setLoading] = useState(true);
+  // const css = config.getCSS();
 
-  useLayoutEffect(() => {
-    const getUsername = async () => {
-      try {
-        setLoading(true);
-        const value = await AsyncStorage.getItem("username");
-        if (value !== null) {
-          setUser(value)
-        }
-        setLoading(false);
-      } catch (e) {
-        console.error("Error while loading username!");
-        setLoading(false);
-      }
-    };
-    getUsername();
-  }, []);
-
-  return (<>
-    {
-      loading ?
-        <View style={{flex:1,justifyContent:"center",alignItems:"center"}}><Text>Wait ...</Text></View >
-        :
-        <Navigation user={user}/>
-    }
-  </>);
+  return (<TamaguiProvider config={config}>
+        <Navigation />
+  </TamaguiProvider>);
 }
 
 const styles = StyleSheet.create({

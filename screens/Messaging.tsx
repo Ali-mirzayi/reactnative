@@ -1,53 +1,58 @@
 import React, { useEffect, useLayoutEffect, useState } from "react";
 import { View, TextInput, Text, FlatList, Pressable } from "react-native";
 import socket from "../utils/socket";
-// import MessageComponent from "../component/MessageComponent";
+import MessageComponent from "../components/MessageComponent";
 import { styles } from "../utils/styles";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../Navigation";
 
 const Messaging = ({ route, navigation }:NativeStackScreenProps<RootStackParamList,'Messaging'>) => {
-	const { user,id } = route.params;
+	const { user,contact } = route.params;
 
 	const [chatMessages, setChatMessages] = useState([]);
 	const [message, setMessage] = useState("");
 
-	// const handleNewMessage = () => {
-	// 	const hour =
-	// 		new Date().getHours() < 10
-	// 			? `0${new Date().getHours()}`
-	// 			: `${new Date().getHours()}`;
+	const handleNewMessage = () => {
+		const hour =
+			new Date().getHours() < 10
+				? `0${new Date().getHours()}`
+				: `${new Date().getHours()}`;
 
-	// 	const mins =
-	// 		new Date().getMinutes() < 10
-	// 			? `0${new Date().getMinutes()}`
-	// 			: `${new Date().getMinutes()}`;
+		const mins =
+			new Date().getMinutes() < 10
+				? `0${new Date().getMinutes()}`
+				: `${new Date().getMinutes()}`;
 
-	// 	if (user) {
-	// 		socket.emit("newMessage", {
-	// 			message,
-	// 			room_id: id,
-	// 			user,
-	// 			timestamp: { hour, mins },
-	// 		});
-	// 	}
-	// };
+		if (user) {
+			socket.emit("newMessage", {
+				message,
+				names: [user,contact],
+				user,
+				timestamp: { hour, mins },
+			});
+		}
+		setMessage("")
+	};
 
-	// useLayoutEffect(() => {
-	// 	navigation.setOptions({ title: name });
-	// 	getUsername();
-	// 	socket.emit("findRoom", id);
-	// 	socket.on("foundRoom", (roomChats) => setChatMessages(roomChats));
-	// }, []);
+	useEffect(() => {
+		// navigation.setOptions({ title: name });
+		// socket.emit("findRoom", [user,contact],socket.on("roomMessages", (message:any) => setChatMessages(message)));
+		socket.emit("findRoom", [user,contact])
+		socket.on("roomMessages", (message:any) => setChatMessages(message))
+	}, []);
 
-	// useEffect(() => {
-	// 	socket.on("foundRoom", (roomChats) => setChatMessages(roomChats));
-	// }, [socket]);
+	console.log(chatMessages);
+
+	useEffect(() => {
+		// socket.on("foundRoom", (roomChats) => setChatMessages(roomChats));
+		socket.on("roomMessages", (message:any) => setChatMessages(message))
+
+	}, [socket]);
 
 	return (
 		<View style={styles.messagingscreen}>
-			{/* <View
+			<View
 				style={[
 					styles.messagingscreen,
 					{ paddingVertical: 15, paddingHorizontal: 10 },
@@ -62,14 +67,14 @@ const Messaging = ({ route, navigation }:NativeStackScreenProps<RootStackParamLi
 						keyExtractor={(item:any) => item.id}
 					/>
 				) : (
-					""
+					<Text/>
 				)}
-			</View> */}
-
-			{/* <View style={styles.messaginginputContainer}>
+			</View>
+			<View style={styles.messaginginputContainer}>
 				<TextInput
 					style={styles.messaginginput}
 					onChangeText={(value) => setMessage(value)}
+					value={message}
 				/>
 				<Pressable
 					style={styles.messagingbuttonContainer}
@@ -79,7 +84,7 @@ const Messaging = ({ route, navigation }:NativeStackScreenProps<RootStackParamLi
 						<Text style={{ color: "#f2f0f1", fontSize: 20 }}>SEND</Text>
 					</View>
 				</Pressable>
-			</View> */}
+			</View>
 		</View>
 	);
 };
