@@ -6,12 +6,14 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StatusBar } from 'expo-status-bar';
 import Animated from "react-native-reanimated";
 import { LoginNavigationProps } from "../Navigation";
+import useTime from "../utils/useTime";
 
 const Login = ({ navigation }: NativeStackScreenProps<LoginNavigationProps,'Login'>) => {
 		const [username, setUsername] = useState("");
+		const {hour,mins} = useTime();
 		const storeUsername = async () => {
 			try {
-			socket.emit("createUser", username);
+			socket.emit("createUser", {username,hour,mins});
 			await AsyncStorage.setItem("username", username);
 			navigation.navigate("Chat");
 		} catch (e) {

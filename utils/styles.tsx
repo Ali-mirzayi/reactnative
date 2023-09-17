@@ -1,5 +1,7 @@
 import { StyleSheet } from "react-native";
 
+const ali = {"id": "aliismirzaei", "messages": [{"id": "mirzaeiMessage", "text": "Hello and Welcome", "time": "03:15", "user": "ali mirzaei"}, {"id": "hpuqbfqp", "text": "salam", "time": "03:16", "user": "ali"}], "users": ["ali mirzaei", "ali"]}
+
 export const styles = StyleSheet.create({
     loginscreen: {
         flex: 1,

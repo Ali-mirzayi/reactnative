@@ -6,24 +6,15 @@ import { styles } from "../utils/styles";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../Navigation";
+import useTime from "../utils/useTime";
 
 const Messaging = ({ route, navigation }:NativeStackScreenProps<RootStackParamList,'Messaging'>) => {
 	const { user,contact } = route.params;
-
 	const [chatMessages, setChatMessages] = useState([]);
 	const [message, setMessage] = useState("");
+	const {hour,mins} = useTime();
 
 	const handleNewMessage = () => {
-		const hour =
-			new Date().getHours() < 10
-				? `0${new Date().getHours()}`
-				: `${new Date().getHours()}`;
-
-		const mins =
-			new Date().getMinutes() < 10
-				? `0${new Date().getMinutes()}`
-				: `${new Date().getMinutes()}`;
-
 		if (user) {
 			socket.emit("newMessage", {
 				message,
@@ -35,6 +26,7 @@ const Messaging = ({ route, navigation }:NativeStackScreenProps<RootStackParamLi
 		setMessage("")
 	};
 
+
 	useEffect(() => {
 		// navigation.setOptions({ title: name });
 		// socket.emit("findRoom", [user,contact],socket.on("roomMessages", (message:any) => setChatMessages(message)));
@@ -42,7 +34,7 @@ const Messaging = ({ route, navigation }:NativeStackScreenProps<RootStackParamLi
 		socket.on("roomMessages", (message:any) => setChatMessages(message))
 	}, []);
 
-	console.log(chatMessages);
+	console.log(contact);
 
 	useEffect(() => {
 		// socket.on("foundRoom", (roomChats) => setChatMessages(roomChats));

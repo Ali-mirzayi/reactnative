@@ -4,20 +4,18 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { styles } from "../utils/styles";
 
-const ChatComponent = ({ item }) => {
+const ChatComponent = ({ item,user }:any) => {
 	const navigation = useNavigation();
-	const [messages, setMessages] = useState({});
-
-	useLayoutEffect(() => {
-		setMessages(item.messages[item.messages.length - 1]);
-	}, []);
+	
+	const contact = item.users[0]===user ? item.users[1] : item.users[0] 
+	const messages = item.messages[item.messages.length - 1];
 
 	const handleNavigation = () => {
-		navigation.navigate("Messaging", {
-			id: item.id,
-			name: item.name,
-		});
+		// @ts-ignore
+		navigation.navigate("Messaging", {user, contact});
 	};
+
+	// console.log(contact);
 
 	return (
 		<Pressable style={styles.cchat} onPress={handleNavigation}>
@@ -27,11 +25,9 @@ const ChatComponent = ({ item }) => {
 				color='black'
 				style={styles.cavatar}
 			/>
-
 			<View style={styles.crightContainer}>
 				<View>
-					<Text style={styles.cusername}>{item.name}</Text>
-
+					<Text style={styles.cusername}>{contact}</Text>
 					<Text style={styles.cmessage}>
 						{messages?.text ? messages.text : "Tap to start chatting"}
 					</Text>

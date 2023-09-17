@@ -1,20 +1,27 @@
 import "react-native-gesture-handler"
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { useAssets } from 'expo-asset';
 import Navigation from "./Navigation";
-import { useLayoutEffect, useState } from "react";
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { TamaguiProvider } from '@tamagui/core';
-import config from './tamagui.config';
-import { useRoute } from "@react-navigation/native";
-// import '@tamagui/core'
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { EventProvider } from 'react-native-outside-press';
+import { useEffect } from "react";
+import socket from "./utils/socket";
 
 function App() {
-  // const css = config.getCSS();
+  useEffect(() => {
+    socket.connect();
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
-  return (<TamaguiProvider config={config}>
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <EventProvider>
         <Navigation />
-  </TamaguiProvider>);
+      </EventProvider>
+    </GestureHandlerRootView>
+  );
 }
 
 const styles = StyleSheet.create({

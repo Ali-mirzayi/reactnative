@@ -7,9 +7,7 @@ import LoginPrev from './screens/LoginPrev';
 import { Easing, Text, View } from 'react-native';
 import { TransitionSpec } from '@react-navigation/stack/lib/typescript/src/types';
 import { useEffect, useState } from 'react';
-import socket from './utils/socket';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-// import { Text, View } from '@tamagui/core';
 
 export type LoginNavigationProps = {
     LoginPrev: undefined;
@@ -19,8 +17,8 @@ export type LoginNavigationProps = {
 
 export type RootStackParamList = {
     LoginNavigation?: undefined;
-    Chat: { user: string | undefined,setChat:React.Dispatch<React.SetStateAction<number>> };
-    Messaging: { user: string | undefined, contact: string | undefined};
+    Chat: { user: string | undefined, setChat: React.Dispatch<React.SetStateAction<number>> };
+    Messaging: { user: string | undefined, contact: string | undefined };
 };
 
 const config: TransitionSpec = {
@@ -79,23 +77,19 @@ export default function Navigation() {
     const [loading, setLoading] = useState(true);
     const [chat, setChat] = useState(1);
     useEffect(() => {
-        socket.connect();
         (async () => {
             try {
-              setLoading(true);
-              const value = await AsyncStorage.getItem("username");
-              if (value !== null) {
-                setUser(value)
-              }
-              setLoading(false);
+                setLoading(true);
+                const value = await AsyncStorage.getItem("username");
+                if (value !== null) {
+                    setUser(value)
+                }
+                setLoading(false);
             } catch (e) {
-              console.error("Error while loading username!");
-              setLoading(false);
+                console.error("Error while loading username!");
+                setLoading(false);
             }
-          })();
-        return () => {
-            socket.disconnect();
-        };
+        })();
     }, [chat])
     return (
         <>
@@ -116,7 +110,7 @@ export default function Navigation() {
                             <Stack.Screen
                                 name='Chat'
                                 component={Chat}
-                                initialParams={{ user,setChat }}
+                                initialParams={{ user, setChat }}
                                 options={{
                                     title: "Chats",
                                     headerShown: false,
@@ -125,7 +119,7 @@ export default function Navigation() {
                             <Stack.Screen
                                 name='Messaging'
                                 component={Messaging}
-                                initialParams={{ user,contact:undefined }}
+                                initialParams={{ user, contact: undefined }}
                                 options={{
                                     title: "Messaging",
                                     headerShown: false,
