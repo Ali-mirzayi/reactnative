@@ -1,5 +1,4 @@
-import socket from "../utils/socket";
-import React, { useState } from "react";
+;import React, { useState } from "react";
 import { Text, SafeAreaView, View, TextInput, Pressable, Alert, StyleSheet } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StatusBar } from 'expo-status-bar';
@@ -8,10 +7,11 @@ import { LoginNavigationProps } from "../utils/types";
 import { generateID } from "../utils/utils";
 import { StackScreenProps } from "@react-navigation/stack";
 import baseURL from "../utils/baseURL";
+import { useTheme } from "@react-navigation/native";
 
 const Login = ({ navigation }: StackScreenProps<LoginNavigationProps,'Login'>) => {
 		const [username, setUsername] = useState("");
-		// const [isOk, setisOK] = useState<any>(undefined);
+		const { colors } = useTheme();
 
 		const id = generateID(); 
 		const storeUsername = async () => {
@@ -24,7 +24,7 @@ const Login = ({ navigation }: StackScreenProps<LoginNavigationProps,'Login'>) =
 				},
 				body: JSON.stringify({_id: id,name:username,avatar:'',Date:new Date()})});
 			const json = await response.json();
-			// console.log(json);
+			console.log(json);
 			// socket.emit("createUser", {_id: id,name:username,avatar:'',Date:new Date()});
 			// socket.on("checkUser",(data:any)=>setisOK(data));
 			if(json?.isOK===true){
@@ -49,7 +49,7 @@ const Login = ({ navigation }: StackScreenProps<LoginNavigationProps,'Login'>) =
 	};
 
 	return (
-		<SafeAreaView style={styles.loginscreen}>
+		<SafeAreaView style={[styles.loginscreen,{backgroundColor: colors.background,}]}>
 			<StatusBar style="auto" />
 			<Animated.Image
 				source={require('../assets/mirza512.png')}
@@ -79,7 +79,6 @@ export default Login;
 const styles = StyleSheet.create({
 	loginscreen: {
 		flex: 1,
-		backgroundColor: "#EEF1FF",
 		alignItems: "center",
 		justifyContent: "center",
 		padding: 12,
@@ -122,20 +121,20 @@ const styles = StyleSheet.create({
 		padding: 8,
 		borderRadius: 2,
 	},
-    ButtonContainer: {
-        marginTop: 20,
-        backgroundColor: "#2DA5E0",
-        borderRadius: 6,
-        overflow: "hidden",
+	ButtonContainer: {
+		marginTop: 20,
+		backgroundColor: "#2DA5E0",
+		borderRadius: 6,
+		overflow: "hidden",
 		width: "80%",
-    },
-    Button: {
+	},
+	Button: {
 		color: "white",
 		textAlign: "center",
-        paddingHorizontal: 20,
-        paddingTop: 10,
-        paddingBottom: 13,
-        backgroundColor: 'transparent',
-        fontSize: 20
-    }
+		paddingHorizontal: 20,
+		paddingTop: 10,
+		paddingBottom: 13,
+		backgroundColor: 'transparent',
+		fontSize: 20
+	}
 });

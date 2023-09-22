@@ -9,6 +9,8 @@ import { TransitionSpec } from '@react-navigation/stack/lib/typescript/src/types
 import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LoginNavigationProps, RootStackParamList, User } from './utils/types';
+import { useColorScheme } from 'react-native';
+import { darkTheme, lightTheme } from './utils/theme';
 
 const config: TransitionSpec = {
     animation: 'spring',
@@ -65,7 +67,8 @@ export default function Navigation() {
     const [user, setUser] = useState<User | undefined>();
     const [loading, setLoading] = useState(true);
     const [chat, setChat] = useState(1);
-    
+    const scheme = useColorScheme();
+
     useEffect(() => {
         (async () => {
             try {
@@ -89,7 +92,7 @@ export default function Navigation() {
                 loading ?
                     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}><Text>Wait ...</Text></View >
                     :
-                    <NavigationContainer>
+                    <NavigationContainer theme={scheme === 'dark' ? darkTheme : lightTheme}>
                         <Stack.Navigator screenOptions={{ headerShown: false }}>
                             {user ?
                                 null
