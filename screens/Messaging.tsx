@@ -13,7 +13,6 @@ import { generateID } from '../utils/utils';
 const Messaging = ({ route,navigation }: StackScreenProps<RootStackParamList, 'Messaging'>) => {
 	const { user, contact } = route.params;
 	const [chatMessages, setChatMessages] = useState<IMessage[]>([]);
-	const [count, setCount] = useState<number>(0);
 	const { colors } = useTheme();
 
 	const handlePickImage = async () => {
@@ -26,17 +25,14 @@ const Messaging = ({ route,navigation }: StackScreenProps<RootStackParamList, 'M
 			// allowsMultipleSelection: true,
 			// base64: 
 		});
-		// console.log(result);
 		if (!result.canceled) {
-			// setImage(result?.assets[0]?.uri);
 			sendImage(result?.assets[0]?.uri)
 		}
 	};
 
 	function sendImage(image: string) {
 		const id = generateID();
-		console.log(image,'idddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd');
-		socket.emit("newMessage", { names: [user, contact],_id:id,text: "",createdAt: new Date(),user,image },setCount(e=>e=e+1));
+		socket.emit("newMessage", { names: [user, contact],_id:id,text: "",createdAt: new Date(),user,image });
 	  }
 
 	function renderActions(props: Readonly<ActionsProps>) {
@@ -73,35 +69,39 @@ const Messaging = ({ route,navigation }: StackScreenProps<RootStackParamList, 'M
 		);
 	  };
 
-	const setter = useCallback((value: IMessage[])=> {
+	const setter = (value: IMessage[]) =>{
 		setChatMessages(value)
-	},[chatMessages])
+	}
 
-	const handleNewMessage = useCallback(
+	const onSend = useCallback(
 		(messages: IMessage[])=>{
-		socket.emit("newMessage", { names: [user, contact], text: messages[0]?.text, user, createdAt: messages[0]?.createdAt, _id: messages[0]?._id, sent: messages[0]?.sent, received: messages[0]?.received, pending: messages[0]?.pending, quickReplies: messages[0]?.quickReplies },setCount(e=>e=e+1));
-	},[chatMessages]);
+		socket.emit("newMessage", { names: [user, contact], text: messages[0]?.text, user, createdAt: messages[0]?.createdAt, _id: messages[0]?._id, sent: messages[0]?.sent, received: messages[0]?.received, pending: messages[0]?.pending, quickReplies: messages[0]?.quickReplies},setChatMessages(prev=>GiftedChat.append(prev,messages)));
+	},[]);
 
-	// console.log('object');
+	console.log('object');
 
 	useEffect(() => {
-		socket.emit("findRoom", [user, contact]);
-		socket.on("findRoom", setter);
+		socket.on("newMessageResponse", setter);
 		return () => {
-			socket.off("findRoom", setter);
+			socket.off("newMessageResponse", setter);
 		}
-	}, [socket,count]);
+	}, [socket,setter]);
 	
 	useLayoutEffect(() => {
 		navigation.setOptions({
 			headerShown: true,
 			headerTitle: contact?.name,
 		});
+		socket.emit("findRoom", [user, contact]);
+		socket.on("findRoomResponse", setter);
+		return () => {
+			socket.off("findRoomResponse", setter);
+		}
 	}, []);
 
 	// useEffect(() => {
 	// 	socket.on("newMessage", setter);
-	// 	// console.log('counter');
+	// 	// console.log('counter');onSendhandleNewMessage
 	// 	return () => {socket.off("new")}
 	// },[socket,chatMessages]);
 
@@ -110,7 +110,7 @@ const Messaging = ({ route,navigation }: StackScreenProps<RootStackParamList, 'M
 			<StatusBar style='auto' />
 			<GiftedChat
 				messages={chatMessages}
-				onSend={handleNewMessage}
+				onSend={messages => onSend(messages)}
 				user={user}
 				alwaysShowSend
 				scrollToBottom
