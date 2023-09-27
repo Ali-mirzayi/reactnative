@@ -1,28 +1,28 @@
-import React, { useState, useLayoutEffect, useEffect, useRef } from "react";
+import React, { useState, useLayoutEffect, useEffect, useRef, useContext } from "react";
 import { View, Text, Pressable, SafeAreaView, FlatList, StyleSheet, Button, DrawerLayoutAndroid, useColorScheme } from "react-native";
 import ChatComponent from "../components/ChatComponent";
-import socket from "../utils/socket";
 import baseURL from "../utils/baseURL";
 import { StatusBar } from "expo-status-bar";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import SearchBar from "../components/SearchBar";
 import { Room, RootStackParamList, User } from "../utils/types";
 import { DrawerScreenProps } from '@react-navigation/drawer';
-// import Darwer from "../components/Darwer";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@react-navigation/native";
 import Checkbox from 'expo-checkbox';
+import { socketContext } from "../socketContext";
 
 const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat'>) => {
 	const [rooms, setRooms] = useState<Room[]>([]);
 	const [users, setUsers] = useState<User[] | []>([]);
 	const [screen, setScreen] = useState<'users' | 'rooms'>('rooms');
 	const scheme = useColorScheme();
-	const { user, setChat } = route.params;
+	const { setChat } = route.params;
 	const drawer = useRef<DrawerLayoutAndroid>(null);
 	const { colors } = useTheme();
 	const [isChecked, setChecked] = useState(false);
 	const [darkMode, setDarkMode] = useState(scheme === 'dark' ? true : false);
+	const {socket,user}:any = useContext(socketContext);
 
 	const Drawer = () => {
 		return (
@@ -48,12 +48,12 @@ const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat
 	}
 
 	const pressHandler = (item: User | undefined) => {
-		socket.emit("createRoom", [user, item], navigation.navigate("Messaging", { user, contact: item }))
+		socket.emit("createRoom", [user, item], navigation.navigate("Messaging", { contact: item }))
 	};
 
 	const handleNavigation = (contact: User) => {
 		// @ts-ignore
-		navigation.navigate("Messaging", { user, contact });
+		navigation.navigate("Messaging", { contact });
 	};
 
 	function setter(value: Room[]) {
@@ -98,7 +98,7 @@ const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat
 							<Text style={styles.chatheading}>Mirza</Text>
 						</View>
 						<View style={{ position: "relative" }}>
-							<SearchBar setUsers={setUsers} user={user} setScreen={setScreen} />
+							<SearchBar setUsers={setUsers} setScreen={setScreen} />
 						</View>
 					</View>
 				</View>

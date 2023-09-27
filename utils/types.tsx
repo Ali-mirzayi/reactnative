@@ -6,8 +6,8 @@ export type LoginNavigationProps = {
 
 export type RootStackParamList = {
     LoginNavigation?: undefined;
-    Chat: { user: User | undefined, setChat: React.Dispatch<React.SetStateAction<number>> };
-    Messaging: { user: User | undefined, contact: User | undefined };
+    Chat: { setChat: React.Dispatch<React.SetStateAction<number>> };
+    Messaging: { contact: User | undefined };
 };
 
 export type User = {

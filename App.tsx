@@ -6,18 +6,16 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { EventProvider } from 'react-native-outside-press';
 import { useEffect } from "react";
 import socket from "./utils/socket";
+import Context from "./socketContext";
 
 function App() {
-  useEffect(() => {
-    return () => {
-      socket.disconnect();
-    };
-  }, []);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <EventProvider>
-        <Navigation />
+        <Context>
+          <Navigation />
+        </Context>
       </EventProvider>
     </GestureHandlerRootView>
   );

@@ -1,4 +1,4 @@
-;import React, { useState } from "react";
+;import React, { useContext, useState } from "react";
 import { Text, SafeAreaView, View, TextInput, Pressable, Alert, StyleSheet } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StatusBar } from 'expo-status-bar';
@@ -8,10 +8,12 @@ import { generateID } from "../utils/utils";
 import { StackScreenProps } from "@react-navigation/stack";
 import baseURL from "../utils/baseURL";
 import { useTheme } from "@react-navigation/native";
+import { socketContext } from "../socketContext";
 
 const Login = ({ navigation }: StackScreenProps<LoginNavigationProps,'Login'>) => {
 		const [username, setUsername] = useState("");
 		const { colors } = useTheme();
+		const {setUser}:any = useContext(socketContext);
 
 		const id = generateID(); 
 		const storeUsername = async () => {
@@ -25,11 +27,10 @@ const Login = ({ navigation }: StackScreenProps<LoginNavigationProps,'Login'>) =
 				body: JSON.stringify({_id: id,name:username,avatar:'',Date:new Date()})});
 			const json = await response.json();
 			console.log(json);
-			// socket.emit("createUser", {_id: id,name:username,avatar:'',Date:new Date()});
-			// socket.on("checkUser",(data:any)=>setisOK(data));
 			if(json?.isOK===true){
 				await AsyncStorage.setItem("username", username);
 				await AsyncStorage.setItem("id", id);
+				setUser({ _id: id, name: username, avatar: '' })
 				navigation.navigate("Chat");
 			}else{
 				Alert.alert("Error! invalid username");
