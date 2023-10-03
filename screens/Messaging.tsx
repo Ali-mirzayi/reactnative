@@ -9,13 +9,14 @@ import { SafeAreaView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useTheme } from '@react-navigation/native';
 import { generateID } from '../utils/utils';
+import { getRoom, insertRoom } from '../utils/DB';
 
 
 const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>) => {
-	const { contact } = route.params;
+	const { contact,id } = route.params;
 	const [messages, setMessages] = useState<IMessage[]>([]);
 	const { socket, user }: any = useContext(socketContext);
-	const [roomId, setRoomId] = useState<string | undefined>(undefined);
+	const [roomId, setRoomId] = useState<string | undefined>(id);
 	const { colors } = useTheme();
 
 	const handlePickImage = async () => {
@@ -51,14 +52,6 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 			/>
 		)
 	};
-
-	// function renderMessageImage(props:MessageImageProps<IMessage>){
-	// 	return(
-	// 		<MessageImage 
-	// 		imageProps={{uri:""}}
-	// 		/>
-	// 	)
-	// }
 
 	const renderBubble = (props :Readonly<any>) => {
 		return (
@@ -129,7 +122,6 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 			socket.on('newMessage', (newMessage: IMessage[]) => {
 				setMessages((prevMessages: IMessage[]) => GiftedChat.append(prevMessages, newMessage));
 			});
-			console.log(messages);
 			// console.log(roomId,'roomId');
 			return () => {
 				socket.off('findRoomResponse')
@@ -138,11 +130,25 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	}, [socket]);
 
 	useEffect(() => {
+		// insertRoom()
+		if (roomId){
+			getRoom(roomId)
+			 .then((result:Room[] | any) => {
+				if (result.length > 0) {
+					// console.log(result.map((e:any)=>JSON.parse(e.data))[0].messages);
+					setMessages(result.map((e:any)=>JSON.parse(e.data))[0]?.messages);
+				}
+			})
+			.catch(error => {
+				console.log(error);
+			});
+		};
 		if (socket) {
 			socket.emit('findRoom', [user, contact]);
 			socket.on('findRoomResponse', (room: Room) => {
 				setRoomId(room.id);
-				setMessages(room.messages);
+				getRoom(room.id);
+				// setMessages(room.messages);
 			});
 			return () => {
 				socket.off('findRoomResponse')
@@ -152,7 +158,6 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 
 	const onSend = (newMessage: IMessage[]) => {
 		if (socket) {
-			console.log(roomId, 'roomId');
 			socket.emit('sendMessage', { ...newMessage[0], user, roomId });
 		}
 	};

@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@react-navigation/native";
 import Checkbox from 'expo-checkbox';
 import { socketContext } from "../socketContext";
+import { getAllRooms, insertRoom } from "../utils/DB";
 
 const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat'>) => {
 	const [rooms, setRooms] = useState<Room[]>([]);
@@ -22,14 +23,15 @@ const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat
 	const { colors } = useTheme();
 	const [isChecked, setChecked] = useState(false);
 	const [darkMode, setDarkMode] = useState(scheme === 'dark' ? true : false);
-	const {socket,user}:any = useContext(socketContext);
+	const { socket, user }: any = useContext(socketContext);
+
 
 	const Drawer = () => {
 		return (
 			<View style={[styles.container, { backgroundColor: colors.background }]}>
 				<Text style={styles.paragraph}>I'm in the Drawer!</Text>
-				<Pressable onPress={()=>setDarkMode(!darkMode)}>
-				<Ionicons name={darkMode?"moon-outline":"sunny"} size={40} color={"black"} />
+				<Pressable onPress={() => setDarkMode(!darkMode)}>
+					<Ionicons name={darkMode ? "moon-outline" : "sunny"} size={40} color={"black"} />
 				</Pressable>
 				<Ionicons name="logo-linkedin" size={35} color="#317daf" />
 				<Ionicons name="logo-github" size={35} color="black" />
@@ -47,35 +49,54 @@ const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat
 		)
 	}
 
-	const pressHandler = (item: User | undefined) => {
+	const pressHandler = (item:User | undefined) => {
 		socket.emit("createRoom", [user, item], navigation.navigate("Messaging", { contact: item }))
 	};
 
-	const handleNavigation = (contact: User) => {
-		// @ts-ignore
-		navigation.navigate("Messaging", { contact });
+	const handleNavigation = ({contact,id}: {contact:User,id:string}) => {
+		navigation.navigate("Messaging", { contact,id });
 	};
 
-	function setter(value: Room[]) {
-		setRooms(value)
+	function setter(data: Room[]) {
+		data.forEach(room => {
+			insertRoom(room);
+		});
+		// setRooms(value);
+		// console.log('value',value);
 	}
 
 	useLayoutEffect(() => {
-		(async function () {
+		(function () {
 			fetch(`${baseURL()}/api`)
 				.then((res) => res.json())
-				.then((data) => setRooms(data))
-				.catch((err) => console.error(err, 'sd'));
+				.then((data: Room[]) => {
+					data.forEach(room => {
+						insertRoom(room);
+					});
+				})
+				.catch((err) => console.error(err, 'error'));
 		})();
-		setChat(2)
+		setChat(2);
 	}, []);
 
 	useEffect(() => {
 		socket.on("roomsList", setter);
+		getAllRooms()
+		.then((result:Room[] | any) => {
+			if (result.length > 0) {
+				setRooms(result.map((e:any)=>JSON.parse(e.data)));
+			}
+		})
+		.catch(error => {
+			console.log(error); // handle the error here
+		});
 		return () => {
 			socket.off("roomsList", setter)
-		}
+		};
 	}, [socket]);
+
+	// console.info(rooms,'use');
+	// console.log(JSON.stringify(rooms[0].users));
 
 	return (
 		<DrawerLayoutAndroid
@@ -95,7 +116,7 @@ const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat
 							<Pressable onPress={() => drawer.current?.openDrawer()}>
 								<Ionicons name="menu-sharp" style={styles.mr10} size={25} />
 							</Pressable>
-							<Text style={styles.chatheading}>Mirza</Text>
+							<Text style={styles.chatheading}>{user.name}</Text>
 						</View>
 						<View style={{ position: "relative" }}>
 							<SearchBar setUsers={setUsers} setScreen={setScreen} />
@@ -115,7 +136,7 @@ const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat
 						screen === "rooms" && rooms.length > 0 ? (
 							<View>
 								<FlatList
-									renderItem={({ item }) => <ChatComponent messages={item.messages[item.messages.length - 1]} contact={item.users[0] === user ? item.users[1] : item.users[0]} handleNavigation={() => handleNavigation(item.users[0] === user ? item.users[1] : item.users[0])} />}
+									renderItem={({ item }) => <ChatComponent messages={item.messages[item.messages.length - 1]} contact={item.users[0].name == user.name ? item.users[1] : item.users[0]} handleNavigation={() => handleNavigation({contact:item.users[0].name === user.name ? item.users[1] : item.users[0],id:item.id})} />}
 									data={rooms}
 									keyExtractor={(item) => item.id}
 								/>

@@ -5,10 +5,15 @@ import Navigation from "./Navigation";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { EventProvider } from 'react-native-outside-press';
 import { useEffect } from "react";
-import socket from "./utils/socket";
 import Context from "./socketContext";
+import { createTable, deleteRooms } from "./utils/DB";
 
 function App() {
+
+  useEffect(()=>{
+     createTable();
+    //  deleteRooms();
+    },[]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -41,6 +46,7 @@ function Main() {
     require('./assets/mirza128.png'),
     require('./assets/mirza256.png')]
   );
+
   if (!assets) {
     return <Text>loading...</Text>
   }

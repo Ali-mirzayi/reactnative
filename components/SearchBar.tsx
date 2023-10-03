@@ -27,7 +27,7 @@ export default function SearchBar({setUsers,setScreen}:props) {
     }
 
     const handlePressOut = () => {
-            animation.value = 0;
+            animation.value = 0.5;
             setOpen(false);
     }
 
@@ -82,6 +82,5 @@ const styles = StyleSheet.create({
         paddingRight:30,
         fontSize:16,
         height: 35,
-
     }
 })
