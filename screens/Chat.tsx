@@ -11,7 +11,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@react-navigation/native";
 import Checkbox from 'expo-checkbox';
 import { socketContext } from "../socketContext";
-import { getAllRooms, insertRoom } from "../utils/DB";
+import { deleteRooms, getAllRooms, insertRoom } from "../utils/DB";
+import Link from "../utils/Link";
 
 const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat'>) => {
 	const [rooms, setRooms] = useState<Room[]>([]);
@@ -27,22 +28,29 @@ const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat
 
 
 	const Drawer = () => {
+		if(isChecked) {
+			deleteRooms();
+		}
 		return (
-			<View style={[styles.container, { backgroundColor: colors.background }]}>
-				<Text style={styles.paragraph}>I'm in the Drawer!</Text>
-				<Pressable onPress={() => setDarkMode(!darkMode)}>
-					<Ionicons name={darkMode ? "moon-outline" : "sunny"} size={40} color={"black"} />
-				</Pressable>
-				<Ionicons name="logo-linkedin" size={35} color="#317daf" />
-				<Ionicons name="logo-github" size={35} color="black" />
-				<Ionicons name="exit-outline" size={35} color="black" />
-				<View>
-					<Text>Remove all data after leave app</Text>
+			<View style={[styles.drawerContainer, { backgroundColor: colors.background }]}>
+				<Text style={[styles.chatheading,styles.user]}>{user.name}</Text>
+				<Ionicons onPress={() => setDarkMode(!darkMode)} style={styles.darkMode} name={darkMode ? "moon-outline" : "sunny"} size={40} color={"black"} />
+				<View style={{flexDirection:"row"}}>
+				<Link url={'https://www.linkedin.com/in/alimirzaeizade/'}>
+				<Ionicons name="logo-linkedin" style={{marginHorizontal:20}} size={35} color="#317daf" />
+				</Link>
+				<Link url={"https://github.com/Ali-mirzayi"}>
+				<Ionicons name="logo-github" style={{marginHorizontal:20}} size={35} color="black" />
+				</Link>
+				</View>
+				<View style={styles.removeContainer}>
+					<Text style={styles.removeText}>Remove all data after leave app</Text>
 					<Checkbox
 						disabled={false}
 						value={isChecked}
 						color={isChecked ? '#4630EB' : undefined}
 						onValueChange={setChecked}
+						style={styles.removeCheck}
 					/>
 				</View>
 			</View>
@@ -58,11 +66,10 @@ const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat
 	};
 
 	function setter(data: Room[]) {
+		console.log('insert');
 		data.forEach(room => {
 			insertRoom(room);
 		});
-		// setRooms(value);
-		// console.log('value',value);
 	}
 
 	useLayoutEffect(() => {
@@ -70,6 +77,7 @@ const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat
 			fetch(`${baseURL()}/api`)
 				.then((res) => res.json())
 				.then((data: Room[]) => {
+					console.log('insert');
 					data.forEach(room => {
 						insertRoom(room);
 					});
@@ -95,9 +103,6 @@ const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat
 		};
 	}, [socket]);
 
-	// console.info(rooms,'use');
-	// console.log(JSON.stringify(rooms[0].users));
-
 	return (
 		<DrawerLayoutAndroid
 			ref={drawer}
@@ -106,17 +111,14 @@ const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat
 			keyboardDismissMode="on-drag"
 			drawerBackgroundColor="red"
 			renderNavigationView={Drawer}
-		// renderNavigationView={()=>Darwer({colors,toggleCheckBox, setToggleCheckBox})}
 		>
 			<SafeAreaView style={[styles.chatscreen, { backgroundColor: colors.background }]}>
 				<StatusBar style="auto" />
 				<View style={[styles.chattopContainer, { backgroundColor: colors.card }]}>
 					<View style={styles.chatheader}>
 						<View style={styles.burgerView}>
-							<Pressable onPress={() => drawer.current?.openDrawer()}>
-								<Ionicons name="menu-sharp" style={styles.mr10} size={25} />
-							</Pressable>
-							<Text style={styles.chatheading}>{user.name}</Text>
+								<Ionicons name="menu-sharp" style={styles.mr10} size={25} onPress={() => drawer.current?.openDrawer()}/>
+							<Text style={styles.chatheading}>Mirza Gram</Text>
 						</View>
 						<View style={{ position: "relative" }}>
 							<SearchBar setUsers={setUsers} setScreen={setScreen} />
@@ -176,7 +178,7 @@ const styles = StyleSheet.create({
 		elevation: 4,
 	},
 	chatheading: {
-		fontSize: 24,
+		fontSize: 22,
 		fontWeight: "bold",
 		color: "#3F72AF",
 	},
@@ -187,7 +189,8 @@ const styles = StyleSheet.create({
 		position: "relative"
 	},
 	burgerView: {
-		flexDirection: "row", alignItems: "center"
+		flexDirection: "row",
+		alignItems: "center"
 	},
 	mr10: {
 		marginRight: 10
@@ -204,14 +207,39 @@ const styles = StyleSheet.create({
 	chatemptyText: {
 		fontWeight: "bold", fontSize: 24, paddingBottom: 30
 	},
-	container: {
+	drawerContainer: {
 		flex: 1,
 		alignItems: 'center',
 		justifyContent: 'center',
+		position:"relative",
 	},
 	paragraph: {
 		padding: 16,
 		fontSize: 15,
 		textAlign: 'center',
 	},
+	user:{
+		position: "absolute",
+		top:45,
+		left:30
+	},
+	darkMode:{
+		position: "absolute",
+		top:45,
+		right:30
+	},
+	removeContainer:{
+		flexDirection:"row",
+		alignItems: "center",
+		justifyContent:"center",
+		position:"absolute",
+		bottom: 20,
+		right: 5
+	},
+	removeCheck:{
+		marginHorizontal:10
+	},
+	removeText:{
+		// color: "white"
+	}
 });

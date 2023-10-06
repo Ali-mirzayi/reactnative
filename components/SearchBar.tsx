@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, TextInput, View } from 'react-native'
-import { useContext, useState } from 'react'
+import { useContext, useRef, useState } from 'react'
 import { Ionicons } from "@expo/vector-icons";
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import OutsidePressHandler from 'react-native-outside-press';
 import { User } from '../utils/types';
 import { socketContext } from '../socketContext';
@@ -16,20 +16,34 @@ export default function SearchBar({setUsers,setScreen}:props) {
     const {socket,user}:any = useContext(socketContext);
     const [search, setSearch] = useState<string | undefined>();
     const animation = useSharedValue(50);
+    const inputAnimation = useSharedValue(0);
+    const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
+    const inputRef = useRef<TextInput>(null);
     const animationStyle = useAnimatedStyle(() => {
         return {
-            width: animation.value == 1 ? withTiming(250, { duration: 500 }) : withTiming(50, { duration: 500 })
+            width: animation.value == 1 ? withTiming(200, { duration: 500 }) : withDelay(500, withTiming(50, { duration: 500 }))
         }
     });
+
+    const inputAnimationStyle = useAnimatedStyle(() => {
+        return {
+            width: inputAnimation.value == 1 ? withDelay(500,  withTiming(185, { duration: 500 })) : withTiming(0, { duration: 500 }) 
+        }
+    });
+
     const handlePressIn = () => {
             animation.value = 1;
+            inputAnimation.value = 1;
             setOpen(true);
-    }
+            inputRef.current?.focus();
+    };
 
     const handlePressOut = () => {
             animation.value = 0.5;
+            inputAnimation.value = 0;
             setOpen(false);
-    }
+            inputRef.current?.blur();
+    };
 
     const handleSearch = (e: string) => {
 		setSearch(e);
@@ -45,14 +59,11 @@ export default function SearchBar({setUsers,setScreen}:props) {
 
     return (
         <View style={styles.container}>
-            <OutsidePressHandler
-              onOutsidePress={handlePressOut}
-            >
+            <OutsidePressHandler onOutsidePress={handlePressOut}>
+                {/* <TextInput ref={inputRef} placeholder="Search Users" value={search} onChangeText={handleSearch} style={[styles.Input,{width:open? 185: 0}]} /> */}
             <Animated.View style={[styles.inner, animationStyle]}>
-                <TextInput placeholder="search" value={search} onChangeText={handleSearch} focusable={true} disableFullscreenUI style={[styles.Input,{width: open ? 220 : 0}]} />
-                <Pressable style={styles.icon} onPress={handlePressIn}>
-                    <Ionicons style={{ paddingRight: 12 }} name='search' size={25} color='#3F72AF' />
-                </Pressable>
+                <AnimatedTextInput ref={inputRef} placeholder="Search Users" value={search} onChangeText={handleSearch} style={[styles.Input,inputAnimationStyle]} />
+                <Ionicons style={styles.icon} onPress={handlePressIn} name='search' size={25} color='#3F72AF' />
             </Animated.View>
             </OutsidePressHandler>
         </View>
@@ -71,15 +82,15 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         flexDirection: "row",
         alignItems: 'center',
-        justifyContent: "center",
+        justifyContent: "flex-end",
         zIndex: 1000
     },
     icon: {
         position: "absolute",
-        right: 0
+        right: 0,
+        paddingRight: 12
     },
     Input:{ 
-        paddingRight:30,
         fontSize:16,
         height: 35,
     }

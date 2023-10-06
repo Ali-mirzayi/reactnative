@@ -1,6 +1,7 @@
 import * as FileSystem from 'expo-file-system';
 import * as SQLite from 'expo-sqlite';
 import { Room } from "./types";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const getDBConnection = () => {
   return SQLite.openDatabase('db.db');
@@ -30,6 +31,37 @@ export const insertRoom = (room:Room) => {
     )
   });
 };
+
+export const UpdateMessage = (data:Room) => {
+  const db = getDBConnection();
+  return db.transaction(tx => {
+    tx.executeSql(`UPDATE rooms SET data = ? WHERE id = ?;`,
+    [JSON.stringify(data),JSON.stringify(data.id)],
+    (_,{rows}) => {console.log(`UPDATED =================================== UPDATED ${JSON.stringify(rows)} UPDATED ================================== UPDATED`)},
+    (_, error):any => {console.log(error)}
+    );
+  });
+};
+
+// export const UpdateMessage = (data:Room) => {
+//   const db = getDBConnection();
+//   return new Promise((resolve, reject) => {
+//   db.transaction(tx => {
+//     tx.executeSql(`UPDATE rooms SET data = ? WHERE id = ?`,
+//     [JSON.stringify(data),JSON.stringify(data.id)],
+//     (_,{rows}) => {
+//       resolve(rows._array)
+//     },
+//     (_, error):any => reject(error)
+//     );
+//   });
+//     // @ts-ignore
+//     error => {
+//       console.log(error);
+//       reject(error);
+//     }
+//  })
+// };
 
 export const getAllRooms = () => {
   const db = getDBConnection();
@@ -76,7 +108,8 @@ export const deleteRooms = () => {
   db.transaction(tx => {
     tx.executeSql('DROP TABLE rooms',
     [],
-    (_,{rows}) => {
+    async(_,{rows}) => {
+      await AsyncStorage.clear();
       console.log(rows._array,'deleted');
     },
     (_, error):any => console.log(error)
@@ -85,6 +118,6 @@ export const deleteRooms = () => {
 
 }
 
-export const deleteRoom = ({id}:{id:string}) => {
+export const deleteRoom = (id:string) => {
   
 }
