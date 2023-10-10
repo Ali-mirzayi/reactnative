@@ -6,12 +6,15 @@ import Chat from "./screens/Chat";
 import LoginPrev from './screens/LoginPrev';
 import { Easing, Text, View } from 'react-native';
 import { TransitionSpec } from '@react-navigation/stack/lib/typescript/src/types';
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useLayoutEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LoginNavigationProps, RootStackParamList, User } from './utils/types';
 import { useColorScheme } from 'react-native';
 import { darkTheme, lightTheme } from './utils/theme';
 import { socketContext } from './socketContext';
+import { createTable, deleteRooms } from "./utils/DB";
+
+
 
 const config: TransitionSpec = {
     animation: 'spring',
@@ -68,6 +71,7 @@ export default function Navigation() {
     const {setUser,user}:any = useContext(socketContext);
     const [loading, setLoading] = useState(true);
     const [chat, setChat] = useState<number>(1);
+    const [beCheck, setBeCheck] = useState<boolean>(false);
     const scheme = useColorScheme();
 
     useEffect(() => {
@@ -86,6 +90,28 @@ export default function Navigation() {
             }
         })();
     }, [chat]);
+
+    async function clear() {
+        const value = await AsyncStorage.getItem("clearAll");
+        console.warn(value,user);
+        if (value === null) {
+			await AsyncStorage.setItem("clearAll","false");
+		};
+        if (value === "true"){
+        //   setUser(undefined);
+        await AsyncStorage.clear();
+          deleteRooms();
+          createTable();
+          setBeCheck(true);
+          console.log('deleted');
+        }else{
+          createTable();
+        }
+      }
+    
+      useLayoutEffect(()=>{
+        clear();
+      },[]);
 
     return (
         <>
@@ -106,7 +132,7 @@ export default function Navigation() {
                                 <Stack.Screen
                                     name='Chat'
                                     component={Chat}
-                                    initialParams={{ setChat }}
+                                    initialParams={{ setChat,beCheck }}
                                     options={{
                                         title: "Chats",
                                         headerShown: false,

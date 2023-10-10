@@ -13,6 +13,7 @@ import { Video, ResizeMode } from 'expo-av';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import * as FileSystem from 'expo-file-system';
 import baseURL from '../utils/baseURL';
+import { downloadsDir, ensureDirExists } from '../utils/directories';
 
 const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>) => {
 	const { contact,id } = route.params;
@@ -185,7 +186,19 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	useEffect(() => {
 		if (socket) {
 			// Listen for new messages from the server
-			socket.on('newMessage', (newMessage: IMessage[]) => {setMessages((prevMessages: IMessage[]) => GiftedChat.append(prevMessages, newMessage))});
+			socket.on('newMessage', async(newMessage: IMessage) => {
+				// if (newMessage.image){
+				// 	// await ensureDirExists();
+				// 	// const base64Code = newMessage.image.replace('data:image/jpeg;base64,','');
+				// 	const base64Code = newMessage.image.split("data:image/jpeg;base64,")[1];
+				// 	// console.log(base64Code.slice(0,90));
+				// 	const filename = downloadsDir + new Date().getTime() + ".jpeg";
+				// 	await FileSystem.writeAsStringAsync(filename,base64Code,{encoding:"base64"});
+				// 	console.log(filename);
+				// }
+				
+				setMessages((prevMessages: IMessage[]) => GiftedChat.append(prevMessages, [newMessage]))
+			});
 			return () => {
 				socket.off('findRoomResponse')
 			}
@@ -194,6 +207,9 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 
 	useEffect(()=>{
 		UpdateMessage({id:roomId,users:[user,contact],messages});
+		if(messages[messages.length-1]){
+			// console.log(messages[messages.length-1]);
+		}
 	},[messages]);
 	
 	// UpdateMessage({id:roomId,users:[user,contact],messages:[newMessage[0],...messages]});

@@ -7,7 +7,8 @@ const lightTheme = {
       ...DefaultTheme.colors,
       background: "#EEF1FF",
       text: "#212A3E",
-      card:"#F9F7F7"
+      card:"#F9F7F7",
+      onPress:""
     },
   };
   

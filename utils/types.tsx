@@ -8,7 +8,7 @@ export type LoginNavigationProps = {
 
 export type RootStackParamList = {
     LoginNavigation?: undefined;
-    Chat: { setChat: React.Dispatch<React.SetStateAction<number>> };
+    Chat: { setChat: React.Dispatch<React.SetStateAction<number>>,beCheck:boolean };
     Messaging: { contact: User | undefined,id?: string};
 };
 

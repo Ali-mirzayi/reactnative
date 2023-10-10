@@ -6,14 +6,10 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { EventProvider } from 'react-native-outside-press';
 import { useEffect } from "react";
 import Context from "./socketContext";
-import { createTable, deleteRooms } from "./utils/DB";
+// import { createTable, deleteRooms } from "./utils/DB";
+// import AsyncStorage from "@react-native-async-storage/async-storage";
 
 function App() {
-
-  useEffect(()=>{
-     createTable();
-    //  deleteRooms();
-    },[]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

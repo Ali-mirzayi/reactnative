@@ -109,8 +109,7 @@ export const deleteRooms = () => {
     tx.executeSql('DROP TABLE rooms',
     [],
     async(_,{rows}) => {
-      await AsyncStorage.clear();
-      console.log(rows._array,'deleted');
+      console.log('deleted');
     },
     (_, error):any => console.log(error)
     )

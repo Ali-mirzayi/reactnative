@@ -19,18 +19,25 @@ const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat
 	const [users, setUsers] = useState<User[] | []>([]);
 	const [screen, setScreen] = useState<'users' | 'rooms'>('rooms');
 	const scheme = useColorScheme();
-	const { setChat } = route.params;
+	const { setChat,beCheck } = route.params;
+	const [isChecked, setChecked] = useState<boolean | undefined>(false);
 	const drawer = useRef<DrawerLayoutAndroid>(null);
 	const { colors } = useTheme();
-	const [isChecked, setChecked] = useState(false);
 	const [darkMode, setDarkMode] = useState(scheme === 'dark' ? true : false);
 	const { socket, user }: any = useContext(socketContext);
 
 
 	const Drawer = () => {
-		if(isChecked) {
-			deleteRooms();
+		async function onValueChange(value:any){
+			console.log(value);
+			setChecked(value);
+			if(value) {
+				await AsyncStorage.setItem("clearAll","true");
+			}else{
+				await AsyncStorage.setItem("clearAll","false");
+			}
 		}
+
 		return (
 			<View style={[styles.drawerContainer, { backgroundColor: colors.background }]}>
 				<Text style={[styles.chatheading,styles.user]}>{user.name}</Text>
@@ -49,13 +56,22 @@ const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat
 						disabled={false}
 						value={isChecked}
 						color={isChecked ? '#4630EB' : undefined}
-						onValueChange={setChecked}
+						onValueChange={onValueChange}
 						style={styles.removeCheck}
 					/>
 				</View>
 			</View>
 		)
-	}
+	};
+
+	async function getClearCheck (){
+        // const value = await AsyncStorage.getItem("clearAll");
+		// console.log(beCheck,'chhhhhhhhhhhhhhhhhhek');
+		if(beCheck){
+			setChecked(beCheck);
+			await AsyncStorage.setItem("clearAll","true");
+		}
+	};
 
 	const pressHandler = (item:User | undefined) => {
 		socket.emit("createRoom", [user, item], navigation.navigate("Messaging", { contact: item }))
@@ -73,6 +89,8 @@ const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat
 	}
 
 	useLayoutEffect(() => {
+		setChat(2);
+		getClearCheck();
 		(function () {
 			fetch(`${baseURL()}/api`)
 				.then((res) => res.json())
@@ -84,7 +102,6 @@ const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat
 				})
 				.catch((err) => console.error(err, 'error'));
 		})();
-		setChat(2);
 	}, []);
 
 	useEffect(() => {

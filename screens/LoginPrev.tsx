@@ -10,6 +10,7 @@ return (
     <SafeAreaView style={styles.Container}>
         <StatusBar style="auto" />
         <Animated.Image
+            // source={{uri:"file:///data/user/0/host.exp.exponent/files/downloads/1696919455908.jpeg"}}
             source={require('../assets/mirza512.png')}
             style={styles.ImageContainer}
             sharedTransitionTag="tag"
