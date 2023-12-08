@@ -4,7 +4,7 @@ import { CardStyleInterpolators, createStackNavigator } from '@react-navigation/
 import Messaging from "./screens/Messaging";
 import Chat from "./screens/Chat";
 import LoginPrev from './screens/LoginPrev';
-import { Easing, Text, View } from 'react-native';
+import { Easing, SafeAreaView, Text, View } from 'react-native';
 import { TransitionSpec } from '@react-navigation/stack/lib/typescript/src/types';
 import { useContext, useEffect, useLayoutEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -13,7 +13,7 @@ import { useColorScheme } from 'react-native';
 import { darkTheme, lightTheme } from './utils/theme';
 import { socketContext } from './socketContext';
 import { createTable, deleteRooms } from "./utils/DB";
-
+import Toast from 'react-native-toast-message';
 
 
 const config: TransitionSpec = {
@@ -68,7 +68,7 @@ const LoginNavigation = () => {
 
 export default function Navigation() {
     const Stack = createStackNavigator<RootStackParamList>();
-    const {setUser,user}:any = useContext(socketContext);
+    const { setUser, user }: any = useContext(socketContext);
     const [loading, setLoading] = useState(true);
     const [chat, setChat] = useState<number>(1);
     const [beCheck, setBeCheck] = useState<boolean>(false);
@@ -85,7 +85,6 @@ export default function Navigation() {
                 }
                 setLoading(false);
             } catch (e) {
-                console.error("Error while loading username!");
                 setLoading(false);
             }
         })();
@@ -93,25 +92,24 @@ export default function Navigation() {
 
     async function clear() {
         const value = await AsyncStorage.getItem("clearAll");
-        console.warn(value,user);
         if (value === null) {
-			await AsyncStorage.setItem("clearAll","false");
-		};
-        if (value === "true"){
-        //   setUser(undefined);
-        await AsyncStorage.clear();
-          deleteRooms();
-          createTable();
-          setBeCheck(true);
-          console.log('deleted');
-        }else{
-          createTable();
+            await AsyncStorage.setItem("clearAll", "false");
+        };
+        if (value === "true") {
+            //   setUser(undefined);
+            await AsyncStorage.clear();
+            deleteRooms();
+            createTable();
+            setBeCheck(true);
+            console.log('deleted');
+        } else {
+            createTable();
         }
-      }
-    
-      useLayoutEffect(()=>{
+    }
+
+    useLayoutEffect(() => {
         clear();
-      },[]);
+    }, []);
 
     return (
         <>
@@ -119,36 +117,36 @@ export default function Navigation() {
                 loading ?
                     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}><Text>Wait ...</Text></View >
                     :
-                        <NavigationContainer theme={scheme === 'dark' ? darkTheme : lightTheme}>
-                            <Stack.Navigator screenOptions={{ headerShown: false }}>
-                                {user ?
-                                    null
-                                    :
-                                    <Stack.Screen
-                                        name='LoginNavigation'
-                                        component={LoginNavigation}
-                                        options={{ headerShown: false, presentation: 'card' }} />
-                                }
+                    <NavigationContainer theme={scheme === 'dark' ? darkTheme : lightTheme}>
+                        <Stack.Navigator screenOptions={{ headerShown: false }}>
+                            {user ?
+                                null
+                                :
                                 <Stack.Screen
-                                    name='Chat'
-                                    component={Chat}
-                                    initialParams={{ setChat,beCheck }}
-                                    options={{
-                                        title: "Chats",
-                                        headerShown: false,
-                                    }}
-                                />
-                                <Stack.Screen
-                                    name='Messaging'
-                                    component={Messaging}
-                                    initialParams={{ contact: undefined }}
-                                    options={{
-                                        title: "Messaging",
-                                        headerShown: false,
-                                    }}
-                                />
-                            </Stack.Navigator>
-                        </NavigationContainer>
+                                    name='LoginNavigation'
+                                    component={LoginNavigation}
+                                    options={{ headerShown: false, presentation: 'card' }} />
+                            }
+                            <Stack.Screen
+                                name='Chat'
+                                component={Chat}
+                                initialParams={{ setChat, beCheck }}
+                                options={{
+                                    title: "Chats",
+                                    headerShown: false,
+                                }}
+                            />
+                            <Stack.Screen
+                                name='Messaging'
+                                component={Messaging}
+                                initialParams={{ contact: undefined }}
+                                options={{
+                                    title: "Messaging",
+                                    headerShown: false,
+                                }}
+                            />
+                        </Stack.Navigator>
+                    </NavigationContainer>
             }
         </>
     )

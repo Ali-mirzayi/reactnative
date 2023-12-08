@@ -2,7 +2,6 @@ import React, { useState, useLayoutEffect, useEffect, useRef, useContext } from 
 import { View, Text, Pressable, SafeAreaView, FlatList, StyleSheet, Button, DrawerLayoutAndroid, useColorScheme } from "react-native";
 import ChatComponent from "../components/ChatComponent";
 import baseURL from "../utils/baseURL";
-import { StatusBar } from "expo-status-bar";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import SearchBar from "../components/SearchBar";
 import { Room, RootStackParamList, User } from "../utils/types";
@@ -19,7 +18,7 @@ const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat
 	const [users, setUsers] = useState<User[] | []>([]);
 	const [screen, setScreen] = useState<'users' | 'rooms'>('rooms');
 	const scheme = useColorScheme();
-	const { setChat,beCheck } = route.params;
+	const { setChat, beCheck } = route.params;
 	const [isChecked, setChecked] = useState<boolean | undefined>(false);
 	const drawer = useRef<DrawerLayoutAndroid>(null);
 	const { colors } = useTheme();
@@ -28,27 +27,26 @@ const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat
 
 
 	const Drawer = () => {
-		async function onValueChange(value:any){
-			console.log(value);
+		async function onValueChange(value: any) {
 			setChecked(value);
-			if(value) {
-				await AsyncStorage.setItem("clearAll","true");
-			}else{
-				await AsyncStorage.setItem("clearAll","false");
+			if (value) {
+				await AsyncStorage.setItem("clearAll", "true");
+			} else {
+				await AsyncStorage.setItem("clearAll", "false");
 			}
 		}
 
 		return (
 			<View style={[styles.drawerContainer, { backgroundColor: colors.background }]}>
-				<Text style={[styles.chatheading,styles.user]}>{user.name}</Text>
+				<Text style={[styles.chatheading, styles.user]}>{user.name}</Text>
 				<Ionicons onPress={() => setDarkMode(!darkMode)} style={styles.darkMode} name={darkMode ? "moon-outline" : "sunny"} size={40} color={"black"} />
-				<View style={{flexDirection:"row"}}>
-				<Link url={'https://www.linkedin.com/in/alimirzaeizade/'}>
-				<Ionicons name="logo-linkedin" style={{marginHorizontal:20}} size={35} color="#317daf" />
-				</Link>
-				<Link url={"https://github.com/Ali-mirzayi"}>
-				<Ionicons name="logo-github" style={{marginHorizontal:20}} size={35} color="black" />
-				</Link>
+				<View style={{ flexDirection: "row" }}>
+					<Link url={'https://www.linkedin.com/in/alimirzaeizade/'}>
+						<Ionicons name="logo-linkedin" style={{ marginHorizontal: 20 }} size={35} color="#317daf" />
+					</Link>
+					<Link url={"https://github.com/Ali-mirzayi"}>
+						<Ionicons name="logo-github" style={{ marginHorizontal: 20 }} size={35} color="black" />
+					</Link>
 				</View>
 				<View style={styles.removeContainer}>
 					<Text style={styles.removeText}>Remove all data after leave app</Text>
@@ -64,25 +62,22 @@ const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat
 		)
 	};
 
-	async function getClearCheck (){
-        // const value = await AsyncStorage.getItem("clearAll");
-		// console.log(beCheck,'chhhhhhhhhhhhhhhhhhek');
-		if(beCheck){
+	async function getClearCheck() {
+		if (beCheck) {
 			setChecked(beCheck);
-			await AsyncStorage.setItem("clearAll","true");
+			await AsyncStorage.setItem("clearAll", "true");
 		}
 	};
 
-	const pressHandler = (item:User | undefined) => {
+	const pressHandler = (item: User | undefined) => {
 		socket.emit("createRoom", [user, item], navigation.navigate("Messaging", { contact: item }))
 	};
 
-	const handleNavigation = ({contact,id}: {contact:User,id:string}) => {
-		navigation.navigate("Messaging", { contact,id });
+	const handleNavigation = ({ contact, id }: { contact: User, id: string }) => {
+		navigation.navigate("Messaging", { contact, id });
 	};
 
 	function setter(data: Room[]) {
-		console.log('insert');
 		data.forEach(room => {
 			insertRoom(room);
 		});
@@ -107,14 +102,14 @@ const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat
 	useEffect(() => {
 		socket.on("roomsList", setter);
 		getAllRooms()
-		.then((result:Room[] | any) => {
-			if (result.length > 0) {
-				setRooms(result.map((e:any)=>JSON.parse(e.data)));
-			}
-		})
-		.catch(error => {
-			console.log(error); // handle the error here
-		});
+			.then((result: Room[] | any) => {
+				if (result.length > 0) {
+					setRooms(result.map((e: any) => JSON.parse(e.data)));
+				}
+			})
+			.catch(error => {
+				console.log(error); // handle the error here
+			});
 		return () => {
 			socket.off("roomsList", setter)
 		};
@@ -125,16 +120,13 @@ const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat
 			ref={drawer}
 			drawerWidth={300}
 			drawerPosition={"left"}
-			keyboardDismissMode="on-drag"
-			drawerBackgroundColor="red"
 			renderNavigationView={Drawer}
 		>
 			<SafeAreaView style={[styles.chatscreen, { backgroundColor: colors.background }]}>
-				<StatusBar style="auto" />
 				<View style={[styles.chattopContainer, { backgroundColor: colors.card }]}>
 					<View style={styles.chatheader}>
 						<View style={styles.burgerView}>
-								<Ionicons name="menu-sharp" style={styles.mr10} size={25} onPress={() => drawer.current?.openDrawer()}/>
+							<Ionicons name="menu-sharp" style={styles.mr10} size={25} onPress={() => drawer.current?.openDrawer()} />
 							<Text style={styles.chatheading}>Mirza Gram</Text>
 						</View>
 						<View style={{ position: "relative" }}>
@@ -155,7 +147,7 @@ const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat
 						screen === "rooms" && rooms.length > 0 ? (
 							<View>
 								<FlatList
-									renderItem={({ item }) => <ChatComponent messages={item.messages[item.messages.length - 1]} contact={item.users[0].name == user.name ? item.users[1] : item.users[0]} handleNavigation={() => handleNavigation({contact:item.users[0].name === user.name ? item.users[1] : item.users[0],id:item.id})} />}
+									renderItem={({ item }) => <ChatComponent messages={item.messages[item.messages.length - 1]} contact={item.users[0].name == user.name ? item.users[1] : item.users[0]} handleNavigation={() => handleNavigation({ contact: item.users[0].name === user.name ? item.users[1] : item.users[0], id: item.id })} />}
 									data={rooms}
 									keyExtractor={(item) => item.id}
 								/>
@@ -163,9 +155,6 @@ const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat
 							</View>
 						) : (
 							<View style={styles.chatemptyContainer}>
-								<Pressable style={{ backgroundColor: "#3F72AF", padding: 7 }} onPress={async () => await AsyncStorage.clear()} >
-									<Text style={{ color: "#fff" }}>Clear</Text>
-								</Pressable>
 								<Text style={styles.chatemptyText}>No rooms created!</Text>
 								<Text>Click the icon above to create a Chat room</Text>
 							</View>
@@ -228,35 +217,35 @@ const styles = StyleSheet.create({
 		flex: 1,
 		alignItems: 'center',
 		justifyContent: 'center',
-		position:"relative",
+		position: "relative",
 	},
 	paragraph: {
 		padding: 16,
 		fontSize: 15,
 		textAlign: 'center',
 	},
-	user:{
+	user: {
 		position: "absolute",
-		top:45,
-		left:30
+		top: 45,
+		left: 30
 	},
-	darkMode:{
+	darkMode: {
 		position: "absolute",
-		top:45,
-		right:30
+		top: 45,
+		right: 30
 	},
-	removeContainer:{
-		flexDirection:"row",
+	removeContainer: {
+		flexDirection: "row",
 		alignItems: "center",
-		justifyContent:"center",
-		position:"absolute",
+		justifyContent: "center",
+		position: "absolute",
 		bottom: 20,
 		right: 5
 	},
-	removeCheck:{
-		marginHorizontal:10
+	removeCheck: {
+		marginHorizontal: 10
 	},
-	removeText:{
+	removeText: {
 		// color: "white"
 	}
 });

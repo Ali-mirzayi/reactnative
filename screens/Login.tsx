@@ -1,7 +1,6 @@
-;import React, { useContext, useState } from "react";
-import { Text, SafeAreaView, View, TextInput, Pressable, Alert, StyleSheet } from "react-native";
+import { useContext, useState } from "react";
+import { Text, SafeAreaView, View, TextInput, Alert, StyleSheet, TouchableHighlight } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { StatusBar } from 'expo-status-bar';
 import Animated from "react-native-reanimated";
 import { LoginNavigationProps } from "../utils/types";
 import { generateID } from "../utils/utils";
@@ -10,32 +9,31 @@ import baseURL from "../utils/baseURL";
 import { useTheme } from "@react-navigation/native";
 import { socketContext } from "../socketContext";
 
-const Login = ({ navigation }: StackScreenProps<LoginNavigationProps,'Login'>) => {
-		const [username, setUsername] = useState("");
-		const { colors } = useTheme();
-		const {setUser}:any = useContext(socketContext);
+const Login = ({ navigation }: StackScreenProps<LoginNavigationProps, 'Login'>) => {
+	const [username, setUsername] = useState("");
+	const { colors } = useTheme();
+	const { setUser }: any = useContext(socketContext);
 
-		const id = generateID(); 
-		const storeUsername = async () => {
-			try {
-			const response = await fetch(`${baseURL()}/checkUser`,{
+	const id = generateID();
+	const storeUsername = async () => {
+		try {
+			const response = await fetch(`${baseURL()}/checkUser`, {
 				method: 'POST',
 				headers: {
 					Accept: 'application/json',
 					'Content-Type': 'application/json',
 				},
-				body: JSON.stringify({_id: id,name:username,avatar:'',Date:new Date()})});
+				body: JSON.stringify({ _id: id, name: username, avatar: '', Date: new Date() })
+			});
 			const json = await response.json();
-			console.log(json);
-			if(json?.isOK===true){
+			if (json?.isOK === true) {
 				await AsyncStorage.setItem("username", username);
 				await AsyncStorage.setItem("id", id);
 				setUser({ _id: id, name: username, avatar: '' })
 				navigation.navigate("Chat");
-			}else{
+			} else {
 				Alert.alert("Error! invalid username");
 			}
-			
 		} catch (e) {
 			Alert.alert("Error! While saving username");
 		}
@@ -50,8 +48,7 @@ const Login = ({ navigation }: StackScreenProps<LoginNavigationProps,'Login'>) =
 	};
 
 	return (
-		<SafeAreaView style={[styles.loginscreen,{backgroundColor: colors.background,}]}>
-			<StatusBar style="auto" />
+		<SafeAreaView style={[styles.loginscreen, { backgroundColor: colors.background, }]}>
 			<Animated.Image
 				source={require('../assets/mirza512.png')}
 				style={styles.ImageContainer}
@@ -66,10 +63,10 @@ const Login = ({ navigation }: StackScreenProps<LoginNavigationProps,'Login'>) =
 					style={styles.logininput}
 					onChangeText={(value) => setUsername(value)} />
 			</View>
-			
-			<Pressable style={styles.ButtonContainer} onPress={handleSignIn}>
+
+			<TouchableHighlight style={styles.ButtonContainer} onPress={handleSignIn} underlayColor={"#c8cce0"}>
 				<Text style={styles.Button}>ورود</Text>
-			</Pressable>
+			</TouchableHighlight>
 			{/* <View style={{width:"auto",height:150}}/> */}
 		</SafeAreaView>
 	);

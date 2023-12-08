@@ -10,9 +10,15 @@ export const ensureDirExists = async() => {
         await FileSystem.makeDirectoryAsync(downloadsDir,{intermediates: true});
     }
 };
+
 // export const ensureDirExists = async(props:string) => {
 //     const dirInfo = await FileSystem.getInfoAsync(props);
 //     if (!dirInfo.exists){
 //         await FileSystem.makeDirectoryAsync(props,{intermediates: true});
 //     }
+// };
+
+// export const fileName = async() => {
+//     await ensureDirExists();
+//     const filename = downloadsDir + new Date().getTime() + ".jpeg";
 // };

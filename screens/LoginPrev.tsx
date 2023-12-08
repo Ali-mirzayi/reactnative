@@ -1,16 +1,14 @@
 import Animated from 'react-native-reanimated';
-import { Text, SafeAreaView, StyleSheet, Pressable, View } from 'react-native'
-import React from 'react'
-import { StatusBar } from 'expo-status-bar'
+import { Text, StyleSheet, TouchableHighlight, View } from 'react-native'
 import { LoginNavigationProps } from '../utils/types';
 import { StackScreenProps } from '@react-navigation/stack';
+// import { TouchableOpacity } from 'react-native-gesture-handler';
 
 export default function LoginPrev({ navigation }:StackScreenProps<LoginNavigationProps,'LoginPrev'>) {
+
 return (
-    <SafeAreaView style={styles.Container}>
-        <StatusBar style="auto" />
+    <View style={styles.Container}>
         <Animated.Image
-            // source={{uri:"file:///data/user/0/host.exp.exponent/files/downloads/1696919455908.jpeg"}}
             source={require('../assets/mirza512.png')}
             style={styles.ImageContainer}
             sharedTransitionTag="tag"
@@ -18,10 +16,10 @@ return (
         <Text style={styles.Mirza}>MirzaGram</Text>
         <Text style={styles.MirzaDesc}>قوی ترین چت اپ بی رقیب و بدون دیتابیس</Text>
         <Text style={styles.MirzaDesc}>با ما در امان چت کنید </Text>
-        <Pressable style={styles.ButtonContainer} onPress={() => navigation.navigate('Login')}>
+        <TouchableHighlight style={styles.ButtonContainer} onPress={() => navigation.navigate('Login')} underlayColor={"#c8cce0"}>
             <Text style={styles.Button}>شروع کن !</Text>
-        </Pressable>
-    </SafeAreaView>
+        </TouchableHighlight>
+    </View>
 )
 }
 
