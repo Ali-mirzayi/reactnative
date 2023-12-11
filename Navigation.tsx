@@ -14,6 +14,7 @@ import { darkTheme, lightTheme } from './utils/theme';
 import { socketContext } from './socketContext';
 import { createTable, deleteRooms } from "./utils/DB";
 import Toast from 'react-native-toast-message';
+import LoadingPage from './components/LoadingPage';
 
 
 const config: TransitionSpec = {
@@ -96,7 +97,6 @@ export default function Navigation() {
             await AsyncStorage.setItem("clearAll", "false");
         };
         if (value === "true") {
-            //   setUser(undefined);
             await AsyncStorage.clear();
             deleteRooms();
             createTable();
@@ -115,7 +115,7 @@ export default function Navigation() {
         <>
             {
                 loading ?
-                    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}><Text>Wait ...</Text></View >
+                    <LoadingPage active={true} />
                     :
                     <NavigationContainer theme={scheme === 'dark' ? darkTheme : lightTheme}>
                         <Stack.Navigator screenOptions={{ headerShown: false }}>

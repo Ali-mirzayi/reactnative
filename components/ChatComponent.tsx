@@ -1,10 +1,11 @@
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Message, User } from "../utils/types";
+import { User } from "../utils/types";
 import { time } from "../utils/utils";
+import { IMessage } from "react-native-gifted-chat";
 
 type props = {
-	messages: Message | any,
+	messages: IMessage | any,
 	contact: User,
 	handleNavigation: () => void
 }
@@ -58,7 +59,7 @@ const ChatComponent = ({ messages,contact,handleNavigation }:props) => {
 				</View>
 				<View>
 					<Text style={styles.ctime}>
-						{messages?.createdAt ? time(messages?.createdAt) : "now"}
+						{messages?.createdAt ? time(`${messages.createdAt}`) : "now"}
 					</Text>
 				</View>
 			</View>

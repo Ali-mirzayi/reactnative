@@ -1,6 +1,5 @@
-import React, { useState, useLayoutEffect, useEffect, useRef, useContext } from "react";
-import { View, Text, Pressable, SafeAreaView, FlatList, StyleSheet, Button, DrawerLayoutAndroid, useColorScheme } from "react-native";
-import ChatComponent from "../components/ChatComponent";
+import React, { useState, useLayoutEffect, useEffect, useRef, useContext, useTransition } from "react";
+import { View, Text, SafeAreaView, FlatList, StyleSheet, Button, DrawerLayoutAndroid, useColorScheme } from "react-native";
 import baseURL from "../utils/baseURL";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import SearchBar from "../components/SearchBar";
@@ -12,6 +11,9 @@ import Checkbox from 'expo-checkbox';
 import { socketContext } from "../socketContext";
 import { deleteRooms, getAllRooms, insertRoom } from "../utils/DB";
 import Link from "../utils/Link";
+import Toast from "react-native-toast-message";
+import LoadingPage from "../components/LoadingPage";
+import ChatComponent from "../components/ChatComponent";
 
 const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat'>) => {
 	const [rooms, setRooms] = useState<Room[]>([]);
@@ -24,7 +26,7 @@ const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat
 	const { colors } = useTheme();
 	const [darkMode, setDarkMode] = useState(scheme === 'dark' ? true : false);
 	const { socket, user }: any = useContext(socketContext);
-
+	const [isPending, startTransition] = useTransition();
 
 	const Drawer = () => {
 		async function onValueChange(value: any) {
@@ -84,19 +86,25 @@ const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat
 	}
 
 	useLayoutEffect(() => {
-		setChat(2);
-		getClearCheck();
-		(function () {
-			fetch(`${baseURL()}/api`)
-				.then((res) => res.json())
-				.then((data: Room[]) => {
-					console.log('insert');
-					data.forEach(room => {
-						insertRoom(room);
-					});
-				})
-				.catch((err) => console.error(err, 'error'));
-		})();
+		startTransition(() => {
+			setChat(2);
+			getClearCheck();
+			(function () {
+				fetch(`${baseURL()}/api`)
+					.then((res) => res.json())
+					.then((data: Room[]) => {
+						console.log('insert');
+						data.forEach(room => {
+							insertRoom(room);
+						});
+					})
+					.catch((_) => Toast.show({
+						type: 'error',
+						text1: 'some thing went wrong',
+						autoHide: false
+					}));
+			})();
+		})
 	}, []);
 
 	useEffect(() => {
@@ -107,9 +115,11 @@ const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat
 					setRooms(result.map((e: any) => JSON.parse(e.data)));
 				}
 			})
-			.catch(error => {
-				console.log(error); // handle the error here
-			});
+			.catch((_) => Toast.show({
+				type: 'error',
+				text1: 'some thing went wrong with db',
+				autoHide: false
+			}));
 		return () => {
 			socket.off("roomsList", setter)
 		};
@@ -123,6 +133,7 @@ const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat
 			renderNavigationView={Drawer}
 		>
 			<SafeAreaView style={[styles.chatscreen, { backgroundColor: colors.background }]}>
+				<LoadingPage active={isPending} />
 				<View style={[styles.chattopContainer, { backgroundColor: colors.card }]}>
 					<View style={styles.chatheader}>
 						<View style={styles.burgerView}>

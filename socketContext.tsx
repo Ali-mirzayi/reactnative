@@ -12,7 +12,6 @@ export default function Context({ children }: any) {
 	useEffect(() => {
 		// Connect to the Socket.IO server
 		const newSocket = io(baseURL());
-		// const newSocket = io("https://mirza.iran.liara.run/");
 		setSocket(newSocket);
 		// Clean up on component unmount
 		return () => {

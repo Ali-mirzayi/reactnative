@@ -76,10 +76,11 @@ const styles = StyleSheet.create({
         zIndex: 100
     },
     Input: {
+        position: "absolute",
         fontSize: 16,
         height: 35,
         width: "70%",
-        marginRight: 50,
+        right:50,
         paddingLeft:8
     }
 })
