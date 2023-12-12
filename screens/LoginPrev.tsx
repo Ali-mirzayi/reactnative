@@ -2,9 +2,16 @@ import Animated from 'react-native-reanimated';
 import { Text, StyleSheet, TouchableHighlight, View } from 'react-native'
 import { LoginNavigationProps } from '../utils/types';
 import { StackScreenProps } from '@react-navigation/stack';
-// import { TouchableOpacity } from 'react-native-gesture-handler';
+import { useEffect } from 'react';
+import { storage } from '../mmkv';
 
 export default function LoginPrev({ navigation }:StackScreenProps<LoginNavigationProps,'LoginPrev'>) {
+
+    useEffect(()=>{
+        storage.set('user', JSON.stringify({user:'ali',name:'mirzaei'}))
+        const jsonUser = storage.getString('user')
+        console.log(jsonUser);
+    },[])
 
 return (
     <View style={styles.Container}>
