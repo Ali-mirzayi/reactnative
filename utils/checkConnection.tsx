@@ -23,7 +23,8 @@ export default function checkConnection(setError:React.Dispatch<React.SetStateAc
                 setTimeout(reject, 1000, 'Request timed out');
             });
             const request = fetch(baseURL());
-            Promise.race([timeout, request]).then(() => setError(false)).catch(() => {
+            Promise.race([timeout, request]).then().catch((e) => {
+                console.error(e);
                 Toast.show({
                     type: 'error',
                     text1: 'Connection error',

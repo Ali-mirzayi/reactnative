@@ -1,29 +1,28 @@
-import React, { useState, useEffect, useContext, useTransition } from 'react'
-import { Actions, ActionsProps, Bubble, BubbleProps, GiftedChat, IMessage, MessageVideoProps, Send, SendProps } from 'react-native-gifted-chat'
+import React, { useState, useEffect } from 'react'
+import { GiftedChat, IMessage } from 'react-native-gifted-chat'
 import { StackScreenProps } from "@react-navigation/stack";
 import { Room, RootStackParamList } from '../utils/types';
-import { socketContext } from '../socketContext';
-import { Feather, Ionicons, Entypo } from '@expo/vector-icons';
-import { StyleSheet, View } from 'react-native';
-import { useTheme } from '@react-navigation/native';
-import { generateID } from '../utils/utils';
+import { useSocket, useUser } from '../socketContext';
 import { UpdateMessage, getRoom } from '../utils/DB';
-import { Video, ResizeMode } from 'expo-av';
 import { useSharedValue, withTiming } from 'react-native-reanimated';
 import * as FileSystem from 'expo-file-system';
-import baseURL from '../utils/baseURL';
 import { downloadsDir, ensureDirExists } from '../utils/directories';
 import LoadingPage from '../components/LoadingPage';
-import { renderActions, renderBubble, renderChatFooter, renderMessageVideo, renderSend } from '../components/Message';
+import { renderActions, renderBubble, RenderChatFooter, renderInputToolbar, renderMessageVideo, renderSend } from '../components/Message';
+import useTheme from '../utils/theme';
+import { View } from 'react-native';
 
 const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>) => {
-	const { contact, id } = route.params;
+	const { contact, id }:any = route.params;
 	const [messages, setMessages] = useState<IMessage[]>([]);
 	const [roomId, setRoomId] = useState<string | any>(id);
 	const [open, setOpen] = useState<boolean>(false);
-	const { socket, user }: any = useContext(socketContext);
+	const [loading, setLoading] = useState<boolean>(true);
+	const user:any = useUser(state=>state.user)
 	const translateY = useSharedValue(1000);
-	const [isPending, startTransition] = useTransition();
+	const [isPending, setPending] = useState(true);
+	const socket = useSocket(state=>state.socket);
+	const { colors } = useTheme();
 
 	useEffect(() => {
 		if (socket) {
@@ -63,7 +62,6 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	}, [open]);
 
 	useEffect(() => {
-		startTransition(() => {
 			if (socket) {
 				socket.emit('findRoom', [user, contact]);
 				socket.on('findRoomResponse', (room: Room) => {
@@ -73,10 +71,12 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 							if (result.length > 0) {
 								console.log('socket get');
 								setMessages(result.map((e: any) => JSON.parse(e.data))[0]?.messages);
+								setLoading(false)				
 							}
 						})
 						.catch(error => {
 							console.log(error);
+							setLoading(false)
 						});
 				});
 			};
@@ -92,7 +92,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 						console.log(error);
 					});
 			};
-		})
+		setPending(false)
 		return () => {
 			socket?.off('findRoomResponse');
 		}
@@ -105,8 +105,8 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	};
 
 	return (
-		<>
-			<LoadingPage active={isPending} />
+		<View style={{flex:1,backgroundColor:colors.background}}>
+			<LoadingPage active={isPending || loading} />
 			<GiftedChat
 				messages={messages}
 				onSend={messages => onSend(messages)}
@@ -118,12 +118,13 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 				renderUsernameOnMessage
 				infiniteScroll
 				inverted={true}
-				renderActions={(e)=>renderActions(e,{setOpen,open})}
+				renderActions={(e)=>renderActions(e,{setOpen,open,colors})}
 				renderBubble={renderBubble}
-				renderSend={renderSend}
-				renderChatFooter={()=>renderChatFooter({translateY,roomId})}
+				renderSend={(e)=>renderSend(e,{colors})}
+				renderChatFooter={()=>RenderChatFooter({user,socket,translateY,roomId,colors})}
+				renderInputToolbar={(e)=>renderInputToolbar(e,{colors})}
 			/>
-		</>
+		</View>
 	);
 };
 

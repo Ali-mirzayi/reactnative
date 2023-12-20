@@ -1,18 +1,21 @@
-import { useContext, useState } from "react";
+import { useState } from "react";
 import { Text, SafeAreaView, View, TextInput, Alert, StyleSheet, TouchableHighlight } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+// import AsyncStorage from "@react-native-async-storage/async-storage";
 import Animated from "react-native-reanimated";
 import { LoginNavigationProps } from "../utils/types";
 import { generateID } from "../utils/utils";
 import { StackScreenProps } from "@react-navigation/stack";
 import baseURL from "../utils/baseURL";
-import { useTheme } from "@react-navigation/native";
-import { socketContext } from "../socketContext";
+import { useDarkMode, useUser } from "../socketContext";
+import { storage } from "../mmkv";
+import LottieView from 'lottie-react-native';
+import useTheme from "../utils/theme";
 
 const Login = ({ navigation }: StackScreenProps<LoginNavigationProps, 'Login'>) => {
 	const [username, setUsername] = useState("");
 	const { colors } = useTheme();
-	const { setUser }: any = useContext(socketContext);
+	// const { setUser }: any = useContext(socketContext);
+	const setUser = useUser(state => state.setUser);
 
 	const id = generateID();
 	const storeUsername = async () => {
@@ -27,8 +30,9 @@ const Login = ({ navigation }: StackScreenProps<LoginNavigationProps, 'Login'>) 
 			});
 			const json = await response.json();
 			if (json?.isOK === true) {
-				await AsyncStorage.setItem("username", username);
-				await AsyncStorage.setItem("id", id);
+				// await AsyncStorage.setItem("username", username);
+				// await AsyncStorage.setItem("id", id);
+				storage.set('user', JSON.stringify({name:username,id}));
 				setUser({ _id: id, name: username, avatar: '' })
 				navigation.navigate("Chat");
 			} else {
@@ -49,25 +53,20 @@ const Login = ({ navigation }: StackScreenProps<LoginNavigationProps, 'Login'>) 
 
 	return (
 		<SafeAreaView style={[styles.loginscreen, { backgroundColor: colors.background, }]}>
-			<Animated.Image
-				source={require('../assets/mirza512.png')}
-				style={styles.ImageContainer}
-				sharedTransitionTag="tag"
-			/>
-			<Text style={styles.Mirza}>Sign in to MirzaGram</Text>
-			<Text style={styles.MirzaDesc}>لطفا نام کاربری خود انتخاب کنید</Text>
+        <LottieView autoPlay source={require('../assets/chat.json')} style={styles.ImageContainer} />
+			<Text style={[styles.Mirza,{color:colors.loginMirza}]}>Sign in to MirzaGram</Text>
+			<Text style={[styles.MirzaDesc,{color:colors.text}]}>please enter your username</Text>
 			<View style={styles.logininputContainer}>
 				<TextInput
+				    placeholderTextColor={colors.text}
 					autoCorrect={false}
-					placeholder='نام کاربری خود را انتخاب کنید'
-					style={styles.logininput}
+					placeholder="user name"
+					style={[styles.logininput,{color:colors.text,borderColor:colors.undetlay}]}
 					onChangeText={(value) => setUsername(value)} />
 			</View>
-
 			<TouchableHighlight style={styles.ButtonContainer} onPress={handleSignIn} underlayColor={"#c8cce0"}>
-				<Text style={styles.Button}>ورود</Text>
+				<Text style={styles.Button}>Let's Chat</Text>
 			</TouchableHighlight>
-			{/* <View style={{width:"auto",height:150}}/> */}
 		</SafeAreaView>
 	);
 };
@@ -96,17 +95,12 @@ const styles = StyleSheet.create({
 		fontSize: 22,
 		fontWeight: "700",
 		marginTop: 20,
-		marginBottom: 7
+		marginBottom: 7,
 	},
 	MirzaDesc: {
 		textAlign: "center",
 		fontSize: 15,
-		color: "#555",
-		marginBottom: 15,
-	},
-	loginheading: {
-		fontSize: 26,
-		marginBottom: 10,
+		marginBottom: 20,
 	},
 	logininputContainer: {
 		width: "100%",
@@ -116,8 +110,10 @@ const styles = StyleSheet.create({
 	logininput: {
 		borderWidth: 1,
 		width: "80%",
-		padding: 8,
-		borderRadius: 2,
+		paddingVertical: 7,
+		paddingHorizontal:12,
+		fontSize:18,
+		borderRadius: 4,
 	},
 	ButtonContainer: {
 		marginTop: 20,

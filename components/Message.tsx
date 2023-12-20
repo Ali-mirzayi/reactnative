@@ -1,30 +1,26 @@
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, TouchableHighlight, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { Feather, Ionicons, Entypo } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { generateID } from "../utils/utils";
 import baseURL from "../utils/baseURL";
 import * as FileSystem from 'expo-file-system';
-import { useContext } from "react";
-import { socketContext } from "../socketContext";
-import { useTheme } from "@react-navigation/native";
-import { Actions, ActionsProps, Bubble, BubbleProps, IMessage, MessageVideoProps, Send, SendProps } from "react-native-gifted-chat";
+import { Actions, ActionsProps, Bubble, BubbleProps, Composer, IMessage, InputToolbar, InputToolbarProps, MessageVideoProps, Send, SendProps } from "react-native-gifted-chat";
 import { ResizeMode, Video } from "expo-av";
+import { darkTheme } from "../utils/theme";
+import { User } from "../utils/types";
 
-
-export function renderChatFooter({translateY,roomId}:any) {
-	const { socket, user }: any = useContext(socketContext);
-	const { colors } = useTheme();
+export function RenderChatFooter({user,socket,translateY,roomId,colors}:{user:User,socket:any,translateY:any,roomId:any,colors:typeof darkTheme.colors}){
 	async function sendMedia({ uri, type }: { uri: string | null | undefined, type: "image" | "video" | undefined }) {
 		const id = generateID();
 		// console.log(uri, type);
 		if (type === 'image' && uri) {
 			const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file' })
-			socket.emit('sendImage', { _id: id, text: "", createdAt: new Date(), user, roomId });
+			socket?.emit('sendImage', { _id: id, text: "", createdAt: new Date(), user, roomId });
 			// socket.emit('sendMessage', { _id: id, text: "", createdAt: new Date(),image:'data:image/jpeg;base64,'+uri, user, roomId });
 		} else if (type === 'video' && uri) {
 			const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file' })
-			socket.emit('sendVideo', { _id: id, text: "", createdAt: new Date(), user, roomId });
+			socket?.emit('sendVideo', { _id: id, text: "", createdAt: new Date(), user, roomId });
 			// socket.emit('sendMessage', { _id: id, text: "", createdAt: new Date(),video:'data:video/mp4;base64,'+uri, user, roomId });	
 		}
 		// if (roomId){
@@ -59,25 +55,27 @@ export function renderChatFooter({translateY,roomId}:any) {
 		}
 	};
 
-	return (<Animated.View style={{ transform:[{translateY}] }}>
-		<View style={styles.footerChatOpen}>
-			<View style={[styles.iconContainer, { backgroundColor: colors.background }]}>
-				<Ionicons name='camera' size={30} color={colors.primary} onPress={handleCamera} />
-			</View>
-			<View style={[styles.iconContainer, { backgroundColor: colors.background }]}>
-				<Entypo name='images' size={30} color={colors.primary} onPress={handlePickImage} />
-			</View>
-			<View style={[styles.iconContainer, { backgroundColor: colors.background }]}>
+	return (
+	<Animated.View style={{ transform:[{translateY}] }}>
+		<View style={[styles.footerChatOpen,{backgroundColor:colors.card}]}>
+			<TouchableHighlight onPress={handleCamera} underlayColor={colors.undetlay} style={[styles.iconContainer, { backgroundColor: colors.background }]}>
+				<Ionicons name='camera' size={30} color={colors.primary} />
+			</TouchableHighlight>
+			<TouchableHighlight onPress={handlePickImage} underlayColor={colors.undetlay} style={[styles.iconContainer, { backgroundColor: colors.background }]}>
+				<Entypo name='images' size={30} color={colors.primary} />
+			</TouchableHighlight>
+			<TouchableHighlight onPress={()=>console.log('object')} underlayColor={colors.undetlay} style={[styles.iconContainer, { backgroundColor: colors.background }]}>
 				<Feather name='file' size={30} color={colors.primary} />
-			</View>
-			<View style={[styles.iconContainer, { backgroundColor: colors.background }]}>
+			</TouchableHighlight>
+			<TouchableHighlight onPress={()=>console.log('object')} underlayColor={colors.undetlay} style={[styles.iconContainer, { backgroundColor: colors.background }]}>
 				<Feather name='mic' size={30} color={colors.primary} />
-			</View>
+			</TouchableHighlight>
 		</View>
-	</Animated.View>)
+	 </Animated.View>
+	)
 }
 
-export const renderBubble = (props: Readonly<BubbleProps<IMessage>>) => {
+export function renderBubble (props: Readonly<BubbleProps<IMessage>>) {
 	return (
 		<Bubble
 			{...props}
@@ -148,19 +146,15 @@ export function renderMessageVideo(props: MessageVideoProps<IMessage>) {
 	</View>)
 };
 
-export function renderSend(props: SendProps<IMessage>) {
-	const { colors } = useTheme();
-
-	return (<View style={{ flexDirection: 'row', alignItems: "center" }}>
+export function renderSend(props: SendProps<IMessage>,{colors}:{colors: typeof darkTheme.colors}) {
+	return (<View style={{ flexDirection: 'row', alignItems: "center"}}>
 		<Send {...props}>
 			<Ionicons style={styles.sendIcon} name="send" size={27} color={colors.primary} />
 		</Send>
 	</View>)
 };
 
-export function renderActions(props: Readonly<ActionsProps>,{setOpen,open}:{setOpen:React.Dispatch<React.SetStateAction<boolean>>,open:boolean}) {
-	const { colors } = useTheme();
-
+export function renderActions(props: Readonly<ActionsProps>,{setOpen,open,colors}:{setOpen:React.Dispatch<React.SetStateAction<boolean>>,open:boolean,colors: typeof darkTheme.colors}) {
 	return (
 		<Actions
 			{...props}
@@ -171,6 +165,19 @@ export function renderActions(props: Readonly<ActionsProps>,{setOpen,open}:{setO
 		/>
 	)
 };
+
+export function renderInputToolbar (props: InputToolbarProps<IMessage>,{colors}:{colors: typeof darkTheme.colors}) {
+	return (
+	  <InputToolbar
+		{...props}
+		containerStyle={{
+		  backgroundColor: colors.card,
+		  borderTopColor: colors.card,
+		}}
+		renderComposer={(props)=><Composer textInputStyle={{color: colors.text}} {...props} />}
+	  />
+	);
+  };
 
 
 const styles = StyleSheet.create({

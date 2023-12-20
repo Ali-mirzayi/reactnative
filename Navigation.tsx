@@ -4,18 +4,16 @@ import { CardStyleInterpolators, createStackNavigator } from '@react-navigation/
 import Messaging from "./screens/Messaging";
 import Chat from "./screens/Chat";
 import LoginPrev from './screens/LoginPrev';
-import { Easing, SafeAreaView, Text, View } from 'react-native';
+import { Easing } from 'react-native';
 import { TransitionSpec } from '@react-navigation/stack/lib/typescript/src/types';
-import { useContext, useEffect, useLayoutEffect, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import { LoginNavigationProps, RootStackParamList, User } from './utils/types';
 import { useColorScheme } from 'react-native';
 import { darkTheme, lightTheme } from './utils/theme';
-import { socketContext } from './socketContext';
+import { useUser } from './socketContext';
 import { createTable, deleteRooms } from "./utils/DB";
-import Toast from 'react-native-toast-message';
 import LoadingPage from './components/LoadingPage';
-
+import { storage } from './mmkv';
 
 const config: TransitionSpec = {
     animation: 'spring',
@@ -69,7 +67,9 @@ const LoginNavigation = () => {
 
 export default function Navigation() {
     const Stack = createStackNavigator<RootStackParamList>();
-    const { setUser, user }: any = useContext(socketContext);
+    // const { setUser, user }: any = useContext(socketContext);
+    const user = useUser(state=>state.user)
+    const setUser = useUser(state=>state.setUser)
     const [loading, setLoading] = useState(true);
     const [chat, setChat] = useState<number>(1);
     const [beCheck, setBeCheck] = useState<boolean>(false);
@@ -78,9 +78,14 @@ export default function Navigation() {
     useEffect(() => {
         (async () => {
             try {
+                // await AsyncStorage.setItem("clearAll", "true");
                 setLoading(true);
-                const name = await AsyncStorage.getItem("username");
-                const id = await AsyncStorage.getItem("id");
+                // storage.clearAll()
+
+                // const name = await AsyncStorage.getItem("username");
+                // const id = await AsyncStorage.getItem("id");
+                const jsonUser:any = storage.getString('user');
+                const {name, id} = JSON.parse(jsonUser);
                 if (name !== null && id !== null) {
                     setUser({ _id: id, name: name, avatar: '' })
                 }
@@ -92,12 +97,16 @@ export default function Navigation() {
     }, [chat]);
 
     async function clear() {
-        const value = await AsyncStorage.getItem("clearAll");
-        if (value === null) {
-            await AsyncStorage.setItem("clearAll", "false");
+        const value = storage.getBoolean("clearAll");
+        // const value = await AsyncStorage.getItem("clearAll");
+
+        if (value === undefined || null) {
+            storage.set("clearAll",false);
+            // await AsyncStorage.setItem("clearAll", "false");
         };
-        if (value === "true") {
-            await AsyncStorage.clear();
+        if (value == true) {
+            // await AsyncStorage.clear();
+            storage.clearAll();
             deleteRooms();
             createTable();
             setBeCheck(true);

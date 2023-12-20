@@ -1,10 +1,10 @@
-import { TouchableHighlight, StyleSheet, TextInput, View } from 'react-native'
-import { useContext, useRef, useState } from 'react'
+import { TouchableHighlight, StyleSheet, TextInput } from 'react-native'
+import { useRef, useState } from 'react'
 import { Ionicons } from "@expo/vector-icons";
 import Animated, { useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import OutsidePressHandler from 'react-native-outside-press';
 import { User } from '../utils/types';
-import { socketContext } from '../socketContext';
+import { useSocket, useUser } from '../socketContext';
 
 type props = {
     setUsers: React.Dispatch<React.SetStateAction<[] | User[]>>,
@@ -12,10 +12,11 @@ type props = {
 };
 
 export default function SearchBar({ setUsers, setScreen }: props) {
-    const { socket, user }: any = useContext(socketContext);
+	const user = useUser(state=>state.user);
     const [search, setSearch] = useState<string | undefined>();
     const width = useSharedValue(50);
     const inputRef = useRef<TextInput>(null);
+    const socket = useSocket(state=>state.socket);
 
     const handlePressIn = () => {
         width.value = withTiming(175, { duration: 500 });
@@ -34,8 +35,8 @@ export default function SearchBar({ setUsers, setScreen }: props) {
             setScreen("rooms");
         } else {
             setScreen("users");
-            socket.emit("findUser", { search: e, user: user });
-            socket.on("findUser", (roomChats: any) => setUsers(roomChats));
+            socket?.emit("findUser", { search: e, user: user });
+            socket?.on("findUser", (roomChats: any) => setUsers(roomChats));
         }
     }
 
@@ -54,9 +55,6 @@ export default function SearchBar({ setUsers, setScreen }: props) {
 const styles = StyleSheet.create({
     container: {
         position: 'relative',
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
     },
     inner: {
         position: 'relative',
@@ -68,6 +66,7 @@ const styles = StyleSheet.create({
         zIndex: 1000,
         overflow: "hidden",
         height: 40,
+        width:50,
     },
     icon: {
         position: "absolute",

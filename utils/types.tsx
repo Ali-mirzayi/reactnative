@@ -20,6 +20,6 @@ export type User = {
 
 export type Room = {
 	id: string,
-	users: User[],
+	users: [user:User,contact:User],
 	messages: IMessage[]
 }
