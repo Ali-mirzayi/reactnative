@@ -2,7 +2,7 @@
   "expo": {
     "name": "Mirzagram",
     "slug": "my-app",
-    "version": "1.1.4",
+    "version": "1.1.5",
     "orientation": "portrait",
     "icon": "./assets/mirza256clean.png",
     "userInterfaceStyle": "light",
@@ -33,6 +33,10 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      [
+        "./plugins/withDisableForcedDarkModeAndroid.js",
+        {}
+      ],
       [
         "expo-image-picker",
         {

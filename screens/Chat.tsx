@@ -89,6 +89,7 @@ const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat
 
 	return (
 		<View style={{ flex: 1 }}>
+			<LoadingPage active={isPending} />
 			<DrawerCore
 				drawerRef={drawer}
 				name={user?.name}
@@ -97,7 +98,6 @@ const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat
 				setDarkMode={setDarkMode}
 			>
 				<View style={[styles.chatscreen, { backgroundColor: colors.background }]}>
-				<LoadingPage active={isPending} />
 					<View style={[styles.chattopContainer, { backgroundColor: colors.card }]}>
 						<View style={styles.chatheader}>
 							<View style={styles.burgerView}>

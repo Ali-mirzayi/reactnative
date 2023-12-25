@@ -13,7 +13,6 @@ import { useUser } from './socketContext';
 import { createTable, deleteRooms } from "./utils/DB";
 import LoadingPage from './components/LoadingPage';
 import { storage } from './mmkv';
-import { darkTheme, lightTheme } from './utils/theme';
 
 
 const config: TransitionSpec = {
@@ -68,8 +67,8 @@ const LoginNavigation = () => {
 
 export default function Navigation() {
     const Stack = createStackNavigator<RootStackParamList>();
-    const user = useUser(state=>state.user)
-    const setUser = useUser(state=>state.setUser)
+    const user = useUser(state => state.user)
+    const setUser = useUser(state => state.setUser)
     const [loading, setLoading] = useState(true);
     const [chat, setChat] = useState<number>(1);
     const [beCheck, setBeCheck] = useState<boolean>(false);
@@ -77,13 +76,13 @@ export default function Navigation() {
     const initDarkMode = storage.getBoolean("darkMode");
     const scheme = (colorScheme === 'dark' ? true : false);
     const fin = initDarkMode !== undefined ? initDarkMode : scheme;
-  
+
     useEffect(() => {
         (async () => {
             try {
                 setLoading(true);
-                const jsonUser:any = storage.getString('user');
-                const {name, id} = JSON.parse(jsonUser);
+                const jsonUser: any = storage.getString('user');
+                const { name, id } = JSON.parse(jsonUser);
                 if (name !== null && id !== null) {
                     setUser({ _id: id, name: name, avatar: '' })
                 }
@@ -98,7 +97,7 @@ export default function Navigation() {
         setLoading(true);
         const value = storage.getBoolean("clearAll");
         if (value === undefined || null) {
-            storage.set("clearAll",false);
+            storage.set("clearAll", false);
         };
         if (value == true) {
             storage.delete('user');
@@ -116,36 +115,45 @@ export default function Navigation() {
     return (
         <>
             <LoadingPage active={loading} />
-                    <NavigationContainer theme={scheme === true ? darkTheme : lightTheme}>
-                        <Stack.Navigator screenOptions={{ headerShown: false }}>
-                            {user ?
-                                null
-                                :
-                                <Stack.Screen
-                                    name='LoginNavigation'
-                                    component={LoginNavigation}
-                                    options={{ headerShown: false, presentation: 'card' }} />
-                            }
-                            <Stack.Screen
-                                name='Chat'
-                                component={Chat}
-                                initialParams={{ setChat, beCheck }}
-                                options={{
-                                    title: "Chats",
-                                    headerShown: false,
-                                }}
-                            />
-                            <Stack.Screen
-                                name='Messaging'
-                                component={Messaging}
-                                initialParams={{ contact: undefined }}
-                                options={{
-                                    title: "Messaging",
-                                    headerShown: false,
-                                }}
-                            />
-                        </Stack.Navigator>
-                    </NavigationContainer>
+            <NavigationContainer>
+                <Stack.Navigator screenOptions={{
+                    headerShown: false,
+                    gestureEnabled: true,
+                    gestureDirection: "horizontal",
+                    transitionSpec: {
+                        open: config,
+                        close: closeConfig
+                    },
+                    cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS
+                }}>
+                    {user ?
+                        null
+                        :
+                        <Stack.Screen
+                            name='LoginNavigation'
+                            component={LoginNavigation}
+                            options={{ headerShown: false, presentation: 'card' }} />
+                    }
+                    <Stack.Screen
+                        name='Chat'
+                        component={Chat}
+                        initialParams={{ setChat, beCheck }}
+                        options={{
+                            title: "Chats",
+                            headerShown: false,
+                        }}
+                    />
+                    <Stack.Screen
+                        name='Messaging'
+                        component={Messaging}
+                        initialParams={{ contact: undefined }}
+                        options={{
+                            title: "Messaging",
+                            headerShown: false,
+                        }}
+                    />
+                </Stack.Navigator>
+            </NavigationContainer>
         </>
     )
 }

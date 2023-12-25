@@ -3,21 +3,20 @@ import { GiftedChat, IMessage } from 'react-native-gifted-chat'
 import { StackScreenProps } from "@react-navigation/stack";
 import { Room, RootStackParamList } from '../utils/types';
 import { useSocket, useUser } from '../socketContext';
-import { UpdateMessage, getRoom, insertRoom } from '../utils/DB';
+import { UpdateMessage, getRoom } from '../utils/DB';
 import { useSharedValue, withTiming } from 'react-native-reanimated';
 import * as FileSystem from 'expo-file-system';
 import { downloadsDir, ensureDirExists } from '../utils/directories';
 import LoadingPage from '../components/LoadingPage';
 import { renderActions, renderBubble, RenderChatFooter, renderInputToolbar, renderMessageVideo, renderSend } from '../components/Message';
 import useTheme from '../utils/theme';
-import { View } from 'react-native';
+import { Text, View } from 'react-native';
 
 const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>) => {
 	const { contact, id }:any = route.params;
 	const [messages, setMessages] = useState<IMessage[]>([]);
 	const [roomId, setRoomId] = useState<string | any>(id);
 	const [open, setOpen] = useState<boolean>(false);
-	const [loading, setLoading] = useState<boolean>(true);
 	const user:any = useUser(state=>state.user)
 	const translateY = useSharedValue(1000);
 	const [isPending, setPending] = useState(true);
@@ -50,9 +49,10 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	}, [socket]);
 
 	useEffect(() => {
-		console.log("object");
-		// UpdateMessage({ id: roomId, users: [user, contact], messages });
-		// insertRoom({ id: roomId, users: [user, contact], messages })
+		if(isPending==false) {
+			console.log(messages,'message');
+			UpdateMessage({ id: roomId, users: [user, contact], messages });
+		}
 	}, [messages]);
 
 	useEffect(() => {
@@ -64,6 +64,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	}, [open]);
 
 	useEffect(() => {
+		console.log(roomId,'roomId');
 			if (socket) {
 				socket.emit('findRoom', [user, contact]);
 				socket.on('findRoomResponse', (room: Room) => {
@@ -73,12 +74,12 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 							if (result.length > 0) {
 								console.log('socket get');
 								setMessages(result.map((e: any) => JSON.parse(e.data))[0]?.messages);
-								setLoading(false)				
+								setPending(false)
 							}
 						})
 						.catch(error => {
 							console.log(error);
-							setLoading(false)
+							setPending(false)
 						});
 				});
 			};
@@ -88,13 +89,14 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 						if (result.length > 0) {
 							console.log('socket disabled');
 							setMessages(result.map((e: any) => JSON.parse(e.data))[0]?.messages);
+							setPending(false)
 						}
 					})
 					.catch(error => {
 						console.log(error);
+						setPending(false)
 					});
 			};
-		setPending(false)
 		return () => {
 			socket?.off('findRoomResponse');
 		}
@@ -106,9 +108,15 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 		}
 	};
 
+	console.log(contact.name);
+
 	return (
 		<View style={{flex:1,backgroundColor:colors.background}}>
 			<LoadingPage active={isPending} />
+			<View style={{flexDirection:'row',padding:15,alignItems:"center",backgroundColor:colors.undetlay}}>
+				<View style={{width:45,height:45,borderRadius:25,backgroundColor:colors.border,marginRight:10}}/>
+			<Text style={{color:colors.text,fontSize:23}}>{contact?contact.name:'' }</Text>
+			</View>
 			<GiftedChat
 				messages={messages}
 				onSend={messages => onSend(messages)}

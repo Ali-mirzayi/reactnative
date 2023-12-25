@@ -34,7 +34,7 @@ export const insertRoom = (room:Room) => {
 export const UpdateMessage = (data:Room) => {
   const db = getDBConnection();
   return db.transaction(tx => {
-    tx.executeSql(`INSERT OR IGNORE INTO rooms (id, data) VALUES (?, ?)`,
+    tx.executeSql(`UPDATE rooms SET data = ? WHERE id = ?`,
     [JSON.stringify(data),JSON.stringify(data.id)],
     () => {console.log('Update')},
     (_, error):any => {console.log(error,'UpdateMessage')}
