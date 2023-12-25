@@ -1,14 +1,11 @@
 import "react-native-gesture-handler"
-import { StyleSheet, Text, View, StatusBar } from 'react-native';
+import { StyleSheet, Text, View, StatusBar, useColorScheme } from 'react-native';
 import { useAssets } from 'expo-asset';
 import Navigation from "./Navigation";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { EventProvider } from 'react-native-outside-press';
 import { useSocket } from "./socketContext";
 import { useEffect, useState } from "react";
-// import { createTable, deleteRooms } from "./utils/DB";
-// import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useNetInfo } from "@react-native-community/netinfo";
 import Toast, { ErrorToast } from 'react-native-toast-message';
 import baseURL from "./utils/baseURL";
 import checkConnection from "./utils/checkConnection";
@@ -17,18 +14,18 @@ import io from 'socket.io-client';
 
 function App() {
   const [error, setError] = useState(false);
-   const setSocket = useSocket(state=>state.setSocket)
+  const setSocket = useSocket(state => state.setSocket);
+
   checkConnection(setError);
 
   useEffect(() => {
-		// Connect to the Socket.IO server
-		const newSocket = io(baseURL());
-		setSocket(newSocket);
-		// Clean up on component unmount
-		return () => {
-			newSocket.disconnect();
-		};
-	}, []);
+    // Connect to the Socket.IO server
+    const newSocket = io(baseURL());
+    setSocket(newSocket);
+    return () => {
+      newSocket.disconnect();
+    };
+  }, []);
 
   const toastConfig = {
     error: (props: any) => (
@@ -46,11 +43,9 @@ function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <EventProvider>
-        {/* <Context> */}
-          <StatusBar hidden={error ? false : true} backgroundColor={'red'} />
-          <Navigation />
-          <Toast config={toastConfig} />
-        {/* </Context> */}
+        <StatusBar hidden={error ? false : true} backgroundColor={'red'} />
+        <Navigation />
+        <Toast config={toastConfig} />
       </EventProvider>
     </GestureHandlerRootView>
   );

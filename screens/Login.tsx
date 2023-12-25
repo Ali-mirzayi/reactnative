@@ -6,7 +6,7 @@ import { LoginNavigationProps } from "../utils/types";
 import { generateID } from "../utils/utils";
 import { StackScreenProps } from "@react-navigation/stack";
 import baseURL from "../utils/baseURL";
-import { useDarkMode, useUser } from "../socketContext";
+import { useUser } from "../socketContext";
 import { storage } from "../mmkv";
 import LottieView from 'lottie-react-native';
 import useTheme from "../utils/theme";
@@ -14,7 +14,6 @@ import useTheme from "../utils/theme";
 const Login = ({ navigation }: StackScreenProps<LoginNavigationProps, 'Login'>) => {
 	const [username, setUsername] = useState("");
 	const { colors } = useTheme();
-	// const { setUser }: any = useContext(socketContext);
 	const setUser = useUser(state => state.setUser);
 
 	const id = generateID();
@@ -30,8 +29,6 @@ const Login = ({ navigation }: StackScreenProps<LoginNavigationProps, 'Login'>) 
 			});
 			const json = await response.json();
 			if (json?.isOK === true) {
-				// await AsyncStorage.setItem("username", username);
-				// await AsyncStorage.setItem("id", id);
 				storage.set('user', JSON.stringify({name:username,id}));
 				setUser({ _id: id, name: username, avatar: '' })
 				navigation.navigate("Chat");
@@ -61,7 +58,7 @@ const Login = ({ navigation }: StackScreenProps<LoginNavigationProps, 'Login'>) 
 				    placeholderTextColor={colors.text}
 					autoCorrect={false}
 					placeholder="user name"
-					style={[styles.logininput,{color:colors.text,borderColor:colors.undetlay}]}
+					style={[styles.logininput,{color:colors.text,borderColor:colors.boarder}]}
 					onChangeText={(value) => setUsername(value)} />
 			</View>
 			<TouchableHighlight style={styles.ButtonContainer} onPress={handleSignIn} underlayColor={"#c8cce0"}>
@@ -108,7 +105,7 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 	},
 	logininput: {
-		borderWidth: 1,
+		borderWidth: 2,
 		width: "80%",
 		paddingVertical: 7,
 		paddingHorizontal:12,

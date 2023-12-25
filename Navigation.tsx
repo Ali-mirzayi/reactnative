@@ -7,13 +7,14 @@ import LoginPrev from './screens/LoginPrev';
 import { Easing } from 'react-native';
 import { TransitionSpec } from '@react-navigation/stack/lib/typescript/src/types';
 import { useEffect, useLayoutEffect, useState } from 'react';
-import { LoginNavigationProps, RootStackParamList, User } from './utils/types';
+import { LoginNavigationProps, RootStackParamList } from './utils/types';
 import { useColorScheme } from 'react-native';
-import { darkTheme, lightTheme } from './utils/theme';
 import { useUser } from './socketContext';
 import { createTable, deleteRooms } from "./utils/DB";
 import LoadingPage from './components/LoadingPage';
 import { storage } from './mmkv';
+import { darkTheme, lightTheme } from './utils/theme';
+
 
 const config: TransitionSpec = {
     animation: 'spring',
@@ -67,23 +68,20 @@ const LoginNavigation = () => {
 
 export default function Navigation() {
     const Stack = createStackNavigator<RootStackParamList>();
-    // const { setUser, user }: any = useContext(socketContext);
     const user = useUser(state=>state.user)
     const setUser = useUser(state=>state.setUser)
     const [loading, setLoading] = useState(true);
     const [chat, setChat] = useState<number>(1);
     const [beCheck, setBeCheck] = useState<boolean>(false);
-    const scheme = useColorScheme();
-
+    const colorScheme = useColorScheme();
+    const initDarkMode = storage.getBoolean("darkMode");
+    const scheme = (colorScheme === 'dark' ? true : false);
+    const fin = initDarkMode !== undefined ? initDarkMode : scheme;
+  
     useEffect(() => {
         (async () => {
             try {
-                // await AsyncStorage.setItem("clearAll", "true");
                 setLoading(true);
-                // storage.clearAll()
-
-                // const name = await AsyncStorage.getItem("username");
-                // const id = await AsyncStorage.getItem("id");
                 const jsonUser:any = storage.getString('user');
                 const {name, id} = JSON.parse(jsonUser);
                 if (name !== null && id !== null) {
@@ -96,17 +94,14 @@ export default function Navigation() {
         })();
     }, [chat]);
 
-    async function clear() {
+    useLayoutEffect(() => {
+        setLoading(true);
         const value = storage.getBoolean("clearAll");
-        // const value = await AsyncStorage.getItem("clearAll");
-
         if (value === undefined || null) {
             storage.set("clearAll",false);
-            // await AsyncStorage.setItem("clearAll", "false");
         };
         if (value == true) {
-            // await AsyncStorage.clear();
-            storage.clearAll();
+            storage.delete('user');
             deleteRooms();
             createTable();
             setBeCheck(true);
@@ -114,19 +109,14 @@ export default function Navigation() {
         } else {
             createTable();
         }
-    }
-
-    useLayoutEffect(() => {
-        clear();
+        storage.set("darkMode", fin);
+        setLoading(false);
     }, []);
 
     return (
         <>
-            {
-                loading ?
-                    <LoadingPage active={true} />
-                    :
-                    <NavigationContainer theme={scheme === 'dark' ? darkTheme : lightTheme}>
+            <LoadingPage active={loading} />
+                    <NavigationContainer theme={scheme === true ? darkTheme : lightTheme}>
                         <Stack.Navigator screenOptions={{ headerShown: false }}>
                             {user ?
                                 null
@@ -156,7 +146,6 @@ export default function Navigation() {
                             />
                         </Stack.Navigator>
                     </NavigationContainer>
-            }
         </>
     )
 }

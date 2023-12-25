@@ -1,3 +1,4 @@
+import { DrawerLayoutAndroid } from "react-native";
 import { IMessage } from "react-native-gifted-chat";
 
 export type LoginNavigationProps = {
@@ -22,4 +23,13 @@ export type Room = {
 	id: string,
 	users: [user:User,contact:User],
 	messages: IMessage[]
+}
+
+export type DrawerCoreType = {
+    darkMode:boolean,
+    setDarkMode:React.Dispatch<React.SetStateAction<boolean>>,
+    beCheck:boolean,
+    name:string | undefined,
+    children:React.ReactNode,
+    drawerRef:React.RefObject<DrawerLayoutAndroid>
 }

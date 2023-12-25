@@ -1,7 +1,6 @@
 import * as FileSystem from 'expo-file-system';
 import * as SQLite from 'expo-sqlite';
 import { Room } from "./types";
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const getDBConnection = () => {
   return SQLite.openDatabase('db.db');
@@ -24,10 +23,10 @@ export const insertRoom = (room:Room) => {
   // console.log(`INSERT OR REPLACE INTO rooms (data) VALUES ${JSON.stringify(room.id)}`,'query');
   // console.log(`INSERT OR REPLACE INTO rooms (id, users, messages) VALUES ${room.id,room.users,room.messages}`,'query');
   return db.transaction(tx => {
-    tx.executeSql(`INSERT OR REPLACE INTO rooms (id, data) VALUES (?, ?)`,
+    tx.executeSql(`INSERT OR IGNORE INTO rooms (id, data) VALUES (?, ?)`,
     [JSON.stringify(room.id), JSON.stringify(room)],
     (_,{rows}) => {console.log("inserted")},
-    (_, error):any => {console.log(error)}
+    (_, error):any => {console.log(error,'insertRoom')}
     )
   });
 };
@@ -35,13 +34,21 @@ export const insertRoom = (room:Room) => {
 export const UpdateMessage = (data:Room) => {
   const db = getDBConnection();
   return db.transaction(tx => {
-    tx.executeSql(`UPDATE rooms SET data = ? WHERE id = ?;`,
+    tx.executeSql(`INSERT OR IGNORE INTO rooms (id, data) VALUES (?, ?)`,
     [JSON.stringify(data),JSON.stringify(data.id)],
-    (_,{rows}) => {console.log(`UPDATED =================================== UPDATED ${JSON.stringify(rows)} UPDATED ================================== UPDATED`)},
-    (_, error):any => {console.log(error)}
+    () => {console.log('Update')},
+    (_, error):any => {console.log(error,'UpdateMessage')}
     );
   });
 };
+
+// export const GetMessages = () => {
+//   const db = getDBConnection();
+//   return db.transaction(tx => {
+//     tx.executeSql(`SELECT * SET data = ? WHERE id = ?;`,)
+//   })
+// }
+
 
 // export const UpdateMessage = (data:Room) => {
 //   const db = getDBConnection();
@@ -97,7 +104,6 @@ export const getRoom = (id:string) => {
   });
     // @ts-ignore
     error => {
-      console.log(error);
       reject(error);
     }
  })
@@ -115,8 +121,4 @@ export const deleteRooms = () => {
     )
   });
 
-}
-
-export const deleteRoom = (id:string) => {
-  
 }

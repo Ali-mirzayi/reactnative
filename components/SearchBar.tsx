@@ -1,10 +1,12 @@
 import { TouchableHighlight, StyleSheet, TextInput } from 'react-native'
-import { useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { Ionicons } from "@expo/vector-icons";
 import Animated, { useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import OutsidePressHandler from 'react-native-outside-press';
 import { User } from '../utils/types';
 import { useSocket, useUser } from '../socketContext';
+import { useFocusEffect } from '@react-navigation/native';
+import sleep from '../utils/wait';
 
 type props = {
     setUsers: React.Dispatch<React.SetStateAction<[] | User[]>>,
@@ -39,6 +41,17 @@ export default function SearchBar({ setUsers, setScreen }: props) {
             socket?.on("findUser", (roomChats: any) => setUsers(roomChats));
         }
     }
+
+	useFocusEffect(
+		useCallback(() => {
+            (async()=>{
+                await sleep(300);
+                setSearch(undefined);
+                handlePressIn()
+            })()
+		// 	return unsubscribe;
+		}, [])
+	  );
 
     return (
         <OutsidePressHandler onOutsidePress={handlePressOut} style={styles.container}>

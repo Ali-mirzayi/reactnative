@@ -20,7 +20,7 @@ export default function checkConnection(setError:React.Dispatch<React.SetStateAc
         } else {
             // check server conection
             const timeout = new Promise((_, reject) => {
-                setTimeout(reject, 1000, 'Request timed out');
+                setTimeout(reject, 5000, 'Request timed out');
             });
             const request = fetch(baseURL());
             Promise.race([timeout, request]).then().catch((e) => {

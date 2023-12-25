@@ -3,7 +3,7 @@ import { GiftedChat, IMessage } from 'react-native-gifted-chat'
 import { StackScreenProps } from "@react-navigation/stack";
 import { Room, RootStackParamList } from '../utils/types';
 import { useSocket, useUser } from '../socketContext';
-import { UpdateMessage, getRoom } from '../utils/DB';
+import { UpdateMessage, getRoom, insertRoom } from '../utils/DB';
 import { useSharedValue, withTiming } from 'react-native-reanimated';
 import * as FileSystem from 'expo-file-system';
 import { downloadsDir, ensureDirExists } from '../utils/directories';
@@ -50,7 +50,9 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	}, [socket]);
 
 	useEffect(() => {
-		UpdateMessage({ id: roomId, users: [user, contact], messages });
+		console.log("object");
+		// UpdateMessage({ id: roomId, users: [user, contact], messages });
+		// insertRoom({ id: roomId, users: [user, contact], messages })
 	}, [messages]);
 
 	useEffect(() => {
@@ -106,7 +108,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 
 	return (
 		<View style={{flex:1,backgroundColor:colors.background}}>
-			<LoadingPage active={isPending || loading} />
+			<LoadingPage active={isPending} />
 			<GiftedChat
 				messages={messages}
 				onSend={messages => onSend(messages)}
