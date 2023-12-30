@@ -70,7 +70,6 @@ export default function DrawerCore({ darkMode,setDarkMode,beCheck, name, childre
                 useNativeDriver: false,
             }).start();
         }},[darkMode]))
-    // }, [darkMode]);
 
     useFocusEffect(
         useCallback(() => {

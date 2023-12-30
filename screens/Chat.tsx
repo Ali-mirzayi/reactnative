@@ -48,6 +48,7 @@ const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat
 	useFocusEffect(
 		useCallback(() => {
 			const unsubscribe = navigation.addListener('focus', () => {
+				setPending(true);
 				setChat(2);
 				(function () {
 					fetch(`${baseURL()}/api`)
@@ -64,10 +65,12 @@ const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat
 						}));
 				})();
 				setPending(false);
-			})
+			});
 			return unsubscribe;
 		}, [])
 	);
+
+	// console.log(user);
 
 	useEffect(() => {
 		socket?.on("roomsList", setter);

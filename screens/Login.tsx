@@ -19,13 +19,13 @@ const Login = ({ navigation }: StackScreenProps<LoginNavigationProps, 'Login'>) 
 	const id = generateID();
 	const storeUsername = async () => {
 		try {
-			const response = await fetch(`${baseURL()}/checkUser`, {
+			const response = await fetch(`${baseURL()}/checkUserToAdd`, {
 				method: 'POST',
 				headers: {
 					Accept: 'application/json',
 					'Content-Type': 'application/json',
 				},
-				body: JSON.stringify({ _id: id, name: username, avatar: '', Date: new Date() })
+				body: JSON.stringify({ _id: id, name: username, avatar: '' })
 			});
 			const json = await response.json();
 			if (json?.isOK === true) {

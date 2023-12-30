@@ -4,9 +4,7 @@ import useTheme from '../utils/theme';
 
 const LoadingPage = ({active}: {active:boolean}) => {
   const { colors } = useTheme();
-
-  console.log(colors.background);
-
+  
    if(active){
     return (<BlurView intensity={4} tint={colors.background==="#212A3E"?'dark':'light'} style={[styles.container, StyleSheet.absoluteFill]} >
       <Text style={[styles.text,{color:colors.text}]}>Loading ...</Text>

@@ -13,6 +13,7 @@ import { useUser } from './socketContext';
 import { createTable, deleteRooms } from "./utils/DB";
 import LoadingPage from './components/LoadingPage';
 import { storage } from './mmkv';
+import baseURL from './utils/baseURL';
 
 
 const config: TransitionSpec = {
@@ -67,10 +68,11 @@ const LoginNavigation = () => {
 
 export default function Navigation() {
     const Stack = createStackNavigator<RootStackParamList>();
-    const user = useUser(state => state.user)
-    const setUser = useUser(state => state.setUser)
+    const user = useUser(state => state.user);
+    const setUser = useUser(state => state.setUser);
     const [loading, setLoading] = useState(true);
     const [chat, setChat] = useState<number>(1);
+    // beCheck is initial value of delete checkbox of user
     const [beCheck, setBeCheck] = useState<boolean>(false);
     const colorScheme = useColorScheme();
     const initDarkMode = storage.getBoolean("darkMode");
@@ -100,6 +102,17 @@ export default function Navigation() {
             storage.set("clearAll", false);
         };
         if (value == true) {
+            (function(){
+                // for delete user and related rooms he's joined
+                fetch(`${baseURL()}/deleteUser`, {
+                    method: 'POST',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: storage.getString('user')
+                });
+            })();
             storage.delete('user');
             deleteRooms();
             createTable();
@@ -126,7 +139,7 @@ export default function Navigation() {
                     },
                     cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS
                 }}>
-                    {user ?
+                    {storage.getString('user') ?
                         null
                         :
                         <Stack.Screen

@@ -108,8 +108,6 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 		}
 	};
 
-	console.log(contact.name);
-
 	return (
 		<View style={{flex:1,backgroundColor:colors.background}}>
 			<LoadingPage active={isPending} />
