@@ -1,4 +1,3 @@
-import React, { createContext, useState } from 'react';
 import { Socket } from 'socket.io-client';
 import { User } from './utils/types';
 import { create } from 'zustand';
@@ -30,24 +29,3 @@ export const useUser = create<useUser>()((set) => ({
 	user: undefined,
 	setUser: (e) => set({ user: e })
 }));
-
-
-export const socketContext = createContext({});
-
-// export default function Context({ children }: any) {
-// 	const [socket, setSocket] = useState<Socket | null>(null);
-// 	const [user, setUser] = useState<User | undefined>();
-// 	// useEffect(() => {
-// 	// 	// Connect to the Socket.IO server
-// 	// 	const newSocket = io(baseURL());
-// 	// 	setSocket(newSocket);
-// 	// 	// Clean up on component unmount
-// 	// 	return () => {
-// 	// 		newSocket.disconnect();
-// 	// 	};
-// 	// }, []);
-
-// 	return <socketContext.Provider value={{ socket, user, setUser }}>
-// 		{children}
-// 	</socketContext.Provider>
-// }

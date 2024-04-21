@@ -3,7 +3,7 @@ import { View, Text, FlatList, StyleSheet, Button, DrawerLayoutAndroid, Touchabl
 import baseURL from "../utils/baseURL";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import SearchBar from "../components/SearchBar";
-import { Room, RootStackParamList, User } from "../utils/types";
+import { Room, RootStackParamList, User,ChatNavigationProps } from "../utils/types";
 import { DrawerScreenProps } from '@react-navigation/drawer';
 import { Ionicons } from "@expo/vector-icons";
 import { useSocket, useUser } from "../socketContext";
@@ -16,8 +16,8 @@ import { useFocusEffect } from "@react-navigation/native";
 import DrawerCore from "../components/Drawer";
 import { storage } from "../mmkv";
 
-const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat'>) => {
-	const { setChat, beCheck } = route.params;
+const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) => {
+	const { setChat, beCheck } = route?.params || {};
 	const [rooms, setRooms] = useState<Room[]>([]);
 	const [users, setUsers] = useState<User[] | []>([]);
 	const [screen, setScreen] = useState<'users' | 'rooms'>('rooms');
@@ -74,6 +74,8 @@ const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat
 
 	useEffect(() => {
 		socket?.on("roomsList", setter);
+		socket?.emit('setStatus', { 'id': socket.id, 'name': user?.name});
+		console.log(socket?.id);
 		getAllRooms()
 			.then((result: Room[] | any) => {
 				if (result.length > 0) {
@@ -107,7 +109,7 @@ const Chat = ({ route, navigation }: DrawerScreenProps<RootStackParamList, 'Chat
 								<TouchableHighlight style={styles.mr10} underlayColor={"#e3e5ef"} onPress={() => drawer.current?.openDrawer()} >
 									<Ionicons name="menu-sharp" style={styles.menu} color={colors.text} size={25} />
 								</TouchableHighlight>
-								<Text style={[styles.chatheading, { color: colors.mirza }]}>MirzaGram</Text>
+								<Text testID="ChatScreen" style={[styles.chatheading, { color: colors.mirza }]}>MirzaGram</Text>
 							</View>
 							<SearchBar setUsers={setUsers} setScreen={setScreen} />
 						</View>

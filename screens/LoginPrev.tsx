@@ -2,11 +2,12 @@ import { Text, StyleSheet, TouchableHighlight, View } from 'react-native'
 import { LoginNavigationProps } from '../utils/types';
 import { StackScreenProps } from '@react-navigation/stack';
 import LottieView from 'lottie-react-native';
-import { useDarkMode } from '../socketContext';
 import useTheme from '../utils/theme';
+import { useNavigation } from '@react-navigation/native';
 
-export default function LoginPrev({ navigation }: StackScreenProps<LoginNavigationProps, 'LoginPrev'>) {
+export default function LoginPrev({}: StackScreenProps<LoginNavigationProps, 'LoginPrev'>) {
 	const { colors } = useTheme();
+    const {navigate}:any = useNavigation();
 
     return (
         <View style={[styles.Container,{backgroundColor:colors.background}]}>
@@ -14,8 +15,8 @@ export default function LoginPrev({ navigation }: StackScreenProps<LoginNavigati
             <Text style={[styles.Mirza,{color:colors.mirza}]}>MirzaGram</Text>
             <Text style={[styles.MirzaDesc,{color:colors.text}]}>Chat safely without server database</Text>
             <Text style={[styles.MirzaDesc,{color:colors.text}]}>We protect you privacy</Text>
-            <TouchableHighlight style={styles.ButtonContainer} onPress={() => navigation.navigate('Login')} underlayColor={"#c8cce0"}>
-                <Text style={styles.Button}>let's roll</Text>
+            <TouchableHighlight style={styles.ButtonContainer} onPress={() => navigate('Login')} underlayColor={"#c8cce0"}>
+                <Text testID='LoginPrevScreen' style={styles.Button}>let's roll</Text>
             </TouchableHighlight>
         </View>
     )

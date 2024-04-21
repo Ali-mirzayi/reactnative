@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Text, SafeAreaView, View, TextInput, Alert, StyleSheet, TouchableHighlight } from "react-native";
 // import AsyncStorage from "@react-native-async-storage/async-storage";
-import Animated from "react-native-reanimated";
+// import Animated from "react-native-reanimated";
 import { LoginNavigationProps } from "../utils/types";
 import { generateID } from "../utils/utils";
 import { StackScreenProps } from "@react-navigation/stack";
@@ -10,13 +10,17 @@ import { useUser } from "../socketContext";
 import { storage } from "../mmkv";
 import LottieView from 'lottie-react-native';
 import useTheme from "../utils/theme";
+import { useNavigation } from "@react-navigation/native";
 
-const Login = ({ navigation }: StackScreenProps<LoginNavigationProps, 'Login'>) => {
+const Login = ({ route,navigation }: StackScreenProps<LoginNavigationProps, 'Login'>) => {
+	const { setChat, beCheck } = route?.params || {};
+
 	const [username, setUsername] = useState("");
 	const { colors } = useTheme();
 	const setUser = useUser(state => state.setUser);
-
 	const id = generateID();
+	const { navigate }: any = useNavigation();
+
 	const storeUsername = async () => {
 		try {
 			const response = await fetch(`${baseURL()}/checkUserToAdd`, {
@@ -29,9 +33,9 @@ const Login = ({ navigation }: StackScreenProps<LoginNavigationProps, 'Login'>) 
 			});
 			const json = await response.json();
 			if (json?.isOK === true) {
-				storage.set('user', JSON.stringify({name:username,id}));
+				storage.set('user', JSON.stringify({ name: username, id }));
 				setUser({ _id: id, name: username, avatar: '' })
-				navigation.navigate("Chat");
+				navigate('Chat', { setChat, beCheck });
 			} else {
 				Alert.alert("Error! invalid username");
 			}
@@ -50,19 +54,20 @@ const Login = ({ navigation }: StackScreenProps<LoginNavigationProps, 'Login'>) 
 
 	return (
 		<SafeAreaView style={[styles.loginscreen, { backgroundColor: colors.background, }]}>
-        <LottieView autoPlay source={require('../assets/chat.json')} style={styles.ImageContainer} />
-			<Text style={[styles.Mirza,{color:colors.loginMirza}]}>Sign in to MirzaGram</Text>
-			<Text style={[styles.MirzaDesc,{color:colors.text}]}>please enter your username</Text>
+			<LottieView autoPlay source={require('../assets/chat.json')} style={styles.ImageContainer} />
+			<Text style={[styles.Mirza, { color: colors.loginMirza }]}>Sign in to MirzaGram</Text>
+			<Text style={[styles.MirzaDesc, { color: colors.text }]}>please enter your username</Text>
 			<View style={styles.logininputContainer}>
 				<TextInput
-				    placeholderTextColor={colors.text}
+					placeholderTextColor={colors.text}
 					autoCorrect={false}
 					placeholder="user name"
-					style={[styles.logininput,{color:colors.text,borderColor:colors.boarder}]}
-					onChangeText={(value) => setUsername(value)} />
+					style={[styles.logininput, { color: colors.text, borderColor: colors.boarder }]}
+					value={username}
+					onChangeText={setUsername} />
 			</View>
 			<TouchableHighlight style={styles.ButtonContainer} onPress={handleSignIn} underlayColor={"#c8cce0"}>
-				<Text style={styles.Button}>Let's Chat</Text>
+				<Text testID="LoginScreen" style={styles.Button}>Let's Chat</Text>
 			</TouchableHighlight>
 		</SafeAreaView>
 	);
@@ -108,8 +113,8 @@ const styles = StyleSheet.create({
 		borderWidth: 2,
 		width: "80%",
 		paddingVertical: 7,
-		paddingHorizontal:12,
-		fontSize:18,
+		paddingHorizontal: 12,
+		fontSize: 18,
 		borderRadius: 4,
 	},
 	ButtonContainer: {
