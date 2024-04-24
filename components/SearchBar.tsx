@@ -49,7 +49,6 @@ export default function SearchBar({ setUsers, setScreen }: props) {
                 setSearch(undefined);
                 handlePressIn()
             })()
-		// 	return unsubscribe;
 		}, [])
 	  );
 

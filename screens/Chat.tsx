@@ -74,8 +74,7 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 
 	useEffect(() => {
 		socket?.on("roomsList", setter);
-		socket?.emit('setStatus', { 'id': socket.id, 'name': user?.name});
-		console.log(socket?.id);
+		socket?.emit('setSocketId', { 'id': socket.id, 'name': user?.name});
 		getAllRooms()
 			.then((result: Room[] | any) => {
 				if (result.length > 0) {
