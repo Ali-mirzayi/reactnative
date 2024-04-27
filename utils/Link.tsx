@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { Alert, Linking, Pressable } from "react-native";
+import { Alert, Pressable, Linking } from "react-native";
 
 type OpenURLButtonProps = {
     url: string;
@@ -8,7 +8,8 @@ type OpenURLButtonProps = {
 
 const Link = ({ url, children }: OpenURLButtonProps) => {
     const handlePress = useCallback(async () => {
-        const supported = await Linking.canOpenURL(url);
+        const supported = await Linking.canOpenURL('https://google.com');
+        // const supporte = await Linking.canOpenURL('https://www.google.com');
         if (supported) {
             await Linking.openURL(url);
         } else {

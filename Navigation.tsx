@@ -82,7 +82,7 @@ export const ChatNavigation = ({ setChat, beCheck }: any) => {
                 <Stack.Screen
                     name='Chat'
                     component={Chat}
-                    initialParams={{ setChat, beCheck }}
+                    initialParams={{ beCheck }}
                     options={{
                         title: "Chats",
                         headerShown: false,
@@ -104,57 +104,12 @@ export const ChatNavigation = ({ setChat, beCheck }: any) => {
     )
 }
 
-// export const FullStackNavigaton = ({ setChat, beCheck, user }: any) => {
-//     const Stack = createStackNavigator<FullStackNavigationProps>();
-//     return (
-//         <Stack.Navigator screenOptions={{
-//             gestureEnabled: true,
-//             gestureDirection: "horizontal",
-//             transitionSpec: {
-//                 open: config,
-//                 close: closeConfig
-//             },
-//             cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS
-//         }}>
-//                 <Stack.Screen
-//                     name='LoginPrev'
-//                     component={LoginPrev}
-//                     options={{ headerShown: false, presentation: 'modal' }}
-//                 />
-//                 <Stack.Screen
-//                     name='Login'
-//                     component={Login}
-//                     initialParams={{ setChat, beCheck }}
-//                     options={{ headerShown: false }}
-//                 />
-//                 <Stack.Screen
-//                     name='Chat'
-//                     component={Chat}
-//                     initialParams={{ setChat, beCheck }}
-//                     options={{
-//                         title: "Chats",
-//                         headerShown: false,
-//                     }}
-//                 />
-//                 <Stack.Screen
-//                     name='Messaging'
-//                     component={Messaging}
-//                     initialParams={{ contact: undefined }}
-//                     options={{
-//                         title: "Messaging",
-//                         headerShown: false,
-//                     }}
-//                 />
-//         </Stack.Navigator>
-//     )
-// }
-
 export default function Navigation() {
     const Stack = createStackNavigator<RootStackParamList>();
     const user = useUser(state => state.user);
     const setUser = useUser(state => state.setUser);
     const [loading, setLoading] = useState(true);
-    const [chat, setChat] = useState<number>(1);
+    const [chat, setChat] = useState<boolean>(false);
     // beCheck is initial value of delete checkbox of user
     const [beCheck, setBeCheck] = useState<boolean>(false);
     const colorScheme = useColorScheme();
@@ -162,26 +117,9 @@ export default function Navigation() {
     const scheme = (colorScheme === 'dark' ? true : false);
     const fin = initDarkMode !== undefined ? initDarkMode : scheme;
 
-    useEffect(() => {
-        (async () => {
-            try {
-                setLoading(true);
-                const jsonUser: any = storage.getString('user');
-                const { name, id } = JSON.parse(jsonUser);
-                if (name !== null && id !== null) {
-                    setUser({ _id: id, name: name, avatar: '' })
-                }
-                setLoading(false);
-            } catch (e) {
-                setLoading(false);
-            }
-        })();
-    }, [chat]);
-
     useLayoutEffect(() => {
         setLoading(true);
         const value = storage.getBoolean("clearAll");
-        console.log(value, 'dddd');
         if (value === undefined || null) {
             storage.set("clearAll", false);
         };
@@ -201,15 +139,23 @@ export default function Navigation() {
             deleteRooms();
             createTable();
             setBeCheck(true);
-            setLoading(false);
         } else {
             createTable();
             console.log('object');
-            setLoading(false);
         }
         storage.set("darkMode", fin);
         setLoading(false);
     }, []);
+
+    useLayoutEffect(() => {
+        setLoading(true);
+        const jsonUser:any = storage.getString('user');
+        const { name, id } = JSON.parse(jsonUser);
+        if (name !== null && id !== null) {
+            setUser({ _id: id, name: name, avatar: '' })
+        }
+        setLoading(false);
+    }, [chat]);
 
     return (
         <>
@@ -225,7 +171,7 @@ export default function Navigation() {
                     },
                     cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS
                 }}>
-                    {user ?
+                    {user?.name ?
                         null
                         :
                         <Stack.Screen
@@ -233,53 +179,17 @@ export default function Navigation() {
                             component={LoginNavigation}
                             options={{ headerShown: false, presentation: 'card' }} />
                     }
-                    {/* <Stack.Screen
-                        name='ChatNavigation'
-                        component={ChatNavigation}
-                        options={{ headerShown: false, presentation: 'card' }}
-                    /> */}
-                    {/* {user ?
-                null
-                :
-                <Stack.Group>
-                    <Stack.Screen
-                        name='LoginPrev'
-                        component={LoginPrev}
-                        options={{ headerShown: false, presentation: 'modal' }}
-                    />
-                    <Stack.Screen
-                        name='Login'
-                        component={Login}
-                        options={{ headerShown: false }}
-                    />
-                </Stack.Group>
-            }
-            <Stack.Group>
-            <Stack.Screen
-                name='Chat'
-                component={Chat}
-                initialParams={{ setChat, beCheck }}
-                options={{
-                    title: "Chats",
-                    headerShown: false,
-                }}
-            />
-            <Stack.Screen
-                name='Messaging'
-                component={Messaging}
-                initialParams={{ contact: undefined }}
-                options={{
-                    title: "Messaging",
-                    headerShown: false,
-                }}
-            />
-            </Stack.Group> */}
                     <Stack.Screen
                         name='Chat'
                         component={Chat}
-                        initialParams={{ setChat, beCheck }}
+                        initialParams={{ beCheck }}
                         options={{
                             headerShown: false,
+                        }}
+                        listeners={{
+                            focus: () => {
+                                setChat(true)
+                            }
                         }}
                     />
                     <Stack.Screen
