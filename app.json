@@ -26,8 +26,9 @@
       "permissions": [
         "android.permission.RECORD_AUDIO"
       ],
-      "package": "com.alimirzaei7997.myapp",
-      "userInterfaceStyle": "light"
+      "userInterfaceStyle": "light",
+      "googleServicesFile": "./google-services.json",
+      "package": "com.Mirzagram.PushNotifications"
     },
     "web": {
       "favicon": "./assets/favicon.png"

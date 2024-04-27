@@ -10,8 +10,9 @@ import { downloadsDir, ensureDirExists } from '../utils/directories';
 import LoadingPage from '../components/LoadingPage';
 import { renderActions, renderBubble, RenderChatFooter, renderInputToolbar, renderMessageVideo, renderSend } from '../components/Message';
 import useTheme from '../utils/theme';
-import { Text, View } from 'react-native';
+import { Text, View, Platform } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { usePushNotifications } from '../utils/usePushNotifications';
 
 const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>) => {
 	const { contact, id }: any = route.params;
@@ -25,6 +26,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	const [isPending, setPending] = useState(true); // set for roomId and save it db
 	const socket = useSocket(state => state.socket);
 	const { colors } = useTheme();
+	const {expoPushToken,notification} = usePushNotifications();
 
 	useEffect(() => {
 		if (socket) {
@@ -128,19 +130,23 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 		}
 	};
 
+
+	  
+
 	return (
 		<View style={{ flex: 1, backgroundColor: colors.background }}>
 			<LoadingPage active={isPending} />
 			<View style={{ flexDirection: 'row', padding: 15, alignItems: "center", backgroundColor: colors.undetlay }}>
 				<View style={{ width: 47, height: 47, borderRadius: 25, backgroundColor: colors.border, marginRight: 10 }} />
 				<View style={{ alignItems: "flex-start", flexDirection: "column" }}>
-					<Text style={{ color: colors.text, fontSize: 23, fontWeight: "700" }}>{contact ? contact.name : ''}</Text>
+					{/* <Text style={{ color: colors.text, fontSize: 23, fontWeight: "700" }}>{contact ? contact.name : ''}</Text> */}
 					<View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
 						<Text style={{ color: colors.text, fontSize: 17, fontWeight: "600", paddingBottom: 2 }}>{status ? "online" : status === false ? "offline" : "connecting..."}</Text>
 						<Text style={{ color: colors.text, fontSize: 14, fontWeight: "500" }}>{!isInRoom && status ? "but not in room" : ""}</Text>
 					</View>
 				</View>
 			</View>
+			<Text>{expoPushToken?.data}</Text>
 			<GiftedChat
 				messages={messages}
 				onSend={messages => onSend(messages)}

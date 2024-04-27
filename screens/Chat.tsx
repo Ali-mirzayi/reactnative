@@ -49,7 +49,7 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 		useCallback(() => {
 			const unsubscribe = navigation.addListener('focus', () => {
 				setPending(true);
-				setChat(2);
+				// setChat(2);
 				(function () {
 					fetch(`${baseURL()}/api`)
 						.then((res) => res.json())
