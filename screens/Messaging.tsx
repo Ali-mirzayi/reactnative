@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { GiftedChat, IMessage } from 'react-native-gifted-chat'
 import { StackScreenProps } from "@react-navigation/stack";
 import { Room, RootStackParamList } from '../utils/types';
@@ -10,36 +10,33 @@ import { downloadsDir, ensureDirExists } from '../utils/directories';
 import LoadingPage from '../components/LoadingPage';
 import { renderActions, renderBubble, RenderChatFooter, renderInputToolbar, renderMessageVideo, renderSend } from '../components/Message';
 import useTheme from '../utils/theme';
-import { Text, View } from 'react-native';
+import { Text, View, Platform } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { usePushNotifications } from '../utils/usePushNotifications';
 
 const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>) => {
 	const { contact, id }: any = route.params;
 	const [messages, setMessages] = useState<IMessage[]>([]);
-	const [roomId, setRoomId] = useState<string | any>(id);
-	const [open, setOpen] = useState<boolean>(false);
-	const [status, setStatus] = useState<boolean | undefined>(undefined);
+	const [roomId, setRoomId] = useState<string | undefined>(id);
+	const [open, setOpen] = useState<boolean>(false); // renderChatFooter
+	const [status, setStatus] = useState<boolean | undefined>(undefined); // connection
+	const [isInRoom, setIsInRoom] = useState<boolean>(true);
 	const user: any = useUser(state => state.user)
 	const translateY = useSharedValue(1000);
-	const [isPending, setPending] = useState(true);
+	const [isPending, setPending] = useState(true); // set for roomId and save it db
 	const socket = useSocket(state => state.socket);
 	const { colors } = useTheme();
+	const {expoPushToken,notification} = usePushNotifications();
+
+	console.log(expoPushToken,'expoPushToken');
+	console.log(notification,'notification');
 
 	useEffect(() => {
 		if (socket) {
-			socket.emit('checkStatus', contact.name );
+			socket.emit('checkStatus', contact.name);
 			socket.on('checkStatusResponse', (res) => {
 				setStatus(res.status)
 			});
-			// console.log(socket.id, 'socket connected id');
-			// console.log(contact);
-			// socket.emit('checkStatus', { 'id': socket.id, 'roomId': roomId, 'name': user.name });
-			// socket.on('checkStatusResponse',(res)=>{
-			// 	()=>console.log(res,'resssss');
-			// 	if(res.name===contact.name){
-			// 		setStatus(res.status)
-			// 	}
-			// });
-			// console.log(status, 'status');
 			// Listen for new messages from the server
 			socket.on('newMessage', async (newMessage: IMessage) => {
 				if (newMessage.image) {
@@ -60,25 +57,12 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 			return () => {
 				socket.off('newMessage');
 				socket.off('checkStatusResponse');
-				// socket.off('checkStatusResponse');
 			}
 		}
-	}, [socket,status]);
-
-	// useEffect(() => {
-	// 	if (socket) {
-	// 		socket.emit('checkStatus', contact.name );
-	// 		socket.on('checkStatusResponse', (res) => {
-	// 			setStatus(res.status)
-	// 		});
-	// 		 return () => {
-	// 			socket.off('checkStatusResponse')
-	// 		}
-	// 	}
-	// }, [status, socket]);
+	}, [socket, status]);
 
 	useEffect(() => {
-		if (isPending == false) {
+		if (isPending == false && roomId) {
 			UpdateMessage({ id: roomId, users: [user, contact], messages });
 		}
 	}, [messages]);
@@ -92,7 +76,8 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	}, [open]);
 
 	useEffect(() => {
-		if (socket) {
+		setPending(true);
+		if (socket && !roomId) {
 			socket.emit('findRoom', [user, contact]);
 			socket.on('findRoomResponse', (room: Room) => {
 				setRoomId(room.id);
@@ -123,10 +108,26 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 					setPending(false)
 				});
 		};
+		setPending(false);
 		return () => {
 			socket?.off('findRoomResponse');
+			// socket?.off('isUserInRoomResponse');
 		}
 	}, []);
+
+	useFocusEffect(
+		useCallback(() => {
+			socket?.emit('isUserInRoom', { user: user.name, status: true });
+			socket?.on('isUserInRoomResponse', (res) => {
+				setIsInRoom(res.status)
+				console.log(res, 'isUserInRoomResponse')
+			 });
+			return () => {
+				socket?.emit('isUserInRoom', { user: user.name, status: false });
+				socket?.off('isUserInRoomResponse');
+			}
+		}, [socket])
+	);
 
 	const onSend = (newMessage: IMessage[]) => {
 		if (socket && roomId) {
@@ -134,16 +135,21 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 		}
 	};
 
+
 	return (
 		<View style={{ flex: 1, backgroundColor: colors.background }}>
 			<LoadingPage active={isPending} />
 			<View style={{ flexDirection: 'row', padding: 15, alignItems: "center", backgroundColor: colors.undetlay }}>
-				<View style={{ width: 45, height: 45, borderRadius: 25, backgroundColor: colors.border, marginRight: 10 }} />
+				<View style={{ width: 47, height: 47, borderRadius: 25, backgroundColor: colors.border, marginRight: 10 }} />
 				<View style={{ alignItems: "flex-start", flexDirection: "column" }}>
-					<Text style={{ color: colors.text, fontSize: 23 }}>{contact ? contact.name : ''}</Text>
-					<Text style={{ color: colors.text, fontSize: 16 }}>{status ? "online" : status === false ? "offline" : "connecting..."}</Text>
+					<Text style={{ color: colors.text, fontSize: 23, fontWeight: "700" }}>{contact ? contact.name : ''}</Text>
+					<View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+						<Text style={{ color: colors.text, fontSize: 17, fontWeight: "600", paddingBottom: 2 }}>{status ? "online" : status === false ? "offline" : "connecting..."}</Text>
+						<Text style={{ color: colors.text, fontSize: 14, fontWeight: "500" }}>{!isInRoom && status ? "but not in room" : ""}</Text>
+					</View>
 				</View>
 			</View>
+			{/* <Text>{expoPushToken?.data}</Text> */}
 			<GiftedChat
 				messages={messages}
 				onSend={messages => onSend(messages)}
