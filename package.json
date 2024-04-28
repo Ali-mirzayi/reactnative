@@ -8,7 +8,8 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "test": "jest --watch",
-    "updateSnapshots": "jest -u --coverage=false"  },
+    "updateSnapshots": "jest -u --coverage=false"
+  },
   "jest": {
     "preset": "jest-expo",
     "setupFiles": [
@@ -41,9 +42,11 @@
     "expo-constants": "~14.4.2",
     "expo-contacts": "~12.2.0",
     "expo-dev-client": "~2.4.12",
+    "expo-device": "~5.4.0",
     "expo-document-picker": "~11.5.4",
     "expo-file-system": "~15.4.5",
     "expo-image-picker": "~14.3.2",
+    "expo-notifications": "~0.20.1",
     "expo-splash-screen": "~0.20.5",
     "expo-sqlite": "~11.3.3",
     "expo-status-bar": "~1.6.0",

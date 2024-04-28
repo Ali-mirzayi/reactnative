@@ -3,7 +3,7 @@ import { View, Text, FlatList, StyleSheet, Button, DrawerLayoutAndroid, Touchabl
 import baseURL from "../utils/baseURL";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import SearchBar from "../components/SearchBar";
-import { Room, RootStackParamList, User,ChatNavigationProps } from "../utils/types";
+import { Room, User,ChatNavigationProps } from "../utils/types";
 import { DrawerScreenProps } from '@react-navigation/drawer';
 import { Ionicons } from "@expo/vector-icons";
 import { useSocket, useUser } from "../socketContext";
@@ -17,7 +17,7 @@ import DrawerCore from "../components/Drawer";
 import { storage } from "../mmkv";
 
 const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) => {
-	const { setChat, beCheck } = route?.params || {};
+	const { beCheck } = route?.params || {};
 	const [rooms, setRooms] = useState<Room[]>([]);
 	const [users, setUsers] = useState<User[] | []>([]);
 	const [screen, setScreen] = useState<'users' | 'rooms'>('rooms');
@@ -49,7 +49,6 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 		useCallback(() => {
 			const unsubscribe = navigation.addListener('focus', () => {
 				setPending(true);
-				setChat(2);
 				(function () {
 					fetch(`${baseURL()}/api`)
 						.then((res) => res.json())

@@ -1,7 +1,5 @@
 import { useState } from "react";
 import { Text, SafeAreaView, View, TextInput, Alert, StyleSheet, TouchableHighlight } from "react-native";
-// import AsyncStorage from "@react-native-async-storage/async-storage";
-// import Animated from "react-native-reanimated";
 import { LoginNavigationProps } from "../utils/types";
 import { generateID } from "../utils/utils";
 import { StackScreenProps } from "@react-navigation/stack";
@@ -10,16 +8,14 @@ import { useUser } from "../socketContext";
 import { storage } from "../mmkv";
 import LottieView from 'lottie-react-native';
 import useTheme from "../utils/theme";
-import { useNavigation } from "@react-navigation/native";
 
 const Login = ({ route,navigation }: StackScreenProps<LoginNavigationProps, 'Login'>) => {
-	const { setChat, beCheck } = route?.params || {};
+	const { beCheck } = route?.params || {};
 
 	const [username, setUsername] = useState("");
 	const { colors } = useTheme();
 	const setUser = useUser(state => state.setUser);
 	const id = generateID();
-	const { navigate }: any = useNavigation();
 
 	const storeUsername = async () => {
 		try {
@@ -35,7 +31,7 @@ const Login = ({ route,navigation }: StackScreenProps<LoginNavigationProps, 'Log
 			if (json?.isOK === true) {
 				storage.set('user', JSON.stringify({ name: username, id }));
 				setUser({ _id: id, name: username, avatar: '' })
-				navigate('Chat', { setChat, beCheck });
+				navigation.navigate('Chat', { beCheck });
 			} else {
 				Alert.alert("Error! invalid username");
 			}
