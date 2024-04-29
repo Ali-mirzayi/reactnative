@@ -30,7 +30,6 @@ export const usePushNotifications = (): PushNotificationState => {
     if (Device.isDevice) {
       const { status: existingStatus } =
       await Notifications.getPermissionsAsync();
-      console.log(existingStatus,'Device.isDevice');
       let finalStatus = existingStatus;
 
       if (existingStatus !== "granted") {
@@ -41,8 +40,6 @@ export const usePushNotifications = (): PushNotificationState => {
         alert("Failed to get push token for push notification");
         return;
       }
-
-      console.log(Constants.expoConfig?.extra?.eas.projectId,'projectId');
 
       token = await Notifications.getExpoPushTokenAsync({
         projectId: Constants.expoConfig?.extra?.eas.projectId,

@@ -3,10 +3,10 @@ import { View, Text, FlatList, StyleSheet, Button, DrawerLayoutAndroid, Touchabl
 import baseURL from "../utils/baseURL";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import SearchBar from "../components/SearchBar";
-import { Room, User,ChatNavigationProps } from "../utils/types";
+import { Room, User, ChatNavigationProps } from "../utils/types";
 import { DrawerScreenProps } from '@react-navigation/drawer';
 import { Ionicons } from "@expo/vector-icons";
-import { useSocket, useUser } from "../socketContext";
+import { useSocket, useToken, useUser } from "../socketContext";
 import { getAllRooms, insertRoom } from "../utils/DB";
 import Toast from "react-native-toast-message";
 import LoadingPage from "../components/LoadingPage";
@@ -15,21 +15,26 @@ import useTheme from "../utils/theme";
 import { useFocusEffect } from "@react-navigation/native";
 import DrawerCore from "../components/Drawer";
 import { storage } from "../mmkv";
+import { usePushNotifications } from "../utils/usePushNotifications";
 
 const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) => {
 	const { beCheck } = route?.params || {};
+	
+	const user = useUser(state => state.user);
+	const socket = useSocket(state => state.socket);
+	const token = useToken(state => state.token);
+	
+	const drawer = useRef<DrawerLayoutAndroid>(null);
+	const { colors } = useTheme();
+	const initDarkMode = storage.getBoolean("darkMode");
+	const colorScheme = useColorScheme();
+	const scheme = (colorScheme === 'dark' ? false : true);
+	
+	const [isPending, setPending] = useState(false);
 	const [rooms, setRooms] = useState<Room[]>([]);
 	const [users, setUsers] = useState<User[] | []>([]);
 	const [screen, setScreen] = useState<'users' | 'rooms'>('rooms');
-	const drawer = useRef<DrawerLayoutAndroid>(null);
-	const user = useUser(state => state.user);
-	const socket = useSocket(state => state.socket);
-	const [isPending, setPending] = useState(false);
-	const { colors } = useTheme();
-	const initDarkMode = storage.getBoolean("darkMode");
-    const colorScheme = useColorScheme();
-    const scheme = (colorScheme === 'dark' ? false : true);
-    const [darkMode, setDarkMode] = useState(initDarkMode !== undefined ? initDarkMode : scheme);
+	const [darkMode, setDarkMode] = useState(initDarkMode !== undefined ? initDarkMode : scheme);
 
 	const pressHandler = (item: User | undefined) => {
 		socket?.emit("createRoom", [user, item], navigation.navigate("Messaging", { contact: item }))
@@ -44,16 +49,16 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 			insertRoom(room);
 		});
 	};
-
+	
 	useFocusEffect(
 		useCallback(() => {
 			const unsubscribe = navigation.addListener('focus', () => {
 				setPending(true);
 				(function () {
 					fetch(`${baseURL()}/api`)
-						.then((res) => res.json())
-						.then((data: Room[]) => {
-							data.forEach(room => {
+					.then((res) => res.json())
+					.then((data: Room[]) => {
+						data.forEach(room => {
 								insertRoom(room);
 							});
 						})
@@ -69,12 +74,9 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 		}, [])
 	);
 
-	// console.log(user);
-
 	useEffect(() => {
 		socket?.on("roomsList", setter);
-		socket?.emit('setStatus', { 'id': socket.id, 'name': user?.name});
-		console.log(socket?.id);
+		socket?.emit('setSocketId', { 'id': socket?.id, 'name': user?.name });
 		getAllRooms()
 			.then((result: Room[] | any) => {
 				if (result.length > 0) {
@@ -90,6 +92,10 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 			socket?.off("roomsList", setter)
 		};
 	}, [socket]);
+
+	useEffect(() => {
+		//condition to check if user.token is modified first set new token in MMKV.storage.user.token then post api call to upload new user
+	},[]);
 
 	return (
 		<View style={{ flex: 1 }}>

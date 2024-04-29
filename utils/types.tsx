@@ -1,5 +1,6 @@
 import { DrawerLayoutAndroid } from "react-native";
 import { IMessage } from "react-native-gifted-chat";
+import * as Notifications from "expo-notifications";
 
 export type LoginNavigationProps = {
     LoginPrev: undefined;
@@ -21,6 +22,8 @@ export type User = {
     _id: string;
     name: string;
     avatar: string;
+    token: Notifications.ExpoPushToken | undefined;
+    // token: Notifications.NativeDevicePushToken | undefined;
 };
 
 export type Room = {

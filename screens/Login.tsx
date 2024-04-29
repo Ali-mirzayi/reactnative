@@ -8,14 +8,15 @@ import { useUser } from "../socketContext";
 import { storage } from "../mmkv";
 import LottieView from 'lottie-react-native';
 import useTheme from "../utils/theme";
+import { usePushNotifications } from "../utils/usePushNotifications";
 
-const Login = ({ route,navigation }: StackScreenProps<LoginNavigationProps, 'Login'>) => {
+const Login = ({ route, navigation }: StackScreenProps<LoginNavigationProps, 'Login'>) => {
 	const { beCheck } = route?.params || {};
-
 	const [username, setUsername] = useState("");
 	const { colors } = useTheme();
 	const setUser = useUser(state => state.setUser);
-	const id = generateID();
+	const _id = generateID();
+	const { expoPushToken } = usePushNotifications();
 
 	const storeUsername = async () => {
 		try {
@@ -25,12 +26,12 @@ const Login = ({ route,navigation }: StackScreenProps<LoginNavigationProps, 'Log
 					Accept: 'application/json',
 					'Content-Type': 'application/json',
 				},
-				body: JSON.stringify({ _id: id, name: username, avatar: '' })
+				body: JSON.stringify({ _id: _id, name: username, avatar: '', token: expoPushToken })
 			});
 			const json = await response.json();
 			if (json?.isOK === true) {
-				storage.set('user', JSON.stringify({ name: username, id }));
-				setUser({ _id: id, name: username, avatar: '' })
+				storage.set('user', JSON.stringify({ name: username, _id, token: expoPushToken }));
+				setUser({ _id: _id, name: username, avatar: '', token: expoPushToken })
 				navigation.navigate('Chat', { beCheck });
 			} else {
 				Alert.alert("Error! invalid username");
