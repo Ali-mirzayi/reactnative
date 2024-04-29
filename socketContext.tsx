@@ -1,6 +1,7 @@
 import { Socket } from 'socket.io-client';
 import { User } from './utils/types';
 import { create } from 'zustand';
+import * as Notifications from "expo-notifications";
 
 interface useSocket {
 	socket: Socket | null
@@ -13,6 +14,10 @@ interface useDarkMode {
 interface useUser {
 	user: User | undefined
 	setUser: (e: User) => void
+}
+interface useToken {
+	token: Notifications.ExpoPushToken | undefined
+	setToken: (e: Notifications.ExpoPushToken) => void
 }
 
 export const useSocket = create<useSocket>()((set) => ({
@@ -28,4 +33,9 @@ export const useDarkMode = create<useDarkMode>()((set) => ({
 export const useUser = create<useUser>()((set) => ({
 	user: undefined,
 	setUser: (e) => set({ user: e })
+}));
+
+export const useToken = create<useToken>()((set) => ({
+	token: undefined,
+	setToken: (e) => set({ token: e })
 }));

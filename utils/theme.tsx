@@ -11,7 +11,8 @@ const lightTheme = {
       mirza:"#3F72AF",
       undetlay:"#b2c6df",
       loginMirza:"#00402f",
-      boarder:"#b2c6df"
+      boarder:"#b2c6df",
+      red:"#DE3163"
     },
   };
   
@@ -25,7 +26,8 @@ const darkTheme = {
         mirza:"#8baacf",
         undetlay:"#353d4f",
         loginMirza:"#508081",
-        boarder:"#ccc"
+        boarder:"#ccc",
+        red:"#FF033E"
     }
 
 };

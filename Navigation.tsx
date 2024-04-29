@@ -7,13 +7,14 @@ import LoginPrev from './screens/LoginPrev';
 import { Easing } from 'react-native';
 import { TransitionSpec } from '@react-navigation/stack/lib/typescript/src/types';
 import { useEffect, useLayoutEffect, useState } from 'react';
-import { ChatNavigationProps, LoginNavigationProps, RootStackParamList } from './utils/types';
+import { ChatNavigationProps, LoginNavigationProps, RootStackParamList, User } from './utils/types';
 import { useColorScheme } from 'react-native';
-import { useUser } from './socketContext';
+import { useToken, useUser } from './socketContext';
 import { createTable, deleteRooms } from "./utils/DB";
 import LoadingPage from './components/LoadingPage';
 import { storage } from './mmkv';
 import baseURL from './utils/baseURL';
+import { usePushNotifications } from './utils/usePushNotifications';
 
 const config: TransitionSpec = {
     animation: 'spring',
@@ -107,6 +108,7 @@ export default function Navigation() {
     const Stack = createStackNavigator<RootStackParamList>();
     const user = useUser(state => state.user);
     const setUser = useUser(state => state.setUser);
+    const setToken = useToken(state => state.setToken);
     const [loading, setLoading] = useState(true);
     const [chat, setChat] = useState<boolean>(false);
     const [beCheck, setBeCheck] = useState<boolean>(false);
@@ -114,16 +116,18 @@ export default function Navigation() {
     const initDarkMode = storage.getBoolean("darkMode");
     const scheme = (colorScheme === 'dark' ? true : false);
     const fin = initDarkMode !== undefined ? initDarkMode : scheme;
+    // const { expoPushToken, notification } = usePushNotifications();
 
     useEffect(() => {
+        // this function called in chat screen
         (async () => {
             try {
                 setLoading(true);
                 const jsonUser = storage.getString('user');
                 if (jsonUser) {
-                    const { name, id } = JSON.parse(jsonUser);
-                    if (name !== null && id !== null) {
-                        setUser({ _id: id, name: name, avatar: '' })
+                    const { name, _id, token } = JSON.parse(jsonUser);
+                    if (name !== null && _id !== null) {
+                        setUser({ _id: _id, name: name, avatar: '', token })
                     }
                 }
                 setLoading(false);
@@ -136,14 +140,13 @@ export default function Navigation() {
     useLayoutEffect(() => {
         setLoading(true);
         const value = storage.getBoolean("clearAll");
-        console.log(value, 'dddd');
         if (value === undefined || null) {
             storage.set("clearAll", false);
         };
         if (value == true) {
             (function () {
                 // for delete user and related rooms he's joined
-                fetch(`${baseURL()}/checkUser`, {
+                fetch(`${baseURL()}/deleteUser`, {
                     method: 'POST',
                     headers: {
                         Accept: 'application/json',
@@ -159,10 +162,10 @@ export default function Navigation() {
             setLoading(false);
         } else {
             createTable();
-            console.log('object');
             setLoading(false);
         }
         storage.set("darkMode", fin);
+        // if (expoPushToken) { setToken(expoPushToken) }
         setLoading(false);
     }, []);
 
@@ -196,7 +199,7 @@ export default function Navigation() {
                             headerShown: false,
                         }}
                         listeners={{
-                            focus:()=>{
+                            focus: () => {
                                 setChat(true);
                             }
                         }}
