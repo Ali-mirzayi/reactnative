@@ -12,7 +12,6 @@ import { renderActions, renderBubble, RenderChatFooter, renderInputToolbar, rend
 import useTheme from '../utils/theme';
 import { Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { usePushNotifications } from '../utils/usePushNotifications';
 import PushNotificationSend from '../components/PushNotificationSend';
 
 const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>) => {
@@ -27,10 +26,6 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	const [isPending, setPending] = useState(true); // set for roomId and save it db
 	const socket = useSocket(state => state.socket);
 	const { colors } = useTheme();
-	// const {expoPushToken,notification} = usePushNotifications();
-
-	// console.log(expoPushToken,'expoPushToken');
-	// console.log(notification,'notification');
 
 	useEffect(() => {
 		if (socket) {
@@ -51,7 +46,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 					await FileSystem.writeAsStringAsync(filename, newMessage.video, { encoding: "base64" });
 					newMessage["image"] = filename;
 				};
-				console.log(newMessage);
+				// console.log(newMessage);
 				setMessages((prevMessages: IMessage[]) => GiftedChat.append(prevMessages, [newMessage]));
 			});
 			return () => {
@@ -136,8 +131,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	return (
 		<View style={{ flex: 1, backgroundColor: colors.background }}>
 			<LoadingPage active={isPending} />
-			{/* <PushNotificationSend active={true} name={user.name} contactToken={contact?.token} /> */}
-			<PushNotificationSend active={contact?.token && (!status || !isInRoom)} name={user.name} contactToken={contact?.token} />
+			<PushNotificationSend active={contact?.token && (!status || !isInRoom)} user={user} contactToken={contact?.token} roomId={roomId} />
 			<View style={{ flexDirection: 'row', padding: 15, alignItems: "center", backgroundColor: colors.undetlay }}>
 				<View style={{ width: 47, height: 47, borderRadius: 25, backgroundColor: colors.border, marginRight: 10 }} />
 				<View style={{ alignItems: "flex-start", flexDirection: "column" }}>

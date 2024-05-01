@@ -4,17 +4,15 @@ import { CardStyleInterpolators, createStackNavigator } from '@react-navigation/
 import Messaging from "./screens/Messaging";
 import Chat from "./screens/Chat";
 import LoginPrev from './screens/LoginPrev';
-import { Easing } from 'react-native';
+import { useColorScheme, Easing } from 'react-native';
 import { TransitionSpec } from '@react-navigation/stack/lib/typescript/src/types';
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { ChatNavigationProps, LoginNavigationProps, RootStackParamList, User } from './utils/types';
-import { useColorScheme } from 'react-native';
-import { useToken, useUser } from './socketContext';
+import { useUser } from './socketContext';
 import { createTable, deleteRooms } from "./utils/DB";
 import LoadingPage from './components/LoadingPage';
 import { storage } from './mmkv';
 import baseURL from './utils/baseURL';
-import { usePushNotifications } from './utils/usePushNotifications';
 
 const config: TransitionSpec = {
     animation: 'spring',
@@ -108,7 +106,6 @@ export default function Navigation() {
     const Stack = createStackNavigator<RootStackParamList>();
     const user = useUser(state => state.user);
     const setUser = useUser(state => state.setUser);
-    const setToken = useToken(state => state.setToken);
     const [loading, setLoading] = useState(true);
     const [chat, setChat] = useState<boolean>(false);
     const [beCheck, setBeCheck] = useState<boolean>(false);
@@ -116,7 +113,6 @@ export default function Navigation() {
     const initDarkMode = storage.getBoolean("darkMode");
     const scheme = (colorScheme === 'dark' ? true : false);
     const fin = initDarkMode !== undefined ? initDarkMode : scheme;
-    // const { expoPushToken, notification } = usePushNotifications();
 
     useEffect(() => {
         // this function called in chat screen
@@ -130,11 +126,11 @@ export default function Navigation() {
                         setUser({ _id: _id, name: name, avatar: '', token })
                     }
                 }
-                setLoading(false);
             } catch (e) {
-                setLoading(false);
+                console.log(`error cant user: ${e}`)
             }
         })();
+        setLoading(false);
     }, [chat]);
 
     useLayoutEffect(() => {
@@ -159,20 +155,17 @@ export default function Navigation() {
             deleteRooms();
             createTable();
             setBeCheck(true);
-            setLoading(false);
         } else {
             createTable();
-            setLoading(false);
         }
         storage.set("darkMode", fin);
-        // if (expoPushToken) { setToken(expoPushToken) }
-        setLoading(false);
     }, []);
+
+    if(loading){return <LoadingPage active={loading} />}
 
     return (
         <>
-            <LoadingPage active={loading} />
-            <NavigationContainer>
+            <NavigationContainer fallback={<LoadingPage active={true} />} >
                 <Stack.Navigator screenOptions={{
                     headerShown: false,
                     gestureEnabled: true,
@@ -182,7 +175,8 @@ export default function Navigation() {
                         close: closeConfig
                     },
                     cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS
-                }}>
+                }}
+                >
                     {user ?
                         null
                         :

@@ -1,30 +1,36 @@
 import { Text, StyleSheet, TextInput, View, Button, ToastAndroid } from 'react-native'
 import useTheme from '../utils/theme';
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import * as Notifications from "expo-notifications";
 import baseURL from '../utils/baseURL';
+import { User } from '../utils/types';
 
 
-export default function PushNotificationSend({ active = true, name, contactToken }: { active: boolean, name: string, contactToken: Notifications.ExpoPushToken }) {
+export default function PushNotificationSend({ active , user, contactToken,roomId }: { active: boolean, user: User, contactToken: Notifications.ExpoPushToken,roomId: string | undefined }) {
     const { colors } = useTheme();
     const [open, setOpen] = useState(true);
     const [value, setValue] = useState<string>("");
 
-    const notificationSend: props = { name, message: value, token: contactToken?.data, type: 'send' }
-    const notificationHere: props = { name, message: 'I`m in room', token: contactToken?.data, type: 'here' }
-
     type props = {
-        name: string;
+        user: User;
         message: string;
         token: any;
+        roomId:string | undefined;
         type: "send" | "here"
     }
 
+    useEffect(()=>{
+        setOpen(active)
+    },[active])
+
+    const notificationSend: props = { user, message: value, token: contactToken?.data,roomId, type: 'send' }
+    const notificationHere: props = { user, message: 'I`m in room', token: contactToken?.data,roomId, type: 'here' }
+
     const handlePress = async (props: props) => {
-        if (!name[0] || (props.type === 'send' && value === "") || !contactToken) return;
+        if (!user.name || (props.type === 'send' && value === "") || !contactToken || !roomId) return;
         try {
-            const response = await fetch(`${baseURL()}/sendPushNotifications`, {
+            const response = await fetch(`http://10.0.2.2:4000/sendPushNotifications`, {
                 method: 'POST',
                 headers: {
                     Accept: 'application/json',
@@ -50,7 +56,7 @@ export default function PushNotificationSend({ active = true, name, contactToken
                     <Ionicons onPress={() => setOpen(false)} name='close-circle' size={35} color={colors.red} style={{ marginVertical: 15 }} />
                     <Text style={[styles.Available, { color: colors.text }]}>User Is Not Available</Text>
                     <Text style={[styles.Notification, { color: colors.text }]}>Send a Message with Notification</Text>
-                    <TextInput style={[styles.Input, { color: colors.text, borderColor: colors.mirza }]} placeholder='Message . . .' onChangeText={setValue} />
+                    <TextInput style={[styles.Input, { color: colors.text, borderColor: colors.mirza }]} blurOnSubmit placeholderTextColor={colors.mirza} placeholder='Message . . .' onChangeText={setValue} />
                     <View style={{ flexDirection: 'row', justifyContent: 'space-evenly', marginTop: 20 }}>
                         <View style={{ width: '42%' }}>
                             <Button title='Send' onPress={() => handlePress(notificationSend)} />

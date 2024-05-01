@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useLayoutEffect, useTransition } from "react";
 import { View, Text, FlatList, StyleSheet, Button, DrawerLayoutAndroid, TouchableHighlight, useColorScheme, } from "react-native";
 import baseURL from "../utils/baseURL";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -6,7 +6,7 @@ import SearchBar from "../components/SearchBar";
 import { Room, User, ChatNavigationProps } from "../utils/types";
 import { DrawerScreenProps } from '@react-navigation/drawer';
 import { Ionicons } from "@expo/vector-icons";
-import { useSocket, useToken, useUser } from "../socketContext";
+import { useSocket, useUser } from "../socketContext";
 import { getAllRooms, insertRoom } from "../utils/DB";
 import Toast from "react-native-toast-message";
 import LoadingPage from "../components/LoadingPage";
@@ -15,22 +15,25 @@ import useTheme from "../utils/theme";
 import { useFocusEffect } from "@react-navigation/native";
 import DrawerCore from "../components/Drawer";
 import { storage } from "../mmkv";
+import sleep from "../utils/wait";
 import { usePushNotifications } from "../utils/usePushNotifications";
 
 const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) => {
 	const { beCheck } = route?.params || {};
-	
+
+	const setUser = useUser(state => state.setUser);
 	const user = useUser(state => state.user);
 	const socket = useSocket(state => state.socket);
-	const token = useToken(state => state.token);
-	
+
 	const drawer = useRef<DrawerLayoutAndroid>(null);
 	const { colors } = useTheme();
 	const initDarkMode = storage.getBoolean("darkMode");
 	const colorScheme = useColorScheme();
 	const scheme = (colorScheme === 'dark' ? false : true);
-	
-	const [isPending, setPending] = useState(false);
+	const { expoPushToken, notification } = usePushNotifications();
+
+	const [isPending, setPending] = useState(true);
+	const [loading, setLoading] = useState(false)
 	const [rooms, setRooms] = useState<Room[]>([]);
 	const [users, setUsers] = useState<User[] | []>([]);
 	const [screen, setScreen] = useState<'users' | 'rooms'>('rooms');
@@ -49,16 +52,17 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 			insertRoom(room);
 		});
 	};
-	
+
+	const notifData = notification?.request.content.data;
+
 	useFocusEffect(
 		useCallback(() => {
 			const unsubscribe = navigation.addListener('focus', () => {
-				setPending(true);
 				(function () {
 					fetch(`${baseURL()}/api`)
-					.then((res) => res.json())
-					.then((data: Room[]) => {
-						data.forEach(room => {
+						.then((res) => res.json())
+						.then((data: Room[]) => {
+							data.forEach(room => {
 								insertRoom(room);
 							});
 						})
@@ -71,7 +75,7 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 				setPending(false);
 			});
 			return unsubscribe;
-		}, [])
+		}, [notification])
 	);
 
 	useEffect(() => {
@@ -93,9 +97,36 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 		};
 	}, [socket]);
 
-	useEffect(() => {
-		//condition to check if user.token is modified first set new token in MMKV.storage.user.token then post api call to upload new user
-	},[]);
+	useLayoutEffect(() => {
+
+		if (notifData) {
+			navigation.navigate('Messaging', {
+				contact: notifData?.user,
+				id: notifData?.roomId
+			});
+		setLoading(false);
+			setPending(false);
+		}
+		if (expoPushToken && user) {
+			//@ts-ignore
+			user['token'] = expoPushToken
+			setUser(user)
+			try {
+				fetch(`${baseURL()}/updateUser`, {
+					method: 'POST',
+					headers: {
+						Accept: 'application/json',
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({ user })
+				});
+			} catch (err) {
+				console.log(`error in updateUser ${err}`);
+			}
+		}
+	}, [expoPushToken?.data,notifData]);
+
+	if (notifData && loading) { return (<LoadingPage active={true} />) }
 
 	return (
 		<View style={{ flex: 1 }}>
@@ -136,7 +167,7 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 										data={rooms}
 										keyExtractor={(item) => item.id}
 									/>
-									<Button title="clear" onPress={async () => await AsyncStorage.clear()} />
+									<Button title="clearrr" />
 								</View>
 							) : (
 								<View style={[styles.chatemptyContainer]}>

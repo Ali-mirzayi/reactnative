@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { View, Text, Animated, StyleSheet, DrawerLayoutAndroid, Easing, Pressable, useColorScheme, TouchableHighlight } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import React, { useState, useRef, useCallback } from "react";
+import { View, Text, Animated, StyleSheet, DrawerLayoutAndroid, Easing, Pressable } from "react-native";
+import { Ionicons,MaterialCommunityIcons } from "@expo/vector-icons";
 import Checkbox from 'expo-checkbox';
 import Link from "../utils/Link";
 import { storage } from "../mmkv";
@@ -10,23 +10,23 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { DrawerCoreType } from "../utils/types";
 
 export default function DrawerCore({ darkMode, setDarkMode, beCheck, name, children, drawerRef }: DrawerCoreType) {
-    const [isChecked, setChecked] = useState<boolean | undefined>(false);
-    const toggleRef = useRef(new Animated.Value(darkMode == true ? 0.5 : 0)).current;
+    const toggleRef = useRef(new Animated.Value(darkMode === true ? 0.5 : 0)).current;
     const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
+    const [isChecked, setChecked] = useState<boolean | undefined>(false);
     const { colors } = useTheme();
     const navigation = useNavigation();
 
-    const DrawerComponent = () => {
-        function onValueChange(value: any) {
-            setChecked(value);
-            storage.set("clearAll", value)
-        }
-
+    const DrawerComponent = () => {   
         function onPressHandler() {
             setDarkMode(!darkMode);
             storage.set("darkMode", darkMode);
         }
 
+        function onValueChange(value: any) {
+            setChecked(value);
+            storage.set("clearAll", value)
+        }
+        
         return (
             <View style={{ flex: 1, backgroundColor: colors.background }}>
                 <Text style={[styles.chatheading, styles.user, { color: colors.mirza }]}>{name}</Text>
@@ -40,14 +40,20 @@ export default function DrawerCore({ darkMode, setDarkMode, beCheck, name, child
                 <View style={styles.navigation}>
                     <Link url={'https://www.linkedin.com/in/alimirzaeizade/'}>
                         <View style={styles.indIcon}>
-                            <Ionicons name="logo-linkedin" size={35} color="#317daf" />
-                            <Text>Linkedin</Text>
+                            <Ionicons name="logo-linkedin" size={36} color="#317daf" />
+                            <Text style={{color:colors.text,fontSize:18}}>Linkedin</Text>
                         </View>
                     </Link>
                     <Link url={"https://github.com/Ali-mirzayi"}>
                         <View style={styles.indIcon}>
-                            <Ionicons name="logo-github" size={35} color="black" />
-                            <Text>GitHub</Text>
+                            <Ionicons name="logo-github" size={38} color="black" />
+                            <Text style={{color:colors.text,fontSize:18}}>GitHub</Text>
+                        </View>
+                    </Link>
+                    <Link url={"https://alimirzaei.vercel.app"}>
+                        <View style={styles.indIcon}>
+                            <MaterialCommunityIcons name="web" size={40} color="black" />
+                            <Text style={{color:colors.text,fontSize:18}}>Web Site</Text>
                         </View>
                     </Link>
                 </View>
@@ -128,7 +134,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         marginHorizontal: 20,
-        marginTop: 10,
+        marginVertical: 10,
         gap: 30
     },
     removeContainer: {
