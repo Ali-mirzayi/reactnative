@@ -15,10 +15,6 @@ interface useUser {
 	user: User | undefined
 	setUser: (e: User) => void
 }
-interface useToken {
-	token: Notifications.ExpoPushToken | undefined
-	setToken: (e: Notifications.ExpoPushToken) => void
-}
 
 export const useSocket = create<useSocket>()((set) => ({
 	socket: null,
@@ -33,9 +29,4 @@ export const useDarkMode = create<useDarkMode>()((set) => ({
 export const useUser = create<useUser>()((set) => ({
 	user: undefined,
 	setUser: (e) => set({ user: e })
-}));
-
-export const useToken = create<useToken>()((set) => ({
-	token: undefined,
-	setToken: (e) => set({ token: e })
 }));
