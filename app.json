@@ -1,0 +1,56 @@
+{
+  "expo": {
+    "name": "Mirzagram",
+    "slug": "my-app",
+    "version": "1.0.2",
+    "orientation": "portrait",
+    "icon": "./assets/mirza256clean.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/mirza512.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#EEF1FF"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "userInterfaceStyle": "light"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/mirza256clean.png",
+        "backgroundColor": "#EEF1FF"
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
+      "googleServicesFile": "./google-services.json",
+      "package": "com.Mirzagram.PushNotifications",
+      "userInterfaceStyle": "light"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "./plugins/withDisableForcedDarkModeAndroid.js",
+        {}
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you share them with your friends.",
+          "cameraPermission": "The app accesses your camera to let you share them with your friends",
+          "microphonePermission": "The app accesses your microphone to let you share them with your friends"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "38707324-7b74-4638-b9e8-09ba20663327"
+      }
+    }
+  }
+}
