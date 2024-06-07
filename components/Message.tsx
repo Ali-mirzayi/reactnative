@@ -5,23 +5,27 @@ import * as ImagePicker from 'expo-image-picker';
 import { generateID } from "../utils/utils";
 import baseURL from "../utils/baseURL";
 import * as FileSystem from 'expo-file-system';
-import { Actions, ActionsProps, Bubble, BubbleProps, Composer, IMessage, InputToolbar, InputToolbarProps, MessageVideoProps, Send, SendProps, Time, TimeProps } from "react-native-gifted-chat";
+import { Actions, ActionsProps, Bubble, BubbleProps, Composer, GiftedChat, IMessage, InputToolbar, InputToolbarProps, MessageVideoProps, Send, SendProps, Time, TimeProps } from "react-native-gifted-chat";
 import { ResizeMode, Video } from "expo-av";
 import { darkTheme } from "../utils/theme";
 import { User } from "../utils/types";
 
-export function RenderChatFooter({ user, socket, translateY, roomId, colors }: { user: User, socket: any, translateY: any, roomId: any, colors: typeof darkTheme.colors }) {
+export function RenderChatFooter({ user, socket, translateY, roomId, setMessages, colors }: { user: User, socket: any, translateY: any, roomId: any, setMessages: React.Dispatch<React.SetStateAction<IMessage[]>>, colors: typeof darkTheme.colors }) {
 	async function sendMedia({ uri, type }: { uri: string | null | undefined, type: "image" | "video" | undefined }) {
 		const id = generateID();
-		// console.log(uri, type);
+		console.log(uri, type);
 		if (type === 'image' && uri) {
-			const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file' })
-			socket?.emit('sendImage', { _id: id, text: "", createdAt: new Date(), user, roomId });
-			// socket.emit('sendMessage', { _id: id, text: "", createdAt: new Date(),image:'data:image/jpeg;base64,'+uri, user, roomId });
+			setMessages((prevMessages: IMessage[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user,image:uri }]));
+			const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file' });
+			if(response.body==="ok"){
+				socket?.emit('sendImage', { _id: id, text: "", createdAt: new Date(), user, roomId });
+			}
 		} else if (type === 'video' && uri) {
+			setMessages((prevMessages: IMessage[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user,video:uri }]));
 			const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file' })
-			socket?.emit('sendVideo', { _id: id, text: "", createdAt: new Date(), user, roomId });
-			// socket.emit('sendMessage', { _id: id, text: "", createdAt: new Date(),video:'data:video/mp4;base64,'+uri, user, roomId });	
+			if(response.body==="ok"){
+				socket?.emit('sendVideo', { _id: id, text: "", createdAt: new Date(), user, roomId });
+			}
 		}
 		// if (roomId){
 		// 	UpdateMessage({id:roomId,users:[user,contact],messages:messages});
@@ -102,7 +106,7 @@ export function renderBubble(props: Readonly<BubbleProps<IMessage>>, { colors }:
 					marginVertical: 2
 				},
 				left: {
-					backgroundColor: colors.text==="#F1F6F9"?"#a826ff":"#fff",
+					backgroundColor: colors.text === "#F1F6F9" ? "#a826ff" : "#fff",
 					borderTopRightRadius: 15,
 					borderTopLeftRadius: 15,
 					marginVertical: 1,
@@ -126,11 +130,11 @@ export function renderBubble(props: Readonly<BubbleProps<IMessage>>, { colors }:
 				right: {
 					color: '#fff',
 				}, left: {
-					color: colors.text==="#F1F6F9"?'#fff':'#000',
+					color: colors.text === "#F1F6F9" ? '#fff' : '#000',
 				}
 			}}
 			usernameStyle={{
-				color: colors.text==="#F1F6F9"?'#fff':'#000',
+				color: colors.text === "#F1F6F9" ? '#fff' : '#000',
 			}}
 			tickStyle={{
 				color: '#fff',

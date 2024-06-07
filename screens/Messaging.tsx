@@ -44,8 +44,9 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 					await ensureDirExists();
 					const filename = downloadsDir + new Date().getTime() + ".mp4";
 					await FileSystem.writeAsStringAsync(filename, newMessage.video, { encoding: "base64" });
-					newMessage["image"] = filename;
+					newMessage["video"] = filename;
 				};
+				console.log('onResive',newMessage,'newMessage')
 				setMessages((prevMessages: IMessage[]) => GiftedChat.append(prevMessages, [newMessage]));
 			});
 			return () => {
@@ -121,7 +122,9 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	const onSend = (newMessage: IMessage[]) => {
 		if ((!status || !isInRoom)) return;
 		if (socket && roomId) {
-			socket.emit('sendMessage', { ...newMessage[0], user, roomId });
+			socket.emit('sendMessage', { ...newMessage[0], user, roomId },setMessages((prevMessages: IMessage[]) => GiftedChat.append(prevMessages, [...newMessage])));
+			// console.log('onSend',JSON.stringify(newMessage),'newMessage')
+			// setMessages((prevMessages: IMessage[]) => GiftedChat.append(prevMessages, [...newMessage]));
 		}
 	};
 
@@ -154,7 +157,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 				renderActions={(e) => renderActions(e, { setOpen, open, colors })}
 				renderBubble={(e) => renderBubble(e,{colors})}
 				renderSend={(e) => renderSend(e, { colors })}
-				renderChatFooter={() => RenderChatFooter({ user, socket, translateY, roomId, colors })}
+				renderChatFooter={() => RenderChatFooter({ user, socket, translateY, roomId,setMessages, colors })}
 				renderInputToolbar={(e) => renderInputToolbar(e, { colors })}
 				renderTime={(e)=>renderTime(e,{colors})}
 			/>
