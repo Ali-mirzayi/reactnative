@@ -44,3 +44,33 @@ const useTheme = () => {
 export {lightTheme,darkTheme}
 
 export default useTheme;
+
+
+// in my code i upload a video
+// const multer = require('multer');
+// const storage = multer.diskStorage({
+// 	destination: 'uploads/',
+// 	filename: function (req, file, cb) {
+// 		cb(null, Date.now() + path.extname(file.originalname)) //Appending extension
+// 	}
+// });
+
+// const upload = multer({ storage }); 
+//   app.post("/upload", upload.any(), (req, res) => {
+// 	const uploadedFile = req.files[0];
+// 	filePath = uploadedFile.path;
+// 	res.end("ok")
+// });
+// then i takescreenshot i want wait for upload finished and then write in uploads directory is finished then takescreenshot
+// socket.on('sendVideo', (data) => {
+//   const { roomId, ...newMessage } = data;
+//   const filename = `${Date.now()}.jpg`;
+//   ffmpeg({
+//     source: filePath,
+//   }).takeScreenshots({
+//     filename,
+//     timemarks: [10],
+//     folder: "uploads/",
+//   });
+//   socket.in(roomId).emit('newMessage', { ...newMessage, video: filePath, thumbnail: filename });
+// });
