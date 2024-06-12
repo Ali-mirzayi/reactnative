@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useLayoutEffect, useTransition } from "react";
-import { View, Text, FlatList, StyleSheet, Button, DrawerLayoutAndroid, TouchableHighlight, useColorScheme, } from "react-native";
+import { View, Text, FlatList, StyleSheet, Button, DrawerLayoutAndroid, TouchableHighlight, useColorScheme, Image } from "react-native";
 import baseURL from "../utils/baseURL";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import SearchBar from "../components/SearchBar";
@@ -142,6 +142,7 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 				<View style={[styles.chatscreen, { backgroundColor: colors.background }]}>
 					<View style={[styles.chattopContainer, { backgroundColor: colors.card }]}>
 						<View style={styles.chatheader}>
+
 							<View style={styles.burgerView}>
 								<TouchableHighlight style={styles.mr10} underlayColor={"#e3e5ef"} onPress={() => drawer.current?.openDrawer()} >
 									<Ionicons name="menu-sharp" style={styles.menu} color={colors.text} size={25} />
@@ -151,6 +152,7 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 							<SearchBar setUsers={setUsers} setScreen={setScreen} />
 						</View>
 					</View>
+			{/* <Image width={200} height={200} style={{width:200,height:200}} source={{uri:'file:///data/user/0/com.Mirzagram.PushNotifications/files/download/1718174908758.jpeg'}}/> */}
 					<View style={styles.chatlistContainer}>
 						{screen === "users" && users.length > 0 ?
 							<View>

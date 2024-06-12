@@ -15,6 +15,10 @@ interface useUser {
 	user: User | undefined
 	setUser: (e: User) => void
 }
+interface useForceRerender {
+	forceRerender: boolean
+	setForceRerender: () => void
+}
 
 export const useSocket = create<useSocket>()((set) => ({
 	socket: null,
@@ -29,4 +33,9 @@ export const useDarkMode = create<useDarkMode>()((set) => ({
 export const useUser = create<useUser>()((set) => ({
 	user: undefined,
 	setUser: (e) => set({ user: e })
+}));
+
+export const useForceRerender = create<useForceRerender>()((set) => ({
+	forceRerender: false,
+	setForceRerender: () => set((state)=>({ forceRerender: !state.forceRerender }))
 }));
