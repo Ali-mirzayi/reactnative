@@ -5,12 +5,15 @@ import Navigation from "./Navigation";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { EventProvider } from 'react-native-outside-press';
 import { useSocket } from "./socketContext";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Toast, { ErrorToast } from 'react-native-toast-message';
 import baseURL from "./utils/baseURL";
 import checkConnection from "./utils/checkConnection";
 import LoadingPage from "./components/LoadingPage";
 import io from 'socket.io-client';
+import sleep from "./utils/wait";
+import { useFocusEffect } from "@react-navigation/native";
+import { ensureDirExists } from "./utils/directories";
 
 function App() {
   const [error, setError] = useState(false);
@@ -18,10 +21,21 @@ function App() {
 
   checkConnection(setError);
 
+  async function isDirExists() {
+    await ensureDirExists();
+  }
+
+
   useEffect(() => {
     // Connect to the Socket.IO server
     const newSocket = io(baseURL());
     setSocket(newSocket);
+    isDirExists();
+    // const aa = async() => {
+    //   await sleep(5000);
+    //   console.log(newSocket?.id,'socket?.id')
+    // }; 
+    // aa();
     return () => {
       newSocket.disconnect();
     };

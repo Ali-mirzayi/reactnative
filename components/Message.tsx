@@ -1,37 +1,44 @@
-import { Image, ImageSourcePropType, Pressable, StyleSheet, TouchableHighlight, View } from "react-native";
+import { ActivityIndicator, Image, ImageSourcePropType, Pressable, StyleSheet, Text, TouchableHighlight, View } from "react-native";
 import Animated from "react-native-reanimated";
-import { Feather, Ionicons, Entypo } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import { generateID } from "../utils/utils";
 import baseURL from "../utils/baseURL";
 import * as FileSystem from 'expo-file-system';
-import { Actions, ActionsProps, Bubble, BubbleProps, Composer, GiftedChat, IMessage, InputToolbar, InputToolbarProps, MessageImage, MessageImageProps, MessageVideoProps, Send, SendProps, Time, TimeProps } from "react-native-gifted-chat";
+import { Actions, ActionsProps, Bubble, BubbleProps, Composer, GiftedChat, IMessage, InputToolbar, InputToolbarProps, MessageImage, MessageImageProps, MessageProps, MessageVideoProps, Send, SendProps, Time, TimeProps } from "react-native-gifted-chat";
 import { ResizeMode, Video } from "expo-av";
 import { darkTheme } from "../utils/theme";
-import { User } from "../utils/types";
+import { IMessagePro, User } from "../utils/types";
+import Ionicons from '@expo/vector-icons/Ionicons';
+import Entypo from '@expo/vector-icons/Entypo';
+import Feather from '@expo/vector-icons/Feather';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { fileDirectory } from "../utils/directories";
 import Lightbox from 'react-native-lightbox-v2';
+import { startActivityAsync } from 'expo-intent-launcher';
 
 export function RenderChatFooter({ user, socket, translateY, roomId, setMessages, colors }: { user: User, socket: any, translateY: any, roomId: any, setMessages: React.Dispatch<React.SetStateAction<IMessage[]>>, colors: typeof darkTheme.colors }) {
-	async function sendMedia({ uri, type }: { uri: string | null | undefined, type: "image" | "video" | undefined }) {
+	async function sendMedia({ uri, type, name, mimType }: { uri: string | null | undefined, type: "image" | "video" | "file" | undefined, name?: string, mimType?: string }) {
 		const id = generateID();
 		if (type === 'image' && uri) {
-			setMessages((prevMessages: IMessage[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, image: uri }]));
+			setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, image: uri }]));
 			const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file' });
 			if (response.body === "ok") {
 				socket?.emit('sendImage', { _id: id, text: "", createdAt: new Date(), user, roomId });
 			}
 		} else if (type === 'video' && uri) {
-			setMessages((prevMessages: IMessage[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, video: uri }]));
+			setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, video: uri }]));
 			const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file' })
 			if (response.body === "ok") {
 				socket?.emit('sendVideo', { _id: id, text: "", createdAt: new Date(), user, roomId });
 			}
+		} else if (type === 'file' && uri) {
+			setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, file: uri, fileName: name, mimType }]));
+			const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file' })
+			if (response.body === "ok") {
+				socket?.emit('sendFile', { _id: id, text: "", createdAt: new Date(), user, roomId, fileName: name });
+			}
 		}
-		// if (roomId){
-		// 	UpdateMessage({id:roomId,users:[user,contact],messages:messages});
-		// }
 	};
 
 	const handleCamera = async () => {
@@ -61,6 +68,19 @@ export function RenderChatFooter({ user, socket, translateY, roomId, setMessages
 		}
 	};
 
+	const handlePickFile = async () => {
+		try {
+			const result = await DocumentPicker.getDocumentAsync({
+				type: "*/*",
+			});
+			if (!result.canceled) {
+				sendMedia({ uri: result.assets[0].uri, type: "file", name: result.assets[0].name, mimType: result.assets[0].mimeType });
+			};
+		} catch (error) {
+			console.log(error);
+		}
+	};
+
 	return (
 		<Animated.View style={{ transform: [{ translateY }] }}>
 			<View style={[styles.footerChatOpen, { backgroundColor: colors.card }]}>
@@ -70,7 +90,7 @@ export function RenderChatFooter({ user, socket, translateY, roomId, setMessages
 				<TouchableHighlight onPress={handlePickImage} underlayColor={colors.undetlay} style={[styles.iconContainer, { backgroundColor: colors.background }]}>
 					<Entypo name='images' size={30} color={colors.primary} />
 				</TouchableHighlight>
-				<TouchableHighlight onPress={() => console.log('object')} underlayColor={colors.undetlay} style={[styles.iconContainer, { backgroundColor: colors.background }]}>
+				<TouchableHighlight onPress={handlePickFile} underlayColor={colors.undetlay} style={[styles.iconContainer, { backgroundColor: colors.background }]}>
 					<Feather name='file' size={30} color={colors.primary} />
 				</TouchableHighlight>
 				<TouchableHighlight onPress={() => console.log('object')} underlayColor={colors.undetlay} style={[styles.iconContainer, { backgroundColor: colors.background }]}>
@@ -141,7 +161,6 @@ export function renderBubble(props: Readonly<BubbleProps<IMessage>>, { colors }:
 			tickStyle={{
 				color: '#fff',
 			}}
-
 		/>
 	);
 };
@@ -159,14 +178,85 @@ export function renderTime(props: TimeProps<IMessage>, { colors }: { colors: typ
 				},
 			}}
 		/>)
-}
+};
 
-export const RenderMessageImage = (props: MessageImageProps<IMessage & { preView: string, fileName: string | undefined, tumbnail: string }>, { setMessages }: { setMessages: React.Dispatch<React.SetStateAction<IMessage[]>> }) => {
+type RenderMessageImageProps = { setMessages: React.Dispatch<React.SetStateAction<IMessage[]>>, downloading: (string | number)[], setDownloading: React.Dispatch<React.SetStateAction<(string | number)[]>> };
+type renderMessageVideoProps = { setMessages: React.Dispatch<React.SetStateAction<IMessage[]>>, downloading: (string | number)[], setDownloading: React.Dispatch<React.SetStateAction<(string | number)[]>>, videoRef: React.MutableRefObject<Video> };
+type renderMessageFileProps = { setMessages: React.Dispatch<React.SetStateAction<IMessage[]>>, downloading: (string | number)[], setDownloading: React.Dispatch<React.SetStateAction<(string | number)[]>>, colors: typeof darkTheme.colors };
+
+export const renderMessageFile = (props: MessageProps<IMessagePro>, { setMessages, downloading, setDownloading, colors }: renderMessageFileProps) => {
+	const Message = props.currentMessage;
+	// console.log(Message?.file, 'first')
+
+	async function handlePress() {
+		if (Message?.file?.startsWith('file') || !Message?.file || !Message.fileName) return;
+		setDownloading(e => [...e, Message._id]);
+		await FileSystem.downloadAsync(Message?.file, fileDirectory + Message.fileName)
+			.then(result => {
+				console.log('Finished downloading to ', result);
+			})
+			.catch(error => {
+				console.error(error, 'errrrrrrrr');
+			});
+		const newFile = fileDirectory + Message.fileName;
+		setMessages((prevMessages: IMessagePro[]) => (prevMessages.map(e => {
+			if (e._id === Message._id) {
+				return { ...e, file: newFile };
+			} else {
+				return e;
+			}
+		})));
+		setDownloading(e => e.filter(r => r !== Message._id));
+	};
+
+	const openFile = async () => {
+		console.log(Message?.fileName, 'Message?.file')
+		if (!Message?.file?.startsWith('file') || !Message?.file || !Message.fileName) return;
+		const contentURL = await FileSystem.getContentUriAsync(Message.file);
+
+		try {
+			await startActivityAsync('android.intent.action.VIEW', {
+				data: contentURL,
+				flags: 1,
+				type: Message.mimType
+			});
+		} catch (error) {
+			console.log(error)
+		}
+	};
+
+	console.log(props.position,'props')
+
+	if (props?.currentMessage?.file) {
+		return (
+			<View style={[{ zIndex: 10, position: 'relative', width: 200, height: 80, flexDirection: 'row', alignItems: 'center' }]}>
+				{/* {...props} */}
+				<View style={{ width: 50, height: 50, borderRadius: 50, marginHorizontal: 10, justifyContent: 'center', alignItems: 'center' }}>
+					{
+						Message?.file?.startsWith('file') ?
+							<TouchableHighlight onPress={openFile} style={[styles.iconContainer, { backgroundColor: colors.background }]}>
+								<Feather name="file" size={28} color={colors.mirza} />
+							</TouchableHighlight> :
+							!!downloading.find(e => e === Message?._id) ?
+								<ActivityIndicator style={styles.download} size="large" color={colors.mirza} /> :
+								<TouchableHighlight onPress={handlePress} style={[styles.iconContainer, { backgroundColor: colors.background }]}>
+									<MaterialCommunityIcons name="download" size={34} color={colors.mirza} />
+								</TouchableHighlight>
+					}
+				</View>
+				<Text style={[{ marginLeft: 'auto', marginRight: 10, color:props.position==='right'?'#fff':colors.text === "#F1F6F9" ? '#fff' : '#000' }]}>{Message?.fileName}</Text>
+			</View>
+		)
+	}
+};
+
+export const RenderMessageImage = (props: MessageImageProps<IMessagePro>, { setMessages, downloading, setDownloading }: RenderMessageImageProps) => {
 	const Message = props.currentMessage;
 
 	async function handlePress() {
 		if (Message?.image?.startsWith('file') || !Message?.image || !Message.fileName) return;
-		console.log(Message.image, 'first')
+		// console.log(Message.image, 'first')
+		setDownloading(e => [...e, Message._id]);
 		await FileSystem.downloadAsync(Message?.image, fileDirectory + Message.fileName)
 			.then(result => {
 				console.log('Finished downloading to ', result);
@@ -182,6 +272,7 @@ export const RenderMessageImage = (props: MessageImageProps<IMessage & { preView
 				return e;
 			}
 		})));
+		setDownloading(e => e.filter(r => r !== Message._id));
 	};
 
 	return (
@@ -201,26 +292,25 @@ export const RenderMessageImage = (props: MessageImageProps<IMessage & { preView
 					source={{ uri: Message?.image?.startsWith('file') ? Message?.image : Message?.preView }}
 				/>
 			</Lightbox>
-			{Message?.image?.startsWith('file') ? null :
-				<TouchableHighlight onPress={handlePress} style={[styles.image, { position: 'absolute' }]}>
-					<MaterialCommunityIcons style={{
-						position: 'absolute',
-						left: 55,
-						top: 30,
-						zIndex: 20
-					}} name="download" size={34} color="#fff" />
-				</TouchableHighlight>
+			{
+				Message?.image?.startsWith('file') ? null :
+					!!downloading.find(e => e === Message?._id) ?
+						<ActivityIndicator style={styles.download} size="large" color="#fff" /> :
+						<TouchableHighlight onPress={handlePress} style={[styles.image, { position: 'absolute' }]}>
+							<MaterialCommunityIcons style={styles.download} name="download" size={34} color="#fff" />
+						</TouchableHighlight>
 			}
 		</View>
 	)
 };
 
-export function renderMessageVideo(props: MessageVideoProps<IMessage & { fileName: string | undefined, thumbnail: string }>, { setMessages, videoRef }: { setMessages: React.Dispatch<React.SetStateAction<IMessage[]>>, videoRef: React.MutableRefObject<Video> }) {
+export function renderMessageVideo(props: MessageVideoProps<IMessagePro>, { setMessages, videoRef, downloading, setDownloading }: renderMessageVideoProps) {
 	const Message = props.currentMessage;
 
 	async function handlePress() {
 		if (Message?.video?.startsWith('file') || !Message?.video || !Message.fileName) return;
-		console.log(Message.video, 'video')
+		// console.log(Message.video, 'video');
+		setDownloading(e => [...e, Message._id]);
 		await FileSystem.downloadAsync(Message?.video, fileDirectory + Message.fileName)
 			.then(result => {
 				console.log('Finished downloading to ', result);
@@ -237,6 +327,8 @@ export function renderMessageVideo(props: MessageVideoProps<IMessage & { fileNam
 			}
 		})));
 		videoRef?.current?.presentFullscreenPlayer();
+		videoRef.current.playAsync();
+		setDownloading(e => e.filter(r => r !== Message._id));
 	};
 
 	const CustomPosterComponent = ({ source, style }: { source: ImageSourcePropType, style: any }) => {
@@ -249,12 +341,11 @@ export function renderMessageVideo(props: MessageVideoProps<IMessage & { fileNam
 						blurRadius={8}
 						resizeMode={ResizeMode.COVER}
 					/>
-					<MaterialCommunityIcons style={{
-						position: 'absolute',
-						left: 55,
-						top: 30,
-						zIndex: 20
-					}} name="download" size={34} color="#fff" />
+					{
+						!!downloading.find(e => e === Message?._id) ?
+							<ActivityIndicator style={styles.download} size="large" color="#fff" /> :
+							<MaterialCommunityIcons style={styles.download} name="download" size={34} color="#fff" />
+					}
 				</View>
 			</TouchableHighlight>
 		);
@@ -285,11 +376,6 @@ export function renderMessageVideo(props: MessageVideoProps<IMessage & { fileNam
 		/>
 	</Pressable>)
 };
-// if(e.isPlaying){videoRef?.current?.presentFullscreenPlayer()}
-//
-//
-// console.log(e.isPlaying,'status');
-// Message?.video?.startsWith('file') ? undefined : CustomPosterComponent
 
 export function renderSend(props: SendProps<IMessage>, { colors }: { colors: typeof darkTheme.colors }) {
 	return (<View style={{ flexDirection: 'row', alignItems: "center" }}>
@@ -370,4 +456,10 @@ const styles = StyleSheet.create({
 		flex: 1,
 		resizeMode: 'contain',
 	},
+	download: {
+		position: 'absolute',
+		left: 55,
+		top: 30,
+		zIndex: 20
+	}
 });

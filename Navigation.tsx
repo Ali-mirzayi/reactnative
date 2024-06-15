@@ -13,6 +13,9 @@ import { createTable, deleteRooms } from "./utils/DB";
 import LoadingPage from './components/LoadingPage';
 import { storage } from './mmkv';
 import baseURL from './utils/baseURL';
+import * as FileSystem from 'expo-file-system';
+import { fileDirectory } from './utils/directories';
+
 
 const config: TransitionSpec = {
     animation: 'spring',
@@ -133,6 +136,29 @@ export default function Navigation() {
         setLoading(false);
     }, [chat]);
 
+    function purge() {
+        try {
+            // (function () {
+            // for delete user and related rooms he's joined
+            fetch(`${baseURL()}/deleteUser`, {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: storage.getString('user')
+            });
+            // })();
+            storage.delete('user');
+            deleteRooms();
+            createTable();
+            setBeCheck(true);
+            FileSystem.deleteAsync(fileDirectory);
+        } catch (err) {
+            console.log(err,'err')
+        }
+    };
+
     useLayoutEffect(() => {
         setLoading(true);
         const value = storage.getBoolean("clearAll");
@@ -151,17 +177,14 @@ export default function Navigation() {
                     body: storage.getString('user')
                 });
             })();
-            storage.delete('user');
-            deleteRooms();
-            createTable();
-            setBeCheck(true);
+            purge();
         } else {
             createTable();
         }
         storage.set("darkMode", fin);
     }, []);
 
-    if(loading){return <LoadingPage active={loading} />}
+    if (loading) { return <LoadingPage active={loading} /> }
 
     return (
         <>

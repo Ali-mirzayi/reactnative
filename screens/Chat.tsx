@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback, useLayoutEffect, useTransition } from "react";
-import { View, Text, FlatList, StyleSheet, Button, DrawerLayoutAndroid, TouchableHighlight, useColorScheme, Image } from "react-native";
+import React, { useState, useEffect, useRef, useCallback, useLayoutEffect } from "react";
+import { View, Text, FlatList, StyleSheet, Button, DrawerLayoutAndroid, TouchableHighlight, useColorScheme } from "react-native";
 import baseURL from "../utils/baseURL";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import SearchBar from "../components/SearchBar";
 import { Room, User, ChatNavigationProps } from "../utils/types";
 import { DrawerScreenProps } from '@react-navigation/drawer';
@@ -15,7 +14,6 @@ import useTheme from "../utils/theme";
 import { useFocusEffect } from "@react-navigation/native";
 import DrawerCore from "../components/Drawer";
 import { storage } from "../mmkv";
-import sleep from "../utils/wait";
 import { usePushNotifications } from "../utils/usePushNotifications";
 
 const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) => {
@@ -57,8 +55,9 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 
 	useFocusEffect(
 		useCallback(() => {
-			if(socket?.id){
-				socket?.emit('setSocketId', { 'id': socket?.id, 'name': user?.name });
+			console.log(socket?.id, 'socket.id useFocusEffect');
+			if (socket?.id) {
+				socket?.emit('setSocketId', { 'id': socket?.id, 'name': user?.name, 'isUserInRoom': false });
 			}
 			const unsubscribe = navigation.addListener('focus', () => {
 				(function () {
@@ -83,6 +82,10 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 
 	useEffect(() => {
 		socket?.on("roomsList", setter);
+		socket?.on("connected", (e: any) => {
+			console.log(e, 'useEffect');
+			socket?.emit('setSocketId', { 'id': e, 'name': user?.name, 'isUserInRoom': false });
+		});
 		getAllRooms()
 			.then((result: Room[] | any) => {
 				if (result.length > 0) {
@@ -105,9 +108,9 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 				contact: notifData?.user,
 				id: notifData?.roomId
 			});
-		setLoading(false);
+			setLoading(false);
 			setPending(false);
-		}
+		};
 		if (expoPushToken && user) {
 			//@ts-ignore
 			user['token'] = expoPushToken
@@ -125,7 +128,7 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 				console.log(`error in updateUser ${err}`);
 			}
 		}
-	}, [expoPushToken?.data,notifData]);
+	}, [expoPushToken?.data, notifData]);
 
 	if (notifData && loading) { return (<LoadingPage active={true} />) }
 
@@ -152,7 +155,7 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 							<SearchBar setUsers={setUsers} setScreen={setScreen} />
 						</View>
 					</View>
-			{/* <Image width={200} height={200} style={{width:200,height:200}} source={{uri:'file:///data/user/0/com.Mirzagram.PushNotifications/files/download/1718174908758.jpeg'}}/> */}
+					{/* <Image width={200} height={200} style={{width:200,height:200}} source={{uri:'file:///data/user/0/com.Mirzagram.PushNotifications/files/download/1718174908758.jpeg'}}/> */}
 					<View style={styles.chatlistContainer}>
 						{screen === "users" && users.length > 0 ?
 							<View>
