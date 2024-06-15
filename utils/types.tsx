@@ -7,6 +7,7 @@ export type LoginNavigationProps = {
     Login:{ beCheck:boolean };
     Chat: { beCheck:boolean };
 };
+
 export type ChatNavigationProps = {
     Chat: { beCheck:boolean };
     Messaging: { contact: User | undefined,id?: string};
@@ -17,6 +18,8 @@ export type RootStackParamList = {
     Chat: { beCheck:boolean };
     Messaging: { contact: User | undefined,id?: string};
 };
+
+export type IMessagePro = IMessage & { fileName?: string, file?:string, mimType?: string , preView?: string, thumbnail?: string }
 
 export type User = {
     _id: string;

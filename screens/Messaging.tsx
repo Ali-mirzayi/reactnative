@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { GiftedChat, IMessage } from 'react-native-gifted-chat'
 import { StackScreenProps } from "@react-navigation/stack";
-import { Room, RootStackParamList } from '../utils/types';
-import { useForceRerender, useSocket, useUser } from '../socketContext';
+import { IMessagePro, Room, RootStackParamList } from '../utils/types';
+import { useSocket, useUser } from '../socketContext';
 import { UpdateMessage, getRoom } from '../utils/DB';
 import { useSharedValue, withTiming } from 'react-native-reanimated';
 import * as FileSystem from 'expo-file-system';
-import { downloadsDir, ensureDirExists, fileDirectory } from '../utils/directories';
+import { ensureDirExists, fileDirectory } from '../utils/directories';
 import LoadingPage from '../components/LoadingPage';
-import { renderActions, renderBubble, RenderChatFooter, renderInputToolbar, RenderMessageImage, renderMessageVideo, renderSend, renderTime } from '../components/Message';
+import { renderActions, renderBubble, RenderChatFooter, renderInputToolbar, renderMessageFile, RenderMessageImage, renderMessageVideo, renderSend, renderTime } from '../components/Message';
 import useTheme from '../utils/theme';
 import { Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -22,27 +22,38 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	const [open, setOpen] = useState<boolean>(false); // renderChatFooter
 	const [status, setStatus] = useState<boolean | undefined>(undefined); // connection
 	const [isInRoom, setIsInRoom] = useState<boolean>(true);
+	const [downloading, setDownloading] = useState<(string | number)[]>([]); // Track the ID of the image being downloaded
 	const user: any = useUser(state => state.user)
 	const translateY = useSharedValue(1000);
 	const [isPending, setPending] = useState(true); // set for roomId and save it db
 	const socket = useSocket(state => state.socket);
 	const { colors } = useTheme();
-	const videoRef:any = useRef(null);
+	const videoRef: any = useRef(null);
+
+	// const allll = (res:any) => {
+	// 	console.log(!!res.status,'allll !!res.status')
+	// 	setStatus(!!res.status);
+	// 	console.log(res.status.isUserInRoom,'allll isUserInRoom')
+	// 	setIsInRoom(res.status.isUserInRoom);
+	// }
 
 	useEffect(() => {
 		if (socket) {
 			socket.emit('checkStatus', contact.name);
 			socket.on('checkStatusResponse', (res) => {
-				setStatus(res.status)
+				// console.log(!!res.status,'allll !!res.status')
+				setStatus(!!res.status);
+				// console.log(res.status.isUserInRoom,'allll isUserInRoom')
+				setIsInRoom(res.status.isUserInRoom);
 			});
 			// Listen for new messages from the server
-			socket.on('newMessage', async (newMessage: IMessage & { preView: string, fileName: string | undefined, thumbnail: string }) => {
-				if (newMessage.image) {
-					await ensureDirExists();
+			socket.on('newMessage', async (newMessage: IMessagePro) => {
+				// await ensureDirExists();
+				if (newMessage.image && newMessage.preView) {
 					const fileName = `${new Date().getTime()}.jpeg`;
 					const fileNamePrev = `${new Date().getTime() - 1000}.jpeg`;
 					const fileUri = (baseURL() + '/' + newMessage.image).replace(/\\/g, '/');
-					await FileSystem.writeAsStringAsync(fileDirectory + fileNamePrev, newMessage.preView, { encoding: "base64" }).then(result => {
+					await FileSystem.writeAsStringAsync(fileDirectory + fileNamePrev, newMessage.preView, { encoding: "base64" }).then(() => {
 						console.log('Finished downloading to');
 					}).catch(error => {
 						console.error(error, 'errrrrrrrr');
@@ -50,30 +61,20 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 					newMessage["preView"] = fileDirectory + fileNamePrev;
 					newMessage["image"] = fileUri;
 					newMessage["fileName"] = fileName;
-				} else if (newMessage.video) {
-					await ensureDirExists();
-					const thumbnailName = `${new Date().getTime()-1000}.jpeg`;
+				} else if (newMessage.video && newMessage.thumbnail) {
+					const thumbnailName = `${new Date().getTime()}.jpeg`;
 					const fileName = `${new Date().getTime()}.mp4`;
-					// const thumbnailUri = (baseURL() + newMessage.thumbnail);
 					const videoUri = (baseURL() + '/' + newMessage.video).replace(/\\/g, '/');
-					// console.log(thumbnailUri,'thumbnailUri')
-					// await FileSystem.downloadAsync(thumbnailUri, fileDirectory + thumbnailName)
-					// .then(result => {
-					// 	console.log('Finished downloading to ', result);
-					// })
-					// .catch(error => {
-					// 	console.error(error, 'errrrrrrrr');
-					// });
-					await FileSystem.writeAsStringAsync(fileDirectory + thumbnailName, newMessage.thumbnail, { encoding: "base64" }).then(result => {
-						console.log('Finished downloading',fileDirectory + thumbnailName);
+					await FileSystem.writeAsStringAsync(fileDirectory + thumbnailName, newMessage.thumbnail, { encoding: "base64" }).then(() => {
 						newMessage["thumbnail"] = fileDirectory + thumbnailName;
 						newMessage["fileName"] = fileName;
 						newMessage["video"] = videoUri;
 					}).catch(error => {
 						console.error(error, 'errrrrrrrr');
 					});
-
-					// await FileSystem.writeAsStringAsync(fileName, newMessage.video, { encoding: "base64" });
+				} else if (newMessage.file && newMessage.fileName) {
+					const fileUri = (baseURL() + '/' + newMessage.file).replace(/\\/g, '/');
+					newMessage["file"] = fileUri;
 				};
 				setMessages((prevMessages: IMessage[]) => GiftedChat.append(prevMessages, [newMessage]));
 			});
@@ -138,9 +139,10 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 		useCallback(() => {
 			socket?.emit('isUserInRoom', { user: user.name, status: true });
 			socket?.on('isUserInRoomResponse', (res) => {
-				setIsInRoom(res.status)
+				setIsInRoom(res)
 			});
 			return () => {
+				console.log('isUserInRoom')
 				socket?.emit('isUserInRoom', { user: user.name, status: false });
 				socket?.off('isUserInRoomResponse');
 			}
@@ -148,7 +150,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	);
 
 	const onSend = (newMessage: IMessage[]) => {
-		// if ((!status || !isInRoom)) return;
+		if ((!status || !isInRoom)) return;
 		if (socket && roomId) {
 			socket.emit('sendMessage', { ...newMessage[0], user, roomId }, setMessages((prevMessages: IMessage[]) => GiftedChat.append(prevMessages, [...newMessage])));
 			// console.log('onSend',JSON.stringify(newMessage),'newMessage')
@@ -175,8 +177,9 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 				messages={messages}
 				onSend={messages => onSend(messages)}
 				user={user}
-				renderMessageImage={(e:any)=>RenderMessageImage(e,{setMessages})}
-				renderMessageVideo={(e:any)=>renderMessageVideo(e,{setMessages,videoRef})}
+				renderMessageImage={(e: any) => RenderMessageImage(e, { setMessages, downloading, setDownloading })}
+				renderMessageVideo={(e: any) => renderMessageVideo(e, { setMessages, downloading, setDownloading, videoRef })}
+				renderCustomView={(e: any) => renderMessageFile(e, { setMessages, downloading, setDownloading, colors })}
 				alwaysShowSend
 				scrollToBottom
 				loadEarlier
@@ -189,6 +192,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 				renderChatFooter={() => RenderChatFooter({ user, socket, translateY, roomId, setMessages, colors })}
 				renderInputToolbar={(e) => renderInputToolbar(e, { colors })}
 				renderTime={(e) => renderTime(e, { colors })}
+				optionTintColor='#fff'
 			/>
 		</View>
 	);
