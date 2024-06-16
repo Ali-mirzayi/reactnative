@@ -9,7 +9,7 @@ import { TransitionSpec } from '@react-navigation/stack/lib/typescript/src/types
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { ChatNavigationProps, LoginNavigationProps, RootStackParamList, User } from './utils/types';
 import { useUser } from './socketContext';
-import { createTable, deleteRooms } from "./utils/DB";
+import { createTable, deleteDB } from "./utils/DB";
 import LoadingPage from './components/LoadingPage';
 import { storage } from './mmkv';
 import baseURL from './utils/baseURL';
@@ -136,7 +136,7 @@ export default function Navigation() {
         setLoading(false);
     }, [chat]);
 
-    function purge() {
+    async function purge() {
         try {
             // (function () {
             // for delete user and related rooms he's joined
@@ -150,8 +150,8 @@ export default function Navigation() {
             });
             // })();
             storage.delete('user');
-            deleteRooms();
-            createTable();
+            await deleteDB();
+            await createTable();
             setBeCheck(true);
             FileSystem.deleteAsync(fileDirectory);
         } catch (err) {
@@ -166,17 +166,6 @@ export default function Navigation() {
             storage.set("clearAll", false);
         };
         if (value == true) {
-            (function () {
-                // for delete user and related rooms he's joined
-                fetch(`${baseURL()}/deleteUser`, {
-                    method: 'POST',
-                    headers: {
-                        Accept: 'application/json',
-                        'Content-Type': 'application/json',
-                    },
-                    body: storage.getString('user')
-                });
-            })();
             purge();
         } else {
             createTable();
