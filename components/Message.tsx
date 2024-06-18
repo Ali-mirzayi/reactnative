@@ -39,7 +39,7 @@ export function RenderChatFooter({ user, socket, translateY, roomId, setMessages
 				socket?.emit('sendImage', { _id: id, text: "", createdAt: new Date(), user, roomId }, setUploading(e => e.filter(r => r !== id)));
 			} else {
 				setErrors(e => [...e, id]);
-				console.log(response, 'response');
+				console.log(response, 'error image upload');
 			}
 		} else if (type === 'video' && uri) {
 			setUploading(e => [...e, id]);
@@ -49,7 +49,7 @@ export function RenderChatFooter({ user, socket, translateY, roomId, setMessages
 				socket?.emit('sendVideo', { _id: id, text: "", createdAt: new Date(), user, roomId }, setUploading(e => e.filter(r => r !== id)));
 			} else {
 				setErrors(e => [...e, id]);
-				console.log(response, 'response');
+				console.log(response, 'error video upload');
 			}
 		} else if (type === 'file' && uri) {
 			setUploading(e => [...e, id]);
@@ -59,7 +59,7 @@ export function RenderChatFooter({ user, socket, translateY, roomId, setMessages
 				socket?.emit('sendFile', { _id: id, text: "", createdAt: new Date(), user, roomId, fileName: name }, setUploading(e => e.filter(r => r !== id)));
 			} else {
 				setErrors(e => [...e, id]);
-				console.log(response, 'response');
+				console.log(response, 'error file upload');
 			}
 		}
 	};
@@ -219,6 +219,8 @@ export const renderMessageFile = (props: MessageProps<IMessagePro>, { setMessage
 			})
 			.catch(error => {
 				console.error(error, 'errrrrrrrr');
+			}).finally(()=>{
+				setDownloading(e => e.filter(r => r !== Message._id));
 			});
 		const newFile = fileDirectory + Message.fileName;
 		setMessages((prevMessages: IMessagePro[]) => (prevMessages.map(e => {
@@ -228,7 +230,6 @@ export const renderMessageFile = (props: MessageProps<IMessagePro>, { setMessage
 				return e;
 			}
 		})));
-		setDownloading(e => e.filter(r => r !== Message._id));
 	};
 
 	const openFile = async () => {
@@ -250,7 +251,6 @@ export const renderMessageFile = (props: MessageProps<IMessagePro>, { setMessage
 	if (props?.currentMessage?.file) {
 		return (
 			<View style={[{ zIndex: 10, position: 'relative', width: 200, height: 80, flexDirection: 'row', alignItems: 'center' }]}>
-				{/* {...props} */}
 				<View style={{ width: 50, height: 50, borderRadius: 50, marginHorizontal: 10, justifyContent: 'center', alignItems: 'center' }}>
 					{
 						!!uploading.find(e => e === Message?._id) ? <ActivityIndicator style={[styles.iconContainer, { backgroundColor: colors.background }]} size="large" color={colors.mirza} /> : Message?.file?.startsWith('file') ?
@@ -283,6 +283,8 @@ export const RenderMessageImage = (props: MessageImageProps<IMessagePro>, { setM
 			})
 			.catch(error => {
 				console.error(error, 'errrrrrrrr');
+			}).finally(()=>{
+				setDownloading(e => e.filter(r => r !== Message._id));
 			});
 		const newImage = fileDirectory + Message.fileName;
 		setMessages((prevMessages: IMessage[]) => (prevMessages.map(e => {
@@ -292,7 +294,6 @@ export const RenderMessageImage = (props: MessageImageProps<IMessagePro>, { setM
 				return e;
 			}
 		})));
-		setDownloading(e => e.filter(r => r !== Message._id));
 	};
 
 	return (
@@ -329,7 +330,6 @@ export function renderMessageVideo(props: MessageVideoProps<IMessagePro>, { setM
 
 	async function handlePress() {
 		if (Message?.video?.startsWith('file') || !Message?.video || !Message.fileName) return;
-		// console.log(Message.video, 'video');
 		setDownloading(e => [...e, Message._id]);
 		await FileSystem.downloadAsync(Message?.video, fileDirectory + Message.fileName)
 			.then(result => {
@@ -337,6 +337,8 @@ export function renderMessageVideo(props: MessageVideoProps<IMessagePro>, { setM
 			})
 			.catch(error => {
 				console.error(error, 'errrrrrrrr');
+			}).finally(()=>{
+				setDownloading(e => e.filter(r => r !== Message._id));
 			});
 		const newVideo = fileDirectory + Message.fileName;
 		setMessages((prevMessages: IMessage[]) => (prevMessages.map(e => {
@@ -348,7 +350,6 @@ export function renderMessageVideo(props: MessageVideoProps<IMessagePro>, { setM
 		})));
 		videoRef?.current?.presentFullscreenPlayer();
 		videoRef.current.playAsync();
-		setDownloading(e => e.filter(r => r !== Message._id));
 	};
 
 	const CustomPosterComponent = ({ source, style }: { source: ImageProps["source"], style: ImageProps["style"] }) => {
