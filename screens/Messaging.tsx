@@ -6,7 +6,7 @@ import { useSocket, useUser } from '../socketContext';
 import { UpdateMessage, getRoom } from '../utils/DB';
 import { useSharedValue, withTiming } from 'react-native-reanimated';
 import * as FileSystem from 'expo-file-system';
-import { fileDirectory } from '../utils/directories';
+import { ensureDirExists, fileDirectory } from '../utils/directories';
 import LoadingPage from '../components/LoadingPage';
 import { renderActions, renderBubble, RenderChatFooter, renderInputToolbar, renderMessageFile, RenderMessageImage, renderMessageVideo, renderSend, renderTime } from '../components/Message';
 import useTheme from '../utils/theme';
@@ -32,26 +32,17 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	const { colors } = useTheme();
 	const videoRef: any = useRef(null);
 
-	// const allll = (res:any) => {
-	// 	console.log(!!res.status,'allll !!res.status')
-	// 	setStatus(!!res.status);
-	// 	console.log(res.status.isUserInRoom,'allll isUserInRoom')
-	// 	setIsInRoom(res.status.isUserInRoom);
-	// }
-
 	useEffect(() => {
 		if (socket) {
 			socket.emit('checkStatus', contact.name);
 			socket.on('checkStatusResponse', (res) => {
-				// console.log(!!res.status,'allll !!res.status')
 				setStatus(!!res.status);
-				// console.log(res.status.isUserInRoom,'allll isUserInRoom')
 				setIsInRoom(res.status.isUserInRoom);
 			});
 			// Listen for new messages from the server
 			socket.on('newMessage', async (newMessage: IMessagePro) => {
-				// await ensureDirExists();
 				if (newMessage.image && newMessage.preView) {
+					await ensureDirExists();
 					const fileName = `${new Date().getTime()}.jpeg`;
 					const fileNamePrev = `${new Date().getTime() - 1000}.jpeg`;
 					const fileUri = (baseURL() + '/' + newMessage.image).replace(/\\/g, '/');
@@ -64,6 +55,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 					newMessage["image"] = fileUri;
 					newMessage["fileName"] = fileName;
 				} else if (newMessage.video && newMessage.thumbnail) {
+					await ensureDirExists();
 					console.log('newMessage.video')
 					const thumbnailName = `${new Date().getTime()}.jpeg`;
 					const fileName = `${new Date().getTime()}.mp4`;
@@ -76,6 +68,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 						console.error(error, 'errrrrrrrr');
 					});
 				} else if (newMessage.file && newMessage.fileName) {
+					await ensureDirExists();
 					const fileUri = (baseURL() + '/' + newMessage.file).replace(/\\/g, '/');
 					newMessage["file"] = fileUri;
 				};
