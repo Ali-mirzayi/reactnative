@@ -32,7 +32,7 @@ export default function SearchBar({ setUsers, setScreen }: props) {
 
     const handleSearch = (e: string) => {
         setSearch(e);
-        if (e === "") {
+        if (!e) {
             setUsers([]);
             setScreen("rooms");
         } else {
@@ -45,11 +45,12 @@ export default function SearchBar({ setUsers, setScreen }: props) {
 	useFocusEffect(
 		useCallback(() => {
             (async()=>{
-                await sleep(300);
+                setScreen("rooms");
                 setSearch(undefined);
-                handlePressIn()
+                setUsers([]);
+                await sleep(300);
+                handlePressIn();
             })()
-		// 	return unsubscribe;
 		}, [])
 	  );
 

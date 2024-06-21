@@ -98,6 +98,7 @@ export const ChatNavigation = ({ beCheck }: any) => {
                     options={{
                         title: "Messaging",
                         headerShown: false,
+                        freezeOnBlur:false
                     }}
                 />
             </Stack.Group>
@@ -215,7 +216,7 @@ export default function Navigation() {
                         component={Messaging}
                         initialParams={{ contact: undefined }}
                         options={{
-                            headerShown: false,
+                            headerShown: false
                         }}
                     />
                 </Stack.Navigator>

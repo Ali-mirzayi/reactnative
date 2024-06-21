@@ -16,9 +16,11 @@ export const insertRoom = async (room: Room) => {
   await db.runAsync('INSERT OR IGNORE INTO rooms (id, data) VALUES (?, ?)', [JSON.stringify(room.id), JSON.stringify(room)]).catch((error) => console.log(error, 'error insertRoom table'));
 };
 
-export const UpdateMessage = async (data: Room) => {
+export const updateMessage = async (data: Room) => {
   const db = await getDBConnection();
-  await db.runAsync('UPDATE rooms SET data = ? WHERE id = ?', [JSON.stringify(data), JSON.stringify(data.id)]);
+  // console.log(data,'update data')
+  await db.runAsync('UPDATE rooms SET data = ? WHERE id = ?', [JSON.stringify(data), JSON.stringify(data.id)])
+  // .then((res) => console.log(res, 'update db')).catch((error) => console.log(error, 'error'));
 };
 
 export const getAllRooms = async () => {
@@ -28,10 +30,10 @@ export const getAllRooms = async () => {
 
 export const getRoom = async (id: string) => {
   const db = await getDBConnection();
-  return await db.getAllAsync<Room>('SELECT data FROM rooms WHERE id = ?', [JSON.stringify(id)]);
+  return await db.getAllAsync<{data:string,id:string}>('SELECT data FROM rooms WHERE id = ?', [JSON.stringify(id)]);
 };
 
 export const deleteDB = async () => {
   const db = await getDBConnection();
-  return await db.runAsync('DROP TABLE IF EXISTS rooms').catch((error) => console.log(error, 'error'));
+  return await db.runAsync('DROP TABLE IF EXISTS rooms').catch((error) => console.log(error, 'error drop table'));
 }

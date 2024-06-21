@@ -4,7 +4,7 @@ import { LoginNavigationProps } from "../utils/types";
 import { generateID } from "../utils/utils";
 import { StackScreenProps } from "@react-navigation/stack";
 import baseURL from "../utils/baseURL";
-import { useUser } from "../socketContext";
+import { useSocket, useUser } from "../socketContext";
 import { storage } from "../mmkv";
 import LottieView from 'lottie-react-native';
 import useTheme from "../utils/theme";
@@ -17,6 +17,7 @@ const Login = ({ route, navigation }: StackScreenProps<LoginNavigationProps, 'Lo
 	const setUser = useUser(state => state.setUser);
 	const _id = generateID();
 	const { expoPushToken } = usePushNotifications();
+	const socket = useSocket(state => state.socket);
 
 	const storeUsername = async () => {
 		try {
@@ -31,8 +32,8 @@ const Login = ({ route, navigation }: StackScreenProps<LoginNavigationProps, 'Lo
 			const json = await response.json();
 			if (json?.isOK === true) {
 				storage.set('user', JSON.stringify({ name: username, _id, avatar: '', token: expoPushToken }));
-				setUser({ _id: _id, name: username, avatar: '', token: expoPushToken })
-				navigation.navigate('Chat', { beCheck });
+				setUser({ _id: _id, name: username, avatar: '', token: expoPushToken });
+				socket?.emit('setSocketId', { 'id': socket.id, 'name': username, 'isUserInRoom': false },navigation.navigate('Chat', { beCheck }));
 			} else {
 				Alert.alert("Error! invalid username");
 			}
