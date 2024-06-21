@@ -21,9 +21,6 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	const [open, setOpen] = useState<boolean>(false); // renderChatFooter
 	const [status, setStatus] = useState<boolean | undefined>(undefined); // connection
 	const [isInRoom, setIsInRoom] = useState<boolean>(true);
-	// const [downloading, setDownloading] = useState<(string | number)[]>([]);
-	// const [uploading, setUploading] = useState<(string | number)[]>([]);
-	// const [errors, setErrors] = useState<(string | number)[]>([]);
 	const {downloading,setDownloading} = useSetDownloading();
 	const {uploading,setUploading} = useSetUploading();
 	const {errors,setErrors} = useSetErrors();
@@ -172,7 +169,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	return (
 		<View style={{ flex: 1, backgroundColor: colors.background }}>
 			<LoadingPage active={isPending} />
-			<PushNotificationSend active={contact?.token && (status === false || isInRoom === false)} user={user} contactToken={contact?.token} roomId={roomId} />
+			<PushNotificationSend active={contact?.token && status === false} user={user} contactToken={contact?.token} roomId={roomId} />
 			<View style={{ flexDirection: 'row', padding: 15, alignItems: "center", backgroundColor: colors.undetlay }}>
 				<View style={{ width: 47, height: 47, borderRadius: 25, backgroundColor: colors.border, marginRight: 10 }} />
 				<View style={{ alignItems: "flex-start", flexDirection: "column" }}>
