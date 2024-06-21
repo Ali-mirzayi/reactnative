@@ -10,13 +10,13 @@ export type LoginNavigationProps = {
 
 export type ChatNavigationProps = {
     Chat: { beCheck:boolean };
-    Messaging: { contact: User | undefined,roomId: string};
+    Messaging: { contact: User | undefined,roomId: string,setLastMessage:React.Dispatch<React.SetStateAction<[] | LastMessageType[]>>};
 };
 
 export type RootStackParamList = {
     LoginNavigation?: undefined;
     Chat: { beCheck:boolean };
-    Messaging: { contact: User | undefined,roomId: string};
+    Messaging: { contact: User | undefined,roomId: string,setLastMessage:React.Dispatch<React.SetStateAction<[] | LastMessageType[]>>};
 };
 
 export type IMessagePro = IMessage & { fileName?: string, file?:string, mimType?: string , preView?: string, thumbnail?: string }
@@ -41,4 +41,14 @@ export type DrawerCoreType = {
     name:string | undefined,
     children:React.ReactNode,
     drawerRef:React.RefObject<DrawerLayoutAndroid>
+}
+
+export type CountNewMessageType = {
+    count: number;
+    id: string;
+}
+
+export type LastMessageType = {
+    message: string;
+    roomId: string;
 }

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useLayoutEffect } from
 import { View, Text, FlatList, StyleSheet, DrawerLayoutAndroid, TouchableHighlight, useColorScheme } from "react-native";
 import baseURL from "../utils/baseURL";
 import SearchBar from "../components/SearchBar";
-import { Room, User, ChatNavigationProps, IMessagePro } from "../utils/types";
+import { Room, User, ChatNavigationProps, IMessagePro, CountNewMessageType, LastMessageType } from "../utils/types";
 import { DrawerScreenProps } from '@react-navigation/drawer';
 import { Ionicons } from "@expo/vector-icons";
 import { useSocket, useUser } from "../socketContext";
@@ -17,7 +17,6 @@ import { storage } from "../mmkv";
 import { usePushNotifications } from "../utils/usePushNotifications";
 import { ensureDirExists, fileDirectory } from "../utils/directories";
 import * as FileSystem from 'expo-file-system';
-import sleep from "../utils/wait";
 
 const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) => {
 	const { beCheck } = route?.params || {};
@@ -39,26 +38,33 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 	const [users, setUsers] = useState<User[] | []>([]);
 	const [screen, setScreen] = useState<'users' | 'rooms'>('rooms');
 	const [darkMode, setDarkMode] = useState(initDarkMode !== undefined ? initDarkMode : scheme);
+	const [countNewMessages, setCountNewMessages] = useState<CountNewMessageType[] | []>([]);
+	const [lastMessage, setLastMessage] = useState<LastMessageType[] | []>([]);
 
 	const isFocused = useIsFocused();
 
-	const pressUserHandler = (item: User | undefined) => {
+	const pressUserHandler = ({contact}: {contact:User | undefined}) => {
 		setPending(true);
-		console.log('pressHandler');
-		socket?.emit("createRoom", { user, contact: item });
-		socket?.on("createRoomResponse", (data: Room) => {
-			if (!data) setPending(false);
-			console.log(data, 'setter', user?.name);
-			insertRoom(data);
-			navigation.navigate("Messaging", { contact: item, roomId: data.id });
-			setRooms(e => [...e, data]);
+		const roomIfExists = rooms.find(e=>e.users[0]._id || e.users[1]._id === contact?._id);
+		if(roomIfExists){
+			navigation.navigate("Messaging", { contact:contact, roomId:roomIfExists.id,setLastMessage });
 			setPending(false);
-		});
+		}else{
+			socket?.emit("createRoom", { user, contact: contact });
+			socket?.on("createRoomResponse", (data: Room) => {
+				if (!data) setPending(false);
+				console.log(data, 'setter', user?.name);
+				insertRoom(data);
+				navigation.navigate("Messaging", { contact: contact, roomId: data.id,setLastMessage });
+				setRooms(e => [...e, data]);
+				setPending(false);
+			});
+		}
 	};
 
 	const pressrRoomHandler = ({ contact, roomId }: { contact: User, roomId: string }) => {
-		console.log('handleNavigation');
-		navigation.navigate("Messaging", { contact, roomId });
+		navigation.navigate("Messaging", { contact, roomId,setLastMessage });
+		handleCountNewMessages({roomId,erase:true});
 	};
 
 	function setter(data: Room) {
@@ -66,6 +72,31 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 		insertRoom(data);
 		socket?.emit('joinInRoom', user?._id);
 		setRooms(e => [...e, data]);
+	};
+
+	const handleLastMessages = ({roomId,newMessage}: {roomId:string,newMessage:string}) => {
+		setLastMessage(prevState => {
+			const existingItem = prevState.find((item) => item.roomId === roomId);
+			if (existingItem) {
+				return prevState.map((item) =>
+					item.roomId === roomId ? { ...item, message: newMessage } : item
+				);
+			} else {
+				return [...prevState, { roomId,message: newMessage }];
+			}
+		})
+	};
+	const handleCountNewMessages = ({roomId,erase}: {roomId:string,erase:boolean}) => {
+		setCountNewMessages(prevState => {
+			const existingItem = prevState.find((item) => item.id === roomId);
+			if (existingItem) {
+				return prevState.map((item) =>
+					item.id === roomId ? { ...item, count: erase ? 0 : item.count + 1 } : item
+				);
+			} else {
+				return [...prevState, { count: erase ? 0 : 1, id: roomId }];
+			}
+		});
 	};
 
 	useEffect(() => {
@@ -91,6 +122,8 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 		});
 
 		socket.on('chatNewMessage', async (data: IMessagePro & { roomId: string }) => {
+			console.log(users,'users');
+			console.log(rooms,'rooms');
 			const { roomId, ...newMessage } = data;
 			const selectedRoom = await getRoom(roomId);
 			if (newMessage.image) {
@@ -114,6 +147,7 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 						console.error(error, 'errrrrrrrr');
 					});
 				};
+				handleLastMessages({roomId,newMessage:'New Image'});
 			} else if (newMessage.video) {
 				await ensureDirExists();
 				const thumbnailName = `${new Date().getTime()}.jpeg`;
@@ -135,17 +169,21 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 						console.error(error, 'errrrrrrrr');
 					});
 				};
+				handleLastMessages({roomId,newMessage:'New Video'});
 			} else if (newMessage.file && newMessage.fileName) {
 				await ensureDirExists();
 				const fileUri = (baseURL() + '/' + newMessage.file).replace(/\\/g, '/');
 				newMessage["file"] = fileUri;
+				handleLastMessages({roomId,newMessage:'New File'});
+			}else{
+				handleLastMessages({roomId,newMessage:newMessage.text})
 			};
-			console.log(newMessage, 'chatNewMessage', user.name);
 			const roomMessage: Room[] = selectedRoom.map((e) => JSON.parse(e.data))[0]?.messages;
 			const newRoomMessage = [newMessage, ...roomMessage];
 			const contact = newMessage.user;
 			//@ts-ignore
 			await updateMessage({ id: roomId, users: [user, contact], messages: newRoomMessage });
+			handleCountNewMessages({roomId,erase:false});
 		});
 
 		socket.on("newRoom", setter);
@@ -161,7 +199,8 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 		if (notifData) {
 			navigation.navigate('Messaging', {
 				contact: notifData?.user,
-				roomId: notifData?.roomId
+				roomId: notifData?.roomId,
+				setLastMessage
 			});
 			setLoading(false);
 			// setPending(false);
@@ -200,7 +239,6 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 				<View style={[styles.chatscreen, { backgroundColor: colors.background }]}>
 					<View style={[styles.chattopContainer, { backgroundColor: colors.card }]}>
 						<View style={styles.chatheader}>
-
 							<View style={styles.burgerView}>
 								<TouchableHighlight style={styles.mr10} underlayColor={"#e3e5ef"} onPress={() => drawer.current?.openDrawer()} >
 									<Ionicons name="menu-sharp" style={styles.menu} color={colors.text} size={25} />
@@ -214,7 +252,7 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 						{screen === "users" && users.length > 0 ?
 							<View>
 								<FlatList
-									renderItem={({ item }) => <ChatComponent contact={item} messages={{ text: "Tap to start chatting" }} handleNavigation={() => pressUserHandler(item)} />}
+									renderItem={({ item }) => <ChatComponent contact={item} lastMessage={undefined} countNewMessage={undefined} messages={{ text: "Tap to start chatting" }} handleNavigation={() => pressUserHandler({contact:item})} />}
 									data={users}
 								/>
 							</View> : <View />
@@ -223,9 +261,10 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 							screen === "rooms" && rooms.length > 0 ? (
 								<View>
 									<FlatList
-										renderItem={({ item }) => <ChatComponent messages={item.messages[item.messages.length - 1]} contact={item.users[0].name == user?.name ? item.users[1] : item.users[0]} handleNavigation={() => pressrRoomHandler({ contact: item.users[0].name === user?.name ? item.users[1] : item.users[0], roomId: item.id })} />}
+										renderItem={({ item }) => <ChatComponent lastMessage={lastMessage.find(e=>e.roomId===item.id)?.message} messages={item.messages[0]} countNewMessage={countNewMessages.find(e=>e.id===item.id)} contact={item.users[0].name == user?.name ? item.users[1] : item.users[0]} handleNavigation={() => pressrRoomHandler({ contact: item.users[0].name === user?.name ? item.users[1] : item.users[0], roomId: item.id })} />}
 										data={rooms}
 										keyExtractor={(item) => item.id}
+										extraData={lastMessage}
 									/>
 								</View>
 							) : (
