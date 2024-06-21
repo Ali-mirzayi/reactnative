@@ -24,8 +24,8 @@ type RenderChatFooterProps = {
 	roomId: any,
 	setMessages: React.Dispatch<React.SetStateAction<IMessage[]>>,
 	colors: typeof darkTheme.colors,
-	setUploading: React.Dispatch<React.SetStateAction<(string | number)[]>>,
-	setErrors: React.Dispatch<React.SetStateAction<(string | number)[]>>
+	setUploading: (callback: (prev: (string | number)[]) => (string | number)[]) => void,
+	setErrors: (callback: (prev: (string | number)[]) => (string | number)[]) => void
 }
 
 export function RenderChatFooter({ user, socket, translateY, roomId, setMessages, colors, setErrors, setUploading }: RenderChatFooterProps) {
@@ -203,9 +203,9 @@ export function renderTime(props: TimeProps<IMessage>, { colors }: { colors: typ
 		/>)
 };
 
-type RenderMessageImageProps = { setMessages: React.Dispatch<React.SetStateAction<IMessage[]>>, downloading: (string | number)[], setDownloading: React.Dispatch<React.SetStateAction<(string | number)[]>>, uploading: (string | number)[], errors: (string | number)[] };
-type renderMessageVideoProps = { setMessages: React.Dispatch<React.SetStateAction<IMessage[]>>, downloading: (string | number)[], setDownloading: React.Dispatch<React.SetStateAction<(string | number)[]>>, videoRef: React.MutableRefObject<Video>, uploading: (string | number)[], errors: (string | number)[] };
-type renderMessageFileProps = { setMessages: React.Dispatch<React.SetStateAction<IMessage[]>>, downloading: (string | number)[], setDownloading: React.Dispatch<React.SetStateAction<(string | number)[]>>, colors: typeof darkTheme.colors, uploading: (string | number)[], errors: (string | number)[] };
+type RenderMessageImageProps = { setMessages: React.Dispatch<React.SetStateAction<IMessage[]>>, downloading: (string | number)[], setDownloading: (callback: (prev: (string | number)[]) => (string | number)[]) => void, uploading: (string | number)[], errors: (string | number)[] };
+type renderMessageVideoProps = { setMessages: React.Dispatch<React.SetStateAction<IMessage[]>>, downloading: (string | number)[], setDownloading: (callback: (prev: (string | number)[]) => (string | number)[]) => void, videoRef: React.MutableRefObject<Video>, uploading: (string | number)[], errors: (string | number)[] };
+type renderMessageFileProps = { setMessages: React.Dispatch<React.SetStateAction<IMessage[]>>, downloading: (string | number)[], setDownloading: (callback: (prev: (string | number)[]) => (string | number)[]) => void, colors: typeof darkTheme.colors, uploading: (string | number)[], errors: (string | number)[] };
 
 export const renderMessageFile = (props: MessageProps<IMessagePro>, { setMessages, downloading, setDownloading, colors, uploading }: renderMessageFileProps) => {
 	const Message = props.currentMessage;
