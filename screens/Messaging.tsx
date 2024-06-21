@@ -16,7 +16,7 @@ import PushNotificationSend from '../components/SendPushNotification';
 import baseURL from '../utils/baseURL';
 
 const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>) => {
-	const { contact, roomId }: any = route.params;
+	const { contact, roomId, setLastMessage }: any = route.params;
 	const [messages, setMessages] = useState<IMessage[]>([]);
 	// const [roomId, setRoomId] = useState<string | undefined>(id);
 	const [open, setOpen] = useState<boolean>(false); // renderChatFooter
@@ -32,6 +32,19 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	const { colors } = useTheme();
 	const videoRef: any = useRef(null);
 
+	const handleLastMessages = ({ roomId, newMessage }: { roomId: string, newMessage: string }) => {
+		setLastMessage((prevState: any) => {
+			const existingItem = prevState.find((item: any) => item.roomId === roomId);
+			if (existingItem) {
+				return prevState.map((item: any) =>
+					item.roomId === roomId ? { ...item, message: newMessage } : item
+				);
+			} else {
+				return [...prevState, { roomId, message: newMessage }];
+			}
+		})
+	};
+
 	useEffect(() => {
 		if (socket) {
 			socket.emit('checkStatus', contact.name);
@@ -46,11 +59,11 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 					const fileName = `${new Date().getTime()}.jpeg`;
 					const fileNamePrev = `${new Date().getTime() - 1000}.jpeg`;
 					const fileUri = (baseURL() + '/' + newMessage.image).replace(/\\/g, '/');
-					if(!newMessage.preView){
+					if (!newMessage.preView) {
 						newMessage["preView"] = undefined;
 						newMessage["image"] = fileUri;
 						newMessage["fileName"] = fileName;
-					}else{
+					} else {
 						await FileSystem.writeAsStringAsync(fileDirectory + fileNamePrev, newMessage.preView, { encoding: "base64" }).then(() => {
 							newMessage["preView"] = fileDirectory + fileNamePrev;
 							newMessage["image"] = fileUri;
@@ -62,16 +75,17 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 							console.error(error, 'errrrrrrrr');
 						});
 					};
+					handleLastMessages({ roomId, newMessage: 'New Image' });
 				} else if (newMessage.video) {
 					await ensureDirExists();
 					const thumbnailName = `${new Date().getTime()}.jpeg`;
 					const fileName = `${new Date().getTime()}.mp4`;
 					const videoUri = (baseURL() + '/' + newMessage.video).replace(/\\/g, '/');
-					if(!newMessage.thumbnail){
+					if (!newMessage.thumbnail) {
 						newMessage["thumbnail"] = undefined;
 						newMessage["fileName"] = fileName;
 						newMessage["video"] = videoUri;
-					}else{
+					} else {
 						await FileSystem.writeAsStringAsync(fileDirectory + thumbnailName, newMessage.thumbnail, { encoding: "base64" }).then(() => {
 							newMessage["thumbnail"] = fileDirectory + thumbnailName;
 							newMessage["fileName"] = fileName;
@@ -83,10 +97,14 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 							console.error(error, 'errrrrrrrr');
 						});
 					};
+					handleLastMessages({ roomId, newMessage: 'New Video' });
 				} else if (newMessage.file && newMessage.fileName) {
 					await ensureDirExists();
 					const fileUri = (baseURL() + '/' + newMessage.file).replace(/\\/g, '/');
 					newMessage["file"] = fileUri;
+					handleLastMessages({ roomId, newMessage: 'New File' });
+				} else {
+					handleLastMessages({ roomId, newMessage: newMessage.text });
 				};
 				setMessages((prevMessages: IMessage[]) => GiftedChat.append(prevMessages, [newMessage]));
 			});
@@ -115,17 +133,17 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	useEffect(() => {
 		setPending(true);
 		// if (roomId) {
-			getRoom(roomId)
-				.then((result) => {
-					if (result.length > 0) {
-						setMessages(result.map((e: any) => JSON.parse(e.data))[0]?.messages);
-						setPending(false)
-					}
-				})
-				.catch(error => {
-					console.log(error, 'v2');
+		getRoom(roomId)
+			.then((result) => {
+				if (result.length > 0) {
+					setMessages(result.map((e: any) => JSON.parse(e.data))[0]?.messages);
 					setPending(false)
-				});
+				}
+			})
+			.catch(error => {
+				console.log(error, 'v2');
+				setPending(false)
+			});
 		// };
 		setPending(false);
 		return () => {
@@ -147,9 +165,9 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	);
 
 	const onSend = (newMessage: IMessage[]) => {
-		// if ((!status || !isInRoom)) return;
 		if ((!status || !socket)) return;
 		socket.emit('sendMessage', { ...newMessage[0], user, roomId }, setMessages((prevMessages: IMessage[]) => GiftedChat.append(prevMessages, [...newMessage])));
+		handleLastMessages({ roomId, newMessage: newMessage[0].text })
 	};
 
 

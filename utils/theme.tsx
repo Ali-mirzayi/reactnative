@@ -12,7 +12,8 @@ const lightTheme = {
       undetlay:"#b2c6df",
       loginMirza:"#00402f",
       boarder:"#b2c6df",
-      red:"#DE3163"
+      red:"#DE3163",
+      newMessage:"#fff"
     },
   };
   
@@ -27,7 +28,8 @@ const darkTheme = {
         undetlay:"#353d4f",
         loginMirza:"#508081",
         boarder:"#ccc",
-        red:"#FF033E"
+        red:"#FF033E",
+        newMessage:"#353d4f"
     }
 
 };
