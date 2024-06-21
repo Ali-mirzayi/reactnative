@@ -9,7 +9,6 @@ type OpenURLButtonProps = {
 const Link = ({ url, children }: OpenURLButtonProps) => {
     const handlePress = useCallback(async () => {
         const supported = await Linking.canOpenURL('https://google.com');
-        // const supporte = await Linking.canOpenURL('https://www.google.com');
         if (supported) {
             await Linking.openURL(url);
         } else {

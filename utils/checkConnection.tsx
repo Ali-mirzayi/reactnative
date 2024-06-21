@@ -3,7 +3,7 @@ import baseURL from './baseURL';
 import { useNetInfo } from '@react-native-community/netinfo';
 import Toast from 'react-native-toast-message';
 
-export default function checkConnection(setError:React.Dispatch<React.SetStateAction<boolean>>) {
+export default function useCheckConnection(setError:React.Dispatch<React.SetStateAction<boolean>>) {
     const netInfo = useNetInfo({ reachabilityUrl: `${baseURL()}/checkUser` });
     useEffect(() => {
         // check internet connectiont
