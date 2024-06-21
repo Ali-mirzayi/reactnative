@@ -1,20 +1,23 @@
 import React, { useState, useEffect, useRef, useCallback, useLayoutEffect } from "react";
-import { View, Text, FlatList, StyleSheet, Button, DrawerLayoutAndroid, TouchableHighlight, useColorScheme } from "react-native";
+import { View, Text, FlatList, StyleSheet, DrawerLayoutAndroid, TouchableHighlight, useColorScheme } from "react-native";
 import baseURL from "../utils/baseURL";
 import SearchBar from "../components/SearchBar";
-import { Room, User, ChatNavigationProps } from "../utils/types";
+import { Room, User, ChatNavigationProps, IMessagePro } from "../utils/types";
 import { DrawerScreenProps } from '@react-navigation/drawer';
 import { Ionicons } from "@expo/vector-icons";
 import { useSocket, useUser } from "../socketContext";
-import { getAllRooms, insertRoom } from "../utils/DB";
+import { getAllRooms, getRoom, insertRoom, updateMessage } from "../utils/DB";
 import Toast from "react-native-toast-message";
 import LoadingPage from "../components/LoadingPage";
 import ChatComponent from "../components/ChatComponent";
 import useTheme from "../utils/theme";
-import { useFocusEffect } from "@react-navigation/native";
+import { useIsFocused } from "@react-navigation/native";
 import DrawerCore from "../components/Drawer";
 import { storage } from "../mmkv";
 import { usePushNotifications } from "../utils/usePushNotifications";
+import { ensureDirExists, fileDirectory } from "../utils/directories";
+import * as FileSystem from 'expo-file-system';
+import sleep from "../utils/wait";
 
 const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) => {
 	const { beCheck } = route?.params || {};
@@ -30,86 +33,138 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 	const scheme = (colorScheme === 'dark' ? false : true);
 	const { expoPushToken, notification } = usePushNotifications();
 
-	const [isPending, setPending] = useState(true);
+	const [isPending, setPending] = useState(false);
 	const [loading, setLoading] = useState(false)
 	const [rooms, setRooms] = useState<Room[]>([]);
 	const [users, setUsers] = useState<User[] | []>([]);
 	const [screen, setScreen] = useState<'users' | 'rooms'>('rooms');
 	const [darkMode, setDarkMode] = useState(initDarkMode !== undefined ? initDarkMode : scheme);
 
-	const pressHandler = (item: User | undefined) => {
-		socket?.emit("createRoom", [user, item], navigation.navigate("Messaging", { contact: item }))
-	};
+	const isFocused = useIsFocused();
 
-	const handleNavigation = ({ contact, id }: { contact: User, id: string }) => {
-		navigation.navigate("Messaging", { contact, id });
-	};
-
-	function setter(data: Room[]) {
-		data.forEach(room => {
-			insertRoom(room);
+	const pressUserHandler = (item: User | undefined) => {
+		setPending(true);
+		console.log('pressHandler');
+		socket?.emit("createRoom", { user, contact: item });
+		socket?.on("createRoomResponse", (data: Room) => {
+			if (!data) setPending(false);
+			console.log(data, 'setter', user?.name);
+			insertRoom(data);
+			navigation.navigate("Messaging", { contact: item, roomId: data.id });
+			setRooms(e => [...e, data]);
+			setPending(false);
 		});
 	};
+
+	const pressrRoomHandler = ({ contact, roomId }: { contact: User, roomId: string }) => {
+		console.log('handleNavigation');
+		navigation.navigate("Messaging", { contact, roomId });
+	};
+
+	function setter(data: Room) {
+		console.log(data, 'setter', user?.name);
+		insertRoom(data);
+		socket?.emit('joinInRoom', user?._id);
+		setRooms(e => [...e, data]);
+	};
+
+	useEffect(() => {
+		getAllRooms().then((result: Room[] | any) => {
+			if (result.length > 0) {
+				setRooms(result.map((e: any) => JSON.parse(e.data)));
+			}
+		}).catch((_) => Toast.show({
+			type: 'error',
+			text1: 'some thing went wrong with db',
+			autoHide: false
+		}));
+	}, []);
 
 	const notifData = notification?.request.content.data;
 
-	useFocusEffect(
-		useCallback(() => {
-			console.log(socket?.id, 'socket.id useFocusEffect');
-			if (socket?.id) {
-				socket?.emit('setSocketId', { 'id': socket?.id, 'name': user?.name, 'isUserInRoom': false });
-			}
-			const unsubscribe = navigation.addListener('focus', () => {
-				(function () {
-					fetch(`${baseURL()}/api`)
-						.then((res) => res.json())
-						.then((data: Room[]) => {
-							data.forEach(room => {
-								insertRoom(room);
-							});
-						})
-						.catch((_) => Toast.show({
-							type: 'error',
-							text1: 'some thing went wrong',
-							autoHide: false
-						}));
-				})();
-				setPending(false);
-			});
-			return unsubscribe;
-		}, [])
-	);
-
 	useEffect(() => {
-		socket?.on("roomsList", setter);
-		socket?.on("connected", (e: any) => {
-			console.log(e, 'useEffect');
-			socket?.emit('setSocketId', { 'id': e, 'name': user?.name, 'isUserInRoom': false });
+		if (!socket || !isFocused || !user) return;
+		socket.on("connected", (e: any) => {
+			console.log(socket.id, 'socket.id');
+			socket.emit('joinInRoom', user._id);
+			socket.emit('setSocketId', { 'id': e, 'name': user.name, 'isUserInRoom': false });
 		});
-		getAllRooms()
-			.then((result: Room[] | any) => {
-				if (result.length > 0) {
-					setRooms(result.map((e: any) => JSON.parse(e.data)));
-				}
-			})
-			.catch((_) => Toast.show({
-				type: 'error',
-				text1: 'some thing went wrong with db',
-				autoHide: false
-			}));
+
+		socket.on('chatNewMessage', async (data: IMessagePro & { roomId: string }) => {
+			const { roomId, ...newMessage } = data;
+			const selectedRoom = await getRoom(roomId);
+			if (newMessage.image) {
+				await ensureDirExists();
+				const fileName = `${new Date().getTime()}.jpeg`;
+				const fileNamePrev = `${new Date().getTime() - 1000}.jpeg`;
+				const fileUri = (baseURL() + '/' + newMessage.image).replace(/\\/g, '/');
+				if(!newMessage.preView){
+					newMessage["preView"] = undefined;
+					newMessage["image"] = fileUri;
+					newMessage["fileName"] = fileName;
+				}else{
+					await FileSystem.writeAsStringAsync(fileDirectory + fileNamePrev, newMessage.preView, { encoding: "base64" }).then(() => {
+						newMessage["preView"] = fileDirectory + fileNamePrev;
+						newMessage["image"] = fileUri;
+						newMessage["fileName"] = fileName;
+					}).catch(error => {
+						newMessage["preView"] = undefined;
+						newMessage["image"] = fileUri;
+						newMessage["fileName"] = fileName;
+						console.error(error, 'errrrrrrrr');
+					});
+				};
+			} else if (newMessage.video) {
+				await ensureDirExists();
+				const thumbnailName = `${new Date().getTime()}.jpeg`;
+				const fileName = `${new Date().getTime()}.mp4`;
+				const videoUri = (baseURL() + '/' + newMessage.video).replace(/\\/g, '/');
+				if(!newMessage.thumbnail){
+					newMessage["thumbnail"] = undefined;
+					newMessage["fileName"] = fileName;
+					newMessage["video"] = videoUri;
+				}else{
+					await FileSystem.writeAsStringAsync(fileDirectory + thumbnailName, newMessage.thumbnail, { encoding: "base64" }).then(() => {
+						newMessage["thumbnail"] = fileDirectory + thumbnailName;
+						newMessage["fileName"] = fileName;
+						newMessage["video"] = videoUri;
+					}).catch(error => {
+						newMessage["thumbnail"] = undefined;
+						newMessage["fileName"] = fileName;
+						newMessage["video"] = videoUri;
+						console.error(error, 'errrrrrrrr');
+					});
+				};
+			} else if (newMessage.file && newMessage.fileName) {
+				await ensureDirExists();
+				const fileUri = (baseURL() + '/' + newMessage.file).replace(/\\/g, '/');
+				newMessage["file"] = fileUri;
+			};
+			console.log(newMessage, 'chatNewMessage', user.name);
+			const roomMessage: Room[] = selectedRoom.map((e) => JSON.parse(e.data))[0]?.messages;
+			const newRoomMessage = [newMessage, ...roomMessage];
+			const contact = newMessage.user;
+			//@ts-ignore
+			await updateMessage({ id: roomId, users: [user, contact], messages: newRoomMessage });
+		});
+
+		socket.on("newRoom", setter);
+
 		return () => {
-			socket?.off("roomsList", setter)
+			socket.off('chatNewMessage');
+			socket.off('connected');
+			socket.off("newRoom", setter);
 		};
-	}, [socket]);
+	}, [socket, isFocused]);
 
 	useLayoutEffect(() => {
 		if (notifData) {
 			navigation.navigate('Messaging', {
 				contact: notifData?.user,
-				id: notifData?.roomId
+				roomId: notifData?.roomId
 			});
 			setLoading(false);
-			setPending(false);
+			// setPending(false);
 		};
 		if (expoPushToken && user) {
 			//@ts-ignore
@@ -155,12 +210,11 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 							<SearchBar setUsers={setUsers} setScreen={setScreen} />
 						</View>
 					</View>
-					{/* <Image width={200} height={200} style={{width:200,height:200}} source={{uri:'file:///data/user/0/com.Mirzagram.PushNotifications/files/download/1718174908758.jpeg'}}/> */}
 					<View style={styles.chatlistContainer}>
 						{screen === "users" && users.length > 0 ?
 							<View>
 								<FlatList
-									renderItem={({ item }) => <ChatComponent contact={item} messages={{ text: "Tap to start chatting" }} handleNavigation={() => pressHandler(item)} />}
+									renderItem={({ item }) => <ChatComponent contact={item} messages={{ text: "Tap to start chatting" }} handleNavigation={() => pressUserHandler(item)} />}
 									data={users}
 								/>
 							</View> : <View />
@@ -169,7 +223,7 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 							screen === "rooms" && rooms.length > 0 ? (
 								<View>
 									<FlatList
-										renderItem={({ item }) => <ChatComponent messages={item.messages[item.messages.length - 1]} contact={item.users[0].name == user?.name ? item.users[1] : item.users[0]} handleNavigation={() => handleNavigation({ contact: item.users[0].name === user?.name ? item.users[1] : item.users[0], id: item.id })} />}
+										renderItem={({ item }) => <ChatComponent messages={item.messages[item.messages.length - 1]} contact={item.users[0].name == user?.name ? item.users[1] : item.users[0]} handleNavigation={() => pressrRoomHandler({ contact: item.users[0].name === user?.name ? item.users[1] : item.users[0], roomId: item.id })} />}
 										data={rooms}
 										keyExtractor={(item) => item.id}
 									/>

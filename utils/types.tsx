@@ -10,13 +10,13 @@ export type LoginNavigationProps = {
 
 export type ChatNavigationProps = {
     Chat: { beCheck:boolean };
-    Messaging: { contact: User | undefined,id?: string};
+    Messaging: { contact: User | undefined,roomId: string};
 };
 
 export type RootStackParamList = {
     LoginNavigation?: undefined;
     Chat: { beCheck:boolean };
-    Messaging: { contact: User | undefined,id?: string};
+    Messaging: { contact: User | undefined,roomId: string};
 };
 
 export type IMessagePro = IMessage & { fileName?: string, file?:string, mimType?: string , preView?: string, thumbnail?: string }
@@ -31,7 +31,7 @@ export type User = {
 export type Room = {
 	id: string,
 	users: [user:User,contact:User],
-	messages: IMessage[]
+	messages: IMessagePro[]
 }
 
 export type DrawerCoreType = {
