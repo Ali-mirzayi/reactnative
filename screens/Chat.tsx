@@ -1,22 +1,22 @@
-import React, { useState, useEffect, useRef, useCallback, useLayoutEffect, useTransition } from "react";
-import { View, Text, FlatList, StyleSheet, Button, DrawerLayoutAndroid, TouchableHighlight, useColorScheme, } from "react-native";
+import React, { useState, useEffect, useRef, useCallback, useLayoutEffect } from "react";
+import { View, Text, FlatList, StyleSheet, DrawerLayoutAndroid, TouchableHighlight, useColorScheme } from "react-native";
 import baseURL from "../utils/baseURL";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import SearchBar from "../components/SearchBar";
-import { Room, User, ChatNavigationProps } from "../utils/types";
+import { Room, User, ChatNavigationProps, IMessagePro, CountNewMessageType, LastMessageType } from "../utils/types";
 import { DrawerScreenProps } from '@react-navigation/drawer';
 import { Ionicons } from "@expo/vector-icons";
 import { useSocket, useUser } from "../socketContext";
-import { getAllRooms, insertRoom } from "../utils/DB";
+import { getAllRooms, getRoom, insertRoom, updateMessage } from "../utils/DB";
 import Toast from "react-native-toast-message";
 import LoadingPage from "../components/LoadingPage";
 import ChatComponent from "../components/ChatComponent";
 import useTheme from "../utils/theme";
-import { useFocusEffect } from "@react-navigation/native";
+import { useIsFocused } from "@react-navigation/native";
 import DrawerCore from "../components/Drawer";
 import { storage } from "../mmkv";
-import sleep from "../utils/wait";
 import { usePushNotifications } from "../utils/usePushNotifications";
+import { ensureDirExists, fileDirectory } from "../utils/directories";
+import * as FileSystem from 'expo-file-system';
 
 const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) => {
 	const { beCheck } = route?.params || {};
@@ -32,81 +32,179 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 	const scheme = (colorScheme === 'dark' ? false : true);
 	const { expoPushToken, notification } = usePushNotifications();
 
-	const [isPending, setPending] = useState(true);
+	const [isPending, setPending] = useState(false);
 	const [loading, setLoading] = useState(false)
 	const [rooms, setRooms] = useState<Room[]>([]);
 	const [users, setUsers] = useState<User[] | []>([]);
 	const [screen, setScreen] = useState<'users' | 'rooms'>('rooms');
 	const [darkMode, setDarkMode] = useState(initDarkMode !== undefined ? initDarkMode : scheme);
+	const [countNewMessages, setCountNewMessages] = useState<CountNewMessageType[] | []>([]);
+	const [lastMessage, setLastMessage] = useState<LastMessageType[] | []>([]);
 
-	const pressHandler = (item: User | undefined) => {
-		socket?.emit("createRoom", [user, item], navigation.navigate("Messaging", { contact: item }))
+	const isFocused = useIsFocused();
+
+	const pressUserHandler = ({contact}: {contact:User | undefined}) => {
+		setPending(true);
+		const roomIfExists = rooms.find(e=>e.users[0]._id || e.users[1]._id === contact?._id);
+		if(roomIfExists){
+			navigation.navigate("Messaging", { contact:contact, roomId:roomIfExists.id,setLastMessage });
+			setPending(false);
+		}else{
+			socket?.emit("createRoom", { user, contact: contact });
+			socket?.on("createRoomResponse", (data: Room) => {
+				if (!data) setPending(false);
+				console.log(data, 'setter', user?.name);
+				insertRoom(data);
+				navigation.navigate("Messaging", { contact: contact, roomId: data.id,setLastMessage });
+				setRooms(e => [...e, data]);
+				setPending(false);
+			});
+		}
 	};
 
-	const handleNavigation = ({ contact, id }: { contact: User, id: string }) => {
-		navigation.navigate("Messaging", { contact, id });
+	const pressrRoomHandler = ({ contact, roomId }: { contact: User, roomId: string }) => {
+		navigation.navigate("Messaging", { contact, roomId,setLastMessage });
+		handleCountNewMessages({roomId,erase:true});
 	};
 
-	function setter(data: Room[]) {
-		data.forEach(room => {
-			insertRoom(room);
+	function setter(data: Room) {
+		console.log(data, 'setter', user?.name);
+		insertRoom(data);
+		socket?.emit('joinInRoom', user?._id);
+		setRooms(e => [...e, data]);
+	};
+
+	const handleLastMessages = ({roomId,newMessage}: {roomId:string,newMessage:string}) => {
+		setLastMessage(prevState => {
+			const existingItem = prevState.find((item) => item.roomId === roomId);
+			if (existingItem) {
+				return prevState.map((item) =>
+					item.roomId === roomId ? { ...item, message: newMessage } : item
+				);
+			} else {
+				return [...prevState, { roomId,message: newMessage }];
+			}
+		})
+	};
+	const handleCountNewMessages = ({roomId,erase}: {roomId:string,erase:boolean}) => {
+		setCountNewMessages(prevState => {
+			const existingItem = prevState.find((item) => item.id === roomId);
+			if (existingItem) {
+				return prevState.map((item) =>
+					item.id === roomId ? { ...item, count: erase ? 0 : item.count + 1 } : item
+				);
+			} else {
+				return [...prevState, { count: erase ? 0 : 1, id: roomId }];
+			}
 		});
 	};
 
+	useEffect(() => {
+		getAllRooms().then((result: Room[] | any) => {
+			if (result.length > 0) {
+				setRooms(result.map((e: any) => JSON.parse(e.data)));
+			}
+		}).catch((_) => Toast.show({
+			type: 'error',
+			text1: 'some thing went wrong with db',
+			autoHide: false
+		}));
+	}, []);
+
 	const notifData = notification?.request.content.data;
 
-	useFocusEffect(
-		useCallback(() => {
-			const unsubscribe = navigation.addListener('focus', () => {
-				(function () {
-					fetch(`${baseURL()}/api`)
-						.then((res) => res.json())
-						.then((data: Room[]) => {
-							data.forEach(room => {
-								insertRoom(room);
-							});
-						})
-						.catch((_) => Toast.show({
-							type: 'error',
-							text1: 'some thing went wrong',
-							autoHide: false
-						}));
-				})();
-				setPending(false);
-			});
-			return unsubscribe;
-		}, [notification])
-	);
-
 	useEffect(() => {
-		socket?.on("roomsList", setter);
-		socket?.emit('setSocketId', { 'id': socket?.id, 'name': user?.name });
-		getAllRooms()
-			.then((result: Room[] | any) => {
-				if (result.length > 0) {
-					setRooms(result.map((e: any) => JSON.parse(e.data)));
-				}
-			})
-			.catch((_) => Toast.show({
-				type: 'error',
-				text1: 'some thing went wrong with db',
-				autoHide: false
-			}));
+		if (!socket || !isFocused || !user) return;
+		socket.on("connected", (e: any) => {
+			console.log(socket.id, 'socket.id');
+			socket.emit('joinInRoom', user._id);
+			socket.emit('setSocketId', { 'id': e, 'name': user.name, 'isUserInRoom': false });
+		});
+
+		socket.on('chatNewMessage', async (data: IMessagePro & { roomId: string }) => {
+			console.log(users,'users');
+			console.log(rooms,'rooms');
+			const { roomId, ...newMessage } = data;
+			const selectedRoom = await getRoom(roomId);
+			if (newMessage.image) {
+				await ensureDirExists();
+				const fileName = `${new Date().getTime()}.jpeg`;
+				const fileNamePrev = `${new Date().getTime() - 1000}.jpeg`;
+				const fileUri = (baseURL() + '/' + newMessage.image).replace(/\\/g, '/');
+				if(!newMessage.preView){
+					newMessage["preView"] = undefined;
+					newMessage["image"] = fileUri;
+					newMessage["fileName"] = fileName;
+				}else{
+					await FileSystem.writeAsStringAsync(fileDirectory + fileNamePrev, newMessage.preView, { encoding: "base64" }).then(() => {
+						newMessage["preView"] = fileDirectory + fileNamePrev;
+						newMessage["image"] = fileUri;
+						newMessage["fileName"] = fileName;
+					}).catch(error => {
+						newMessage["preView"] = undefined;
+						newMessage["image"] = fileUri;
+						newMessage["fileName"] = fileName;
+						console.error(error, 'errrrrrrrr');
+					});
+				};
+				handleLastMessages({roomId,newMessage:'New Image'});
+			} else if (newMessage.video) {
+				await ensureDirExists();
+				const thumbnailName = `${new Date().getTime()}.jpeg`;
+				const fileName = `${new Date().getTime()}.mp4`;
+				const videoUri = (baseURL() + '/' + newMessage.video).replace(/\\/g, '/');
+				if(!newMessage.thumbnail){
+					newMessage["thumbnail"] = undefined;
+					newMessage["fileName"] = fileName;
+					newMessage["video"] = videoUri;
+				}else{
+					await FileSystem.writeAsStringAsync(fileDirectory + thumbnailName, newMessage.thumbnail, { encoding: "base64" }).then(() => {
+						newMessage["thumbnail"] = fileDirectory + thumbnailName;
+						newMessage["fileName"] = fileName;
+						newMessage["video"] = videoUri;
+					}).catch(error => {
+						newMessage["thumbnail"] = undefined;
+						newMessage["fileName"] = fileName;
+						newMessage["video"] = videoUri;
+						console.error(error, 'errrrrrrrr');
+					});
+				};
+				handleLastMessages({roomId,newMessage:'New Video'});
+			} else if (newMessage.file && newMessage.fileName) {
+				await ensureDirExists();
+				const fileUri = (baseURL() + '/' + newMessage.file).replace(/\\/g, '/');
+				newMessage["file"] = fileUri;
+				handleLastMessages({roomId,newMessage:'New File'});
+			}else{
+				handleLastMessages({roomId,newMessage:newMessage.text})
+			};
+			const roomMessage: Room[] = selectedRoom.map((e) => JSON.parse(e.data))[0]?.messages;
+			const newRoomMessage = [newMessage, ...roomMessage];
+			const contact = newMessage.user;
+			//@ts-ignore
+			await updateMessage({ id: roomId, users: [user, contact], messages: newRoomMessage });
+			handleCountNewMessages({roomId,erase:false});
+		});
+
+		socket.on("newRoom", setter);
+
 		return () => {
-			socket?.off("roomsList", setter)
+			socket.off('chatNewMessage');
+			socket.off('connected');
+			socket.off("newRoom", setter);
 		};
-	}, [socket]);
+	}, [socket, isFocused]);
 
 	useLayoutEffect(() => {
-
 		if (notifData) {
 			navigation.navigate('Messaging', {
 				contact: notifData?.user,
-				id: notifData?.roomId
+				roomId: notifData?.roomId,
+				setLastMessage
 			});
-		setLoading(false);
-			setPending(false);
-		}
+			setLoading(false);
+			// setPending(false);
+		};
 		if (expoPushToken && user) {
 			//@ts-ignore
 			user['token'] = expoPushToken
@@ -124,7 +222,7 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 				console.log(`error in updateUser ${err}`);
 			}
 		}
-	}, [expoPushToken?.data,notifData]);
+	}, [expoPushToken?.data, notifData]);
 
 	if (notifData && loading) { return (<LoadingPage active={true} />) }
 
@@ -154,7 +252,7 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 						{screen === "users" && users.length > 0 ?
 							<View>
 								<FlatList
-									renderItem={({ item }) => <ChatComponent contact={item} messages={{ text: "Tap to start chatting" }} handleNavigation={() => pressHandler(item)} />}
+									renderItem={({ item }) => <ChatComponent contact={item} lastMessage={undefined} countNewMessage={undefined} messages={{ text: "Tap to start chatting" }} handleNavigation={() => pressUserHandler({contact:item})} />}
 									data={users}
 								/>
 							</View> : <View />
@@ -163,11 +261,11 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 							screen === "rooms" && rooms.length > 0 ? (
 								<View>
 									<FlatList
-										renderItem={({ item }) => <ChatComponent messages={item.messages[item.messages.length - 1]} contact={item.users[0].name == user?.name ? item.users[1] : item.users[0]} handleNavigation={() => handleNavigation({ contact: item.users[0].name === user?.name ? item.users[1] : item.users[0], id: item.id })} />}
+										renderItem={({ item }) => <ChatComponent lastMessage={lastMessage.find(e=>e.roomId===item.id)?.message} messages={item.messages[0]} countNewMessage={countNewMessages.find(e=>e.id===item.id)} contact={item.users[0].name == user?.name ? item.users[1] : item.users[0]} handleNavigation={() => pressrRoomHandler({ contact: item.users[0].name === user?.name ? item.users[1] : item.users[0], roomId: item.id })} />}
 										data={rooms}
 										keyExtractor={(item) => item.id}
+										extraData={lastMessage}
 									/>
-									<Button title="clearrr" />
 								</View>
 							) : (
 								<View style={[styles.chatemptyContainer]}>

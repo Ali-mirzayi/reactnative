@@ -15,6 +15,23 @@ interface useUser {
 	user: User | undefined
 	setUser: (e: User) => void
 }
+interface useForceRerender {
+	forceRerender: boolean
+	setForceRerender: () => void
+}
+
+interface useSetDownloading {
+	downloading: (string | number)[]
+	setDownloading: (callback: (prev: (string | number)[]) => (string | number)[]) => void;
+}
+interface useSetUploading {
+	uploading: (string | number)[]
+	setUploading: (callback: (prev: (string | number)[]) => (string | number)[]) => void
+}
+interface useSetErrors {
+	errors: (string | number)[]
+	setErrors: (callback: (prev: (string | number)[]) => (string | number)[]) => void
+}
 
 export const useSocket = create<useSocket>()((set) => ({
 	socket: null,
@@ -30,3 +47,28 @@ export const useUser = create<useUser>()((set) => ({
 	user: undefined,
 	setUser: (e) => set({ user: e })
 }));
+
+export const useForceRerender = create<useForceRerender>()((set) => ({
+	forceRerender: false,
+	setForceRerender: () => set((state)=>({ forceRerender: !state.forceRerender }))
+}));
+
+export const useSetDownloading = create<useSetDownloading>()((set) => ({
+	downloading: [],
+	setDownloading: (callback) => set((state) => ({ downloading: callback(state.downloading) })),
+}));
+
+export const useSetUploading = create<useSetUploading>()((set) => ({
+	uploading: [],
+	setUploading: (callback) => set((state) => ({ uploading: callback(state.uploading) })),
+}));
+
+export const useSetErrors = create<useSetErrors>()((set) => ({
+	errors: [],
+	setErrors: (callback) => set((state) => ({ errors: callback(state.errors) })),
+}));
+
+
+// const [downloading, setDownloading] = useState<(string | number)[]>([]);
+// const [uploading, setUploading] = useState<(string | number)[]>([]);
+// const [errors, setErrors] = useState<(string | number)[]>([]);
