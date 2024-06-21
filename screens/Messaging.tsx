@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { GiftedChat, IMessage } from 'react-native-gifted-chat'
 import { StackScreenProps } from "@react-navigation/stack";
 import { IMessagePro, Room, RootStackParamList } from '../utils/types';
-import { useSocket, useUser } from '../socketContext';
+import { useSetDownloading, useSetErrors, useSetUploading, useSocket, useUser } from '../socketContext';
 import { updateMessage, getRoom } from '../utils/DB';
 import { useSharedValue, withTiming } from 'react-native-reanimated';
 import * as FileSystem from 'expo-file-system';
@@ -18,14 +18,16 @@ import baseURL from '../utils/baseURL';
 const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>) => {
 	const { contact, roomId, setLastMessage }: any = route.params;
 	const [messages, setMessages] = useState<IMessage[]>([]);
-	// const [roomId, setRoomId] = useState<string | undefined>(id);
 	const [open, setOpen] = useState<boolean>(false); // renderChatFooter
 	const [status, setStatus] = useState<boolean | undefined>(undefined); // connection
 	const [isInRoom, setIsInRoom] = useState<boolean>(true);
-	const [downloading, setDownloading] = useState<(string | number)[]>([]);
-	const [uploading, setUploading] = useState<(string | number)[]>([]);
-	const [errors, setErrors] = useState<(string | number)[]>([]);
-	const user: any = useUser(state => state.user)
+	// const [downloading, setDownloading] = useState<(string | number)[]>([]);
+	// const [uploading, setUploading] = useState<(string | number)[]>([]);
+	// const [errors, setErrors] = useState<(string | number)[]>([]);
+	const {downloading,setDownloading} = useSetDownloading();
+	const {uploading,setUploading} = useSetUploading();
+	const {errors,setErrors} = useSetErrors();
+	const user: any = useUser(state => state.user);
 	const translateY = useSharedValue(1000);
 	const [isPending, setPending] = useState(true); // set for roomId and save it db
 	const socket = useSocket(state => state.socket);
@@ -118,7 +120,6 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	useEffect(() => {
 		if (isPending == false) {
 			updateMessage({ id: roomId, users: [user, contact], messages });
-			// console.log(messages)
 		}
 	}, [messages]);
 
@@ -132,7 +133,6 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 
 	useEffect(() => {
 		setPending(true);
-		// if (roomId) {
 		getRoom(roomId)
 			.then((result) => {
 				if (result.length > 0) {
@@ -144,7 +144,6 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 				console.log(error, 'v2');
 				setPending(false)
 			});
-		// };
 		setPending(false);
 		return () => {
 			socket?.off('findRoomResponse');
@@ -169,7 +168,6 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 		socket.emit('sendMessage', { ...newMessage[0], user, roomId }, setMessages((prevMessages: IMessage[]) => GiftedChat.append(prevMessages, [...newMessage])));
 		handleLastMessages({ roomId, newMessage: newMessage[0].text })
 	};
-
 
 	return (
 		<View style={{ flex: 1, backgroundColor: colors.background }}>
