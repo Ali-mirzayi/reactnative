@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { GiftedChat, IMessage } from 'react-native-gifted-chat'
 import { StackScreenProps } from "@react-navigation/stack";
-import { IMessagePro, Room, RootStackParamList } from '../utils/types';
-import { useSetDownloading, useSetErrors, useSetUploading, useSocket, useUser } from '../socketContext';
+import { IMessagePro, RootStackParamList } from '../utils/types';
+import { useLastMessage, useSetDownloading, useSetErrors, useSetUploading, useSocket, useUser } from '../socketContext';
 import { updateMessage, getRoom } from '../utils/DB';
 import { useSharedValue, withTiming } from 'react-native-reanimated';
 import * as FileSystem from 'expo-file-system';
@@ -16,14 +16,15 @@ import PushNotificationSend from '../components/SendPushNotification';
 import baseURL from '../utils/baseURL';
 
 const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>) => {
-	const { contact, roomId, setLastMessage }: any = route.params;
+	const { contact, roomId }: any = route.params;
 	const [messages, setMessages] = useState<IMessage[]>([]);
 	const [open, setOpen] = useState<boolean>(false); // renderChatFooter
 	const [status, setStatus] = useState<boolean | undefined>(undefined); // connection
 	const [isInRoom, setIsInRoom] = useState<boolean>(true);
-	const {downloading,setDownloading} = useSetDownloading();
-	const {uploading,setUploading} = useSetUploading();
-	const {errors,setErrors} = useSetErrors();
+	const setLastMessage = useLastMessage(state => state.setLastMessage);
+	const { downloading, setDownloading } = useSetDownloading();
+	const { uploading, setUploading } = useSetUploading();
+	const { errors, setErrors } = useSetErrors();
 	const user: any = useUser(state => state.user);
 	const translateY = useSharedValue(1000);
 	const [isPending, setPending] = useState(true); // set for roomId and save it db
@@ -31,28 +32,30 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	const { colors } = useTheme();
 	const videoRef: any = useRef(null);
 
-	const handleLastMessages = ({ roomId, newMessage }: { roomId: string, newMessage: string }) => {
+	const handleLastMessages = ({ messageRoomId, newMessage }: { messageRoomId: string, newMessage: string }) => {
 		setLastMessage((prevState: any) => {
-			const existingItem = prevState.find((item: any) => item.roomId === roomId);
+			const existingItem = prevState.find((item: any) => item.roomId === messageRoomId);
 			if (existingItem) {
 				return prevState.map((item: any) =>
-					item.roomId === roomId ? { ...item, message: newMessage } : item
+					item.roomId === messageRoomId ? { ...item, message: newMessage } : item
 				);
 			} else {
-				return [...prevState, { roomId, message: newMessage }];
+				return [...prevState, { messageRoomId, message: newMessage }];
 			}
 		})
 	};
 
 	useEffect(() => {
 		if (socket) {
-			socket.emit('checkStatus', contact.name);
+			socket.emit('checkStatus', { contactId: contact._id, userRoomId: roomId });
 			socket.on('checkStatusResponse', (res) => {
-				setStatus(!!res.status);
-				setIsInRoom(res.status.isUserInRoom);
+				setStatus(res?.status);
+				setIsInRoom(res?.isInRoom);
 			});
 			// Listen for new messages from the server
-			socket.on('newMessage', async (newMessage: IMessagePro) => {
+			socket.on('newMessage', async (data: IMessagePro & { messageRoomId: string }) => {
+				const { messageRoomId, ...newMessage } = data;
+				// console.log(data,'messageRoomId')
 				if (newMessage.image) {
 					await ensureDirExists();
 					const fileName = `${new Date().getTime()}.jpeg`;
@@ -74,7 +77,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 							console.error(error, 'errrrrrrrr');
 						});
 					};
-					handleLastMessages({ roomId, newMessage: 'New Image' });
+					handleLastMessages({ messageRoomId: roomId, newMessage: 'New Image' });
 				} else if (newMessage.video) {
 					await ensureDirExists();
 					const thumbnailName = `${new Date().getTime()}.jpeg`;
@@ -96,14 +99,14 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 							console.error(error, 'errrrrrrrr');
 						});
 					};
-					handleLastMessages({ roomId, newMessage: 'New Video' });
+					handleLastMessages({ messageRoomId: roomId, newMessage: 'New Video' });
 				} else if (newMessage.file && newMessage.fileName) {
 					await ensureDirExists();
 					const fileUri = (baseURL() + '/' + newMessage.file).replace(/\\/g, '/');
 					newMessage["file"] = fileUri;
-					handleLastMessages({ roomId, newMessage: 'New File' });
+					handleLastMessages({ messageRoomId: roomId, newMessage: 'New File' });
 				} else {
-					handleLastMessages({ roomId, newMessage: newMessage.text });
+					handleLastMessages({ messageRoomId: roomId, newMessage: newMessage.text });
 				};
 				setMessages((prevMessages: IMessage[]) => GiftedChat.append(prevMessages, [newMessage]));
 			});
@@ -149,12 +152,12 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 
 	useFocusEffect(
 		useCallback(() => {
-			socket?.emit('isUserInRoom', { user: user.name, status: true });
+			socket?.emit('isUserInRoom', { userId: user._id, userRoomId: roomId, contactId: contact._id });
 			socket?.on('isUserInRoomResponse', (res) => {
-				setIsInRoom(res)
+				setIsInRoom(res);
 			});
 			return () => {
-				socket?.emit('isUserInRoom', { user: user.name, status: false });
+				socket?.emit('isUserInRoom', { userId: user._id, userRoomId: undefined, contactId: contact._id });
 				socket?.off('isUserInRoomResponse');
 			}
 		}, [socket])
@@ -163,7 +166,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	const onSend = (newMessage: IMessage[]) => {
 		if ((!status || !socket)) return;
 		socket.emit('sendMessage', { ...newMessage[0], user, roomId }, setMessages((prevMessages: IMessage[]) => GiftedChat.append(prevMessages, [...newMessage])));
-		handleLastMessages({ roomId, newMessage: newMessage[0].text })
+		handleLastMessages({ messageRoomId:roomId, newMessage: newMessage[0].text })
 	};
 
 	return (

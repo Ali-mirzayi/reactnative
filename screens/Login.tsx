@@ -33,7 +33,7 @@ const Login = ({ route, navigation }: StackScreenProps<LoginNavigationProps, 'Lo
 			if (json?.isOK === true) {
 				storage.set('user', JSON.stringify({ name: username, _id, avatar: '', token: expoPushToken }));
 				setUser({ _id: _id, name: username, avatar: '', token: expoPushToken });
-				socket?.emit('setSocketId', { 'id': socket.id, 'name': username, 'isUserInRoom': false },navigation.navigate('Chat', { beCheck }));
+				socket?.emit('setSocketId', { 'socketId': socket.id, 'userId': _id, 'userRoomId': undefined },navigation.navigate('Chat', { beCheck }));
 			} else {
 				Alert.alert("Error! invalid username");
 			}

@@ -5,7 +5,7 @@ import SearchBar from "../components/SearchBar";
 import { Room, User, ChatNavigationProps, IMessagePro, CountNewMessageType, LastMessageType } from "../utils/types";
 import { DrawerScreenProps } from '@react-navigation/drawer';
 import { Ionicons } from "@expo/vector-icons";
-import { useSocket, useUser } from "../socketContext";
+import { useLastMessage, useSocket, useUser } from "../socketContext";
 import { getAllRooms, getRoom, insertRoom, updateMessage } from "../utils/DB";
 import Toast from "react-native-toast-message";
 import LoadingPage from "../components/LoadingPage";
@@ -24,6 +24,7 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 	const setUser = useUser(state => state.setUser);
 	const user = useUser(state => state.user);
 	const socket = useSocket(state => state.socket);
+	const {lastMessage, setLastMessage} = useLastMessage();
 
 	const drawer = useRef<DrawerLayoutAndroid>(null);
 	const { colors } = useTheme();
@@ -39,7 +40,6 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 	const [screen, setScreen] = useState<'users' | 'rooms'>('rooms');
 	const [darkMode, setDarkMode] = useState(initDarkMode !== undefined ? initDarkMode : scheme);
 	const [countNewMessages, setCountNewMessages] = useState<CountNewMessageType[] | []>([]);
-	const [lastMessage, setLastMessage] = useState<LastMessageType[] | []>([]);
 
 	const isFocused = useIsFocused();
 
@@ -47,7 +47,7 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 		setPending(true);
 		const roomIfExists = rooms.find(e=>e.users[0]._id || e.users[1]._id === contact?._id);
 		if(roomIfExists){
-			navigation.navigate("Messaging", { contact:contact, roomId:roomIfExists.id,setLastMessage });
+			navigation.navigate("Messaging", { contact:contact, roomId:roomIfExists.id });
 			setPending(false);
 		}else{
 			socket?.emit("createRoom", { user, contact: contact });
@@ -55,7 +55,7 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 				if (!data) setPending(false);
 				console.log(data, 'setter', user?.name);
 				insertRoom(data);
-				navigation.navigate("Messaging", { contact: contact, roomId: data.id,setLastMessage });
+				navigation.navigate("Messaging", { contact: contact, roomId: data.id });
 				setRooms(e => [...e, data]);
 				setPending(false);
 			});
@@ -63,14 +63,14 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 	};
 
 	const pressrRoomHandler = ({ contact, roomId }: { contact: User, roomId: string }) => {
-		navigation.navigate("Messaging", { contact, roomId,setLastMessage });
+		navigation.navigate("Messaging", { contact, roomId });
 		handleCountNewMessages({roomId,erase:true});
 	};
 
 	function setter(data: Room) {
 		console.log(data, 'setter', user?.name);
+		socket?.emit('joinInRoom', data.id);
 		insertRoom(data);
-		socket?.emit('joinInRoom', user?._id);
 		setRooms(e => [...e, data]);
 	};
 
@@ -116,14 +116,11 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 	useEffect(() => {
 		if (!socket || !isFocused || !user) return;
 		socket.on("connected", (e: any) => {
-			console.log(socket.id, 'socket.id');
-			socket.emit('joinInRoom', user._id);
-			socket.emit('setSocketId', { 'id': e, 'name': user.name, 'isUserInRoom': false });
+			socket.emit('joinInRooms', user._id);
+			socket.emit('setSocketId', { 'socketId': e, 'userId': user._id, 'userRoomId': undefined });
 		});
 
 		socket.on('chatNewMessage', async (data: IMessagePro & { roomId: string }) => {
-			console.log(users,'users');
-			console.log(rooms,'rooms');
 			const { roomId, ...newMessage } = data;
 			const selectedRoom = await getRoom(roomId);
 			if (newMessage.image) {
@@ -199,9 +196,8 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 		if (notifData) {
 			navigation.navigate('Messaging', {
 				contact: notifData?.user,
-				roomId: notifData?.roomId,
-				setLastMessage
-			});
+				roomId: notifData?.roomId
+				});
 			setLoading(false);
 			// setPending(false);
 		};
@@ -334,7 +330,6 @@ const styles = StyleSheet.create({
 		justifyContent: 'center',
 		position: "relative",
 		height: 500,
-		// width: 400
 	},
 	paragraph: {
 		padding: 16,
