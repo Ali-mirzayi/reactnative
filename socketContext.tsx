@@ -1,5 +1,5 @@
 import { Socket } from 'socket.io-client';
-import { User } from './utils/types';
+import { LastMessageType, User } from './utils/types';
 import { create } from 'zustand';
 import * as Notifications from "expo-notifications";
 
@@ -31,6 +31,10 @@ interface useSetUploading {
 interface useSetErrors {
 	errors: (string | number)[]
 	setErrors: (callback: (prev: (string | number)[]) => (string | number)[]) => void
+}
+interface useLastMessage {
+	lastMessage: LastMessageType[] | []
+	setLastMessage: (callback: (prev: LastMessageType[]) => LastMessageType[]) => void
 }
 
 export const useSocket = create<useSocket>()((set) => ({
@@ -68,7 +72,7 @@ export const useSetErrors = create<useSetErrors>()((set) => ({
 	setErrors: (callback) => set((state) => ({ errors: callback(state.errors) })),
 }));
 
-
-// const [downloading, setDownloading] = useState<(string | number)[]>([]);
-// const [uploading, setUploading] = useState<(string | number)[]>([]);
-// const [errors, setErrors] = useState<(string | number)[]>([]);
+export const useLastMessage = create<useLastMessage>()((set) => ({
+	lastMessage: [],
+	setLastMessage: (callback) => set((state) => ({ lastMessage: callback(state.lastMessage) })),
+}));
