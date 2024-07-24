@@ -1,7 +1,9 @@
 import { Socket } from 'socket.io-client';
-import { User } from './utils/types';
+import { CountNewMessageType, LastMessageType, User } from './utils/types';
 import { create } from 'zustand';
 import * as Notifications from "expo-notifications";
+import { Audio } from 'expo-av';
+
 
 interface useSocket {
 	socket: Socket | null
@@ -31,6 +33,35 @@ interface useSetUploading {
 interface useSetErrors {
 	errors: (string | number)[]
 	setErrors: (callback: (prev: (string | number)[]) => (string | number)[]) => void
+}
+
+interface useSetLastMessage {
+	lastMessage: LastMessageType[] | []
+	setLastMessage: (callback: (prev: LastMessageType[] | []) => (LastMessageType[] | [])) => void
+}
+interface useSetSound {
+	sound: {audio:string,messageId:string|number,duration:number | undefined,playing:boolean}[] | []
+	setSound: (callback: (prev: {audio:string,messageId:string|number,duration:number | undefined,playing:boolean}[]) => ({audio:string,messageId:string|number,duration:number | undefined ,playing:boolean}[])) => void
+}
+interface useIsPlaying {
+	isPlaying: boolean
+	setIsPlaying: (e:boolean) => void
+}
+// interface useDrawerProps {
+// 	drawerProps: {}
+// 	setIsPlaying: (e:boolean) => void
+// }
+
+// drawerProps: undefined,
+// setDrawerProps: (callback) => set((state) => ({ sound: callback(state.drawerProps) })),
+
+// interface useOpenDrawer {
+// 	openDrawer: boolean
+// 	setOpenDrawer: (e: boolean) => void
+// }
+interface useBeCheck {
+	beCheck: boolean
+	setBeCheck: (e: boolean) => void
 }
 
 export const useSocket = create<useSocket>()((set) => ({
@@ -68,7 +99,27 @@ export const useSetErrors = create<useSetErrors>()((set) => ({
 	setErrors: (callback) => set((state) => ({ errors: callback(state.errors) })),
 }));
 
+export const useSetLastMessage = create<useSetLastMessage>()((set) => ({
+	lastMessage: [],
+	setLastMessage: (callback) => set((state) => ({ lastMessage: callback(state.lastMessage) })),
+}));
 
-// const [downloading, setDownloading] = useState<(string | number)[]>([]);
-// const [uploading, setUploading] = useState<(string | number)[]>([]);
-// const [errors, setErrors] = useState<(string | number)[]>([]);
+export const useSetSound = create<useSetSound>()((set) => ({
+	sound: [],
+	setSound: (callback) => set((state) => ({ sound: callback(state.sound) })),
+}));
+
+export const useIsPlaying = create<useIsPlaying>()((set) => ({
+	isPlaying: false,
+	setIsPlaying: (e) => set({ isPlaying: e })
+}));
+
+// export const useOpenDrawer = create<useOpenDrawer>()((set) => ({
+// 	openDrawer: false,
+// 	setOpenDrawer: (e) => set({ openDrawer: e })
+// }));
+
+export const useBeCheck = create<useBeCheck>()((set) => ({
+	beCheck : false,
+	setBeCheck: (e) => set({ beCheck: e })
+}));

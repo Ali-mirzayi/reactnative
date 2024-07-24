@@ -1,4 +1,4 @@
-import { NavigationContainer } from '@react-navigation/native'
+import { NavigationContainer, useNavigation } from '@react-navigation/native'
 import Login from "./screens/Login";
 import { CardStyleInterpolators, createStackNavigator } from '@react-navigation/stack';
 import Messaging from "./screens/Messaging";
@@ -15,6 +15,8 @@ import { storage } from './mmkv';
 import baseURL from './utils/baseURL';
 import * as FileSystem from 'expo-file-system';
 import { fileDirectory } from './utils/directories';
+import DrawerCore from './components/Drawer';
+import FloatingMusicPlayer from './components/FloatingMusicPlayer';
 
 
 const config: TransitionSpec = {
@@ -69,7 +71,7 @@ export const LoginNavigation = () => {
 
 export const ChatNavigation = ({ beCheck }: any) => {
     const Stack = createStackNavigator<ChatNavigationProps>();
-    return (
+    return (<>
         <Stack.Navigator initialRouteName='Chat' screenOptions={{
             gestureEnabled: true,
             gestureDirection: "horizontal",
@@ -98,11 +100,12 @@ export const ChatNavigation = ({ beCheck }: any) => {
                     options={{
                         title: "Messaging",
                         headerShown: false,
-                        freezeOnBlur:false
+                        freezeOnBlur: false
                     }}
                 />
             </Stack.Group>
         </Stack.Navigator>
+    </>
     )
 }
 
@@ -139,8 +142,6 @@ export default function Navigation() {
 
     async function purge() {
         try {
-            // (function () {
-            // for delete user and related rooms he's joined
             fetch(`${baseURL()}/deleteUser`, {
                 method: 'POST',
                 headers: {
@@ -149,14 +150,13 @@ export default function Navigation() {
                 },
                 body: storage.getString('user')
             });
-            // })();
             storage.delete('user');
             await deleteDB();
             await createTable();
             setBeCheck(true);
             FileSystem.deleteAsync(fileDirectory);
         } catch (err) {
-            console.log(err,'err')
+            console.log(err, 'err')
         }
     };
 
@@ -178,49 +178,49 @@ export default function Navigation() {
 
     return (
         <>
-            <NavigationContainer fallback={<LoadingPage active={true} />} >
-                <Stack.Navigator screenOptions={{
-                    headerShown: false,
-                    gestureEnabled: true,
-                    gestureDirection: "horizontal",
-                    transitionSpec: {
-                        open: config,
-                        close: closeConfig
-                    },
-                    cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS
-                }}
-                >
-                    {user ?
-                        null
-                        :
+                <NavigationContainer fallback={<LoadingPage active={true} />} >
+                    <Stack.Navigator screenOptions={{
+                        headerShown: false,
+                        gestureEnabled: true,
+                        gestureDirection: "horizontal",
+                        transitionSpec: {
+                            open: config,
+                            close: closeConfig
+                        },
+                        cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS
+                    }}
+                    >
+                        {user ?
+                            null
+                            :
+                            <Stack.Screen
+                                name='LoginNavigation'
+                                component={LoginNavigation}
+                                options={{ headerShown: false, presentation: 'card' }} />
+                        }
                         <Stack.Screen
-                            name='LoginNavigation'
-                            component={LoginNavigation}
-                            options={{ headerShown: false, presentation: 'card' }} />
-                    }
-                    <Stack.Screen
-                        name='Chat'
-                        component={Chat}
-                        initialParams={{ beCheck }}
-                        options={{
-                            headerShown: false,
-                        }}
-                        listeners={{
-                            focus: () => {
-                                setChat(true);
-                            }
-                        }}
-                    />
-                    <Stack.Screen
-                        name='Messaging'
-                        component={Messaging}
-                        initialParams={{ contact: undefined }}
-                        options={{
-                            headerShown: false
-                        }}
-                    />
-                </Stack.Navigator>
-            </NavigationContainer>
+                            name='Chat'
+                            component={Chat}
+                            initialParams={{ beCheck }}
+                            options={{
+                                headerShown: false,
+                            }}
+                            listeners={{
+                                focus: () => {
+                                    setChat(true);
+                                }
+                            }}
+                        />
+                        <Stack.Screen
+                            name='Messaging'
+                            component={Messaging}
+                            initialParams={{ contact: undefined }}
+                            options={{
+                                headerShown: false
+                            }}
+                        />
+                    </Stack.Navigator>
+                </NavigationContainer>
         </>
     )
 }
