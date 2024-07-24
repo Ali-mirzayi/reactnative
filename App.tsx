@@ -11,6 +11,8 @@ import baseURL from "./utils/baseURL";
 import useCheckConnection from "./utils/checkConnection";
 import LoadingPage from "./components/LoadingPage";
 import io from 'socket.io-client';
+import useSetSounds from "./hooks/useSetSounds";
+import TrackPlayer from "react-native-track-player";
 
 function App() {
   const [error, setError] = useState(false);
@@ -20,11 +22,13 @@ function App() {
   I18nManager.allowRTL(false);
 
   useCheckConnection(setError);
-
+  useSetSounds();
+  
   useEffect(() => {
     // Connect to the Socket.IO server
     const newSocket = io(baseURL());
     setSocket(newSocket);
+
     return () => {
       newSocket.disconnect();
     };

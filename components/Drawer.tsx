@@ -1,6 +1,7 @@
+import { Drawer } from 'react-native-drawer-layout';
 import React, { useState, useRef, useCallback } from "react";
-import { View, Text, Animated, StyleSheet, DrawerLayoutAndroid, Easing, Pressable } from "react-native";
-import { Ionicons,MaterialCommunityIcons } from "@expo/vector-icons";
+import { View, Text, Animated, StyleSheet, Easing, Pressable } from "react-native";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import Checkbox from 'expo-checkbox';
 import Link from "../utils/Link";
 import { storage } from "../mmkv";
@@ -8,15 +9,20 @@ import LottieView from 'lottie-react-native';
 import useTheme from "../utils/theme";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { DrawerCoreType } from "../utils/types";
+import { useBeCheck, useUser } from '../socketContext';
 
-export default function DrawerCore({ darkMode, setDarkMode, beCheck, name, children, drawerRef }: DrawerCoreType) {
+
+export default function DrawerCore({ children, open, setOpen,darkMode,setDarkMode }: DrawerCoreType) {
+    const user = useUser(state => state.user);
+    const beCheck = useBeCheck(state => state.beCheck);
+    const { colors } = useTheme();
     const toggleRef = useRef(new Animated.Value(darkMode === true ? 0.5 : 0)).current;
     const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
     const [isChecked, setChecked] = useState<boolean | undefined>(false);
-    const { colors } = useTheme();
     const navigation = useNavigation();
 
-    const DrawerComponent = () => {   
+
+    const DrawerComponent = () => {
         function onPressHandler() {
             setDarkMode(!darkMode);
             storage.set("darkMode", darkMode);
@@ -26,11 +32,11 @@ export default function DrawerCore({ darkMode, setDarkMode, beCheck, name, child
             setChecked(value);
             storage.set("clearAll", value)
         }
-        
+
         return (
-            <View style={{ flex: 1, backgroundColor: colors.background }}>
-                <Text style={[styles.chatheading, styles.user, { color: colors.mirza }]}>{name}</Text>
-                <Pressable onPress={onPressHandler} style={{ zIndex: 9999,margin:8 }} >
+            <View style={{ flex: 1, backgroundColor: colors.background}}>
+                <Text style={[styles.chatheading, styles.user, { color: colors.mirza }]}>{user?.name}</Text>
+                <Pressable onPress={onPressHandler} style={{ zIndex: 9999, margin: 8 }} >
                     <AnimatedLottieView
                         progress={toggleRef}
                         source={require('../assets/toggle2.json')}
@@ -41,19 +47,19 @@ export default function DrawerCore({ darkMode, setDarkMode, beCheck, name, child
                     <Link url={'https://www.linkedin.com/in/alimirzaeizade/'}>
                         <View style={styles.indIcon}>
                             <Ionicons name="logo-linkedin" size={36} color="#317daf" />
-                            <Text style={{color:colors.text,fontSize:18}}>Linkedin</Text>
+                            <Text style={{ color: colors.text, fontSize: 18 }}>Linkedin</Text>
                         </View>
                     </Link>
                     <Link url={"https://github.com/Ali-mirzayi"}>
                         <View style={styles.indIcon}>
                             <Ionicons name="logo-github" size={38} color="black" />
-                            <Text style={{color:colors.text,fontSize:18}}>GitHub</Text>
+                            <Text style={{ color: colors.text, fontSize: 18 }}>GitHub</Text>
                         </View>
                     </Link>
                     <Link url={"https://alimirzaei.vercel.app"}>
                         <View style={styles.indIcon}>
                             <MaterialCommunityIcons name="web" size={40} color="black" />
-                            <Text style={{color:colors.text,fontSize:18}}>Web Site</Text>
+                            <Text style={{ color: colors.text, fontSize: 18 }}>Web Site</Text>
                         </View>
                     </Link>
                 </View>
@@ -100,15 +106,16 @@ export default function DrawerCore({ darkMode, setDarkMode, beCheck, name, child
     );
 
     return (
-        <DrawerLayoutAndroid
-            ref={drawerRef}
-            drawerWidth={300}
-            drawerPosition={"left"}
-            renderNavigationView={DrawerComponent}>
+        <Drawer
+            open={open}
+            onOpen={() => setOpen(true)}
+            onClose={() => setOpen(false)}
+            renderDrawerContent={DrawerComponent}
+        >
             {children}
-        </DrawerLayoutAndroid>
-    )
-}
+        </Drawer>
+    );
+};
 
 const styles = StyleSheet.create({
     chatheading: {
