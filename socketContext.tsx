@@ -1,9 +1,20 @@
 import { Socket } from 'socket.io-client';
-import { CountNewMessageType, LastMessageType, User } from './utils/types';
+import { CountNewMessageType, currentPosition, LastMessageType, lastTrack, player, User } from './utils/types';
 import { create } from 'zustand';
 import * as Notifications from "expo-notifications";
 import { Audio } from 'expo-av';
 
+const initialCurrentPosition: currentPosition = {
+    position:undefined,
+	id:undefined
+};
+
+const initialLastTrack: lastTrack = {
+    duration: undefined,
+    id: undefined,
+    name: undefined,
+    uri: undefined
+};
 
 interface useSocket {
 	socket: Socket | null
@@ -40,25 +51,28 @@ interface useSetLastMessage {
 	setLastMessage: (callback: (prev: LastMessageType[] | []) => (LastMessageType[] | [])) => void
 }
 interface useSetSound {
-	sound: {audio:string,messageId:string|number,duration:number | undefined,playing:boolean}[] | []
-	setSound: (callback: (prev: {audio:string,messageId:string|number,duration:number | undefined,playing:boolean}[]) => ({audio:string,messageId:string|number,duration:number | undefined ,playing:boolean}[])) => void
+	sound: {audio:string,audioName:string,messageId:string|number,duration:number | undefined,playing:boolean}[] | []
+	setSound: (callback: (prev: {audio:string,audioName:string,messageId:string|number,duration:number | undefined,playing:boolean}[]) => ({audio:string,audioName:string,messageId:string|number,duration:number | undefined ,playing:boolean}[])) => void
 }
+
 interface useIsPlaying {
 	isPlaying: boolean
 	setIsPlaying: (e:boolean) => void
 }
-// interface useDrawerProps {
-// 	drawerProps: {}
-// 	setIsPlaying: (e:boolean) => void
-// }
+interface usePlayer {
+	player: player
+	setPlayer: (callback: (prev: player) => (player)) => void
+}
+interface usePosition {
+	currentPosition: currentPosition
+	setCurrentPosition: (callback: (prev: currentPosition) => (currentPosition)) => void
+}
 
-// drawerProps: undefined,
-// setDrawerProps: (callback) => set((state) => ({ sound: callback(state.drawerProps) })),
+interface useLastTrack {
+	lastTrack: lastTrack
+	setLastTrack: (callback: (prev: lastTrack) => (lastTrack)) => void
+}
 
-// interface useOpenDrawer {
-// 	openDrawer: boolean
-// 	setOpenDrawer: (e: boolean) => void
-// }
 interface useBeCheck {
 	beCheck: boolean
 	setBeCheck: (e: boolean) => void
@@ -114,12 +128,22 @@ export const useIsPlaying = create<useIsPlaying>()((set) => ({
 	setIsPlaying: (e) => set({ isPlaying: e })
 }));
 
-// export const useOpenDrawer = create<useOpenDrawer>()((set) => ({
-// 	openDrawer: false,
-// 	setOpenDrawer: (e) => set({ openDrawer: e })
-// }));
+export const usePlayer = create<usePlayer>()((set) => ({
+	player: undefined,
+	setPlayer: (callback) => set((state) => ({ player: callback(state.player) })),
+}));
 
 export const useBeCheck = create<useBeCheck>()((set) => ({
 	beCheck : false,
 	setBeCheck: (e) => set({ beCheck: e })
+}));
+
+export const usePosition = create<usePosition>()((set) => ({
+	currentPosition : initialCurrentPosition,
+	setCurrentPosition: (callback) => set((state) => ({ currentPosition: callback(state.currentPosition) }))
+}));
+
+export const useLastTrack = create<useLastTrack>()((set) => ({
+	lastTrack: initialLastTrack,
+	setLastTrack: (callback) => set((state) => ({ lastTrack: callback(state.lastTrack) })),
 }));

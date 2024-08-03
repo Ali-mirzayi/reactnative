@@ -1,5 +1,6 @@
 import { IMessage } from "react-native-gifted-chat";
 import * as Notifications from "expo-notifications";
+import { Audio } from "expo-av";
 
 export type LoginNavigationProps = {
     LoginPrev: undefined;
@@ -16,9 +17,10 @@ export type RootStackParamList = {
     LoginNavigation?: undefined;
     Chat: { beCheck: boolean };
     Messaging: { contact: User | undefined, roomId: string };
+    ModalMusic: undefined;
 };
 
-export type IMessagePro = IMessage & { fileName?: string, file?: string, mimType?: string, preView?: string, thumbnail?: string, duration?: number, playing?: boolean}
+export type IMessagePro = IMessage & { fileName?: string, file?: string, mimType?: string, preView?: string, thumbnail?: string, duration?: number, playing?: boolean }
 
 export type User = {
     _id: string;
@@ -57,3 +59,26 @@ export type LastMessageType = {
     message: string;
     roomId: string;
 }
+
+export type player = {
+    name?: string,
+    uri?: string,
+    playing?: boolean,
+    id?: string | number,
+    duration?: number,
+    track?: Audio.Sound,
+    lastPosition?: number,
+    uuid?: string | number
+} | undefined;
+
+export type currentPosition = {
+    position?: number,
+    id?: number | string
+};
+
+export type lastTrack = {
+    duration?: number,
+    name?: string,
+    id?: number | string,
+    uri?: string
+};

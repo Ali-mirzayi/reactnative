@@ -17,7 +17,6 @@ import { ensureDirExists, fileDirectory } from "../utils/directories";
 import * as FileSystem from 'expo-file-system';
 import sleep from "../utils/wait";
 import DrawerCore from "../components/Drawer";
-import useSetSounds from "../hooks/useSetSounds";
 import { storage } from "../mmkv";
 import FloatingMusicPlayer from "../components/FloatingMusicPlayer";
 
@@ -44,8 +43,6 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 	const colorScheme = useColorScheme();
 	const scheme = (colorScheme === 'dark' ? false : true);
 	const [darkMode, setDarkMode] = useState(initDarkMode !== undefined ? initDarkMode : scheme);
-
-	useSetSounds();
 
 	const isFocused = useIsFocused();
 
@@ -184,7 +181,7 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 			} else if (newMessage.audio && newMessage.fileName) {
 				await ensureDirExists();
 				setSound(e => {
-					return [...e, { audio: newMessage.audio ?? '', messageId: newMessage._id, duration:newMessage.duration, playing: false }]
+					return [...e, { audio: newMessage.audio ?? '',audioName:newMessage.fileName??"unknown", messageId: newMessage._id, duration:newMessage.duration, playing: false }]
 				});
 			} else {
 				handleLastMessages({ roomId, newMessage: newMessage.text })

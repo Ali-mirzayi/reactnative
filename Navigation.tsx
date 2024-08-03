@@ -17,6 +17,7 @@ import * as FileSystem from 'expo-file-system';
 import { fileDirectory } from './utils/directories';
 import DrawerCore from './components/Drawer';
 import FloatingMusicPlayer from './components/FloatingMusicPlayer';
+import ModalMusic from './screens/ModalMusic';
 
 
 const config: TransitionSpec = {
@@ -163,7 +164,7 @@ export default function Navigation() {
     useLayoutEffect(() => {
         setLoading(true);
         const value = storage.getBoolean("clearAll");
-        if (value === undefined || null) {
+        if (value === undefined) {
             storage.set("clearAll", false);
         };
         if (value == true) {
@@ -178,8 +179,9 @@ export default function Navigation() {
 
     return (
         <>
-                <NavigationContainer fallback={<LoadingPage active={true} />} >
-                    <Stack.Navigator screenOptions={{
+            <NavigationContainer fallback={<LoadingPage active={true} />} >
+                <Stack.Navigator>
+                    <Stack.Group screenOptions={{
                         headerShown: false,
                         gestureEnabled: true,
                         gestureDirection: "horizontal",
@@ -188,8 +190,7 @@ export default function Navigation() {
                             close: closeConfig
                         },
                         cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS
-                    }}
-                    >
+                    }}>
                         {user ?
                             null
                             :
@@ -219,8 +220,22 @@ export default function Navigation() {
                                 headerShown: false
                             }}
                         />
-                    </Stack.Navigator>
-                </NavigationContainer>
+                    </Stack.Group>
+                    <Stack.Group  screenOptions={{
+                        presentation: 'modal',
+                        headerShown: false,
+                        gestureEnabled: true,
+                        gestureDirection: "vertical",
+                        // transitionSpec: {
+                        //     open: config,
+                        //     close: closeConfig
+                        // },
+                        cardStyleInterpolator: CardStyleInterpolators.forVerticalIOS,
+                    }}>
+                        <Stack.Screen name="ModalMusic" component={ModalMusic} />
+                    </Stack.Group>
+                </Stack.Navigator>
+            </NavigationContainer>
         </>
     )
 }

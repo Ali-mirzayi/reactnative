@@ -11,7 +11,7 @@ import baseURL from "./utils/baseURL";
 import useCheckConnection from "./utils/checkConnection";
 import LoadingPage from "./components/LoadingPage";
 import io from 'socket.io-client';
-import useSetSounds from "./hooks/useSetSounds";
+// import {useSetSounds,useSetupPlayer} from "./hooks/useSetSounds";
 import TrackPlayer from "react-native-track-player";
 
 function App() {
@@ -22,7 +22,9 @@ function App() {
   I18nManager.allowRTL(false);
 
   useCheckConnection(setError);
-  useSetSounds();
+  // const isSetup = useSetupPlayer();
+  // useSetSounds();
+  
   
   useEffect(() => {
     // Connect to the Socket.IO server
@@ -46,7 +48,10 @@ function App() {
         }}
       />
     )
-  }
+  };
+
+  // if (!isSetup) { return (<LoadingPage active/>) }
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <EventProvider>
