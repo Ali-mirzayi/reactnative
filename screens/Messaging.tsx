@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { GiftedChat, IMessage } from 'react-native-gifted-chat'
 import { StackScreenProps } from "@react-navigation/stack";
 import { IMessagePro, Room, RootStackParamList } from '../utils/types';
-import { useIsPlaying, useSetDownloading, useSetErrors, useSetLastMessage, useSetSound, useSetUploading, useSocket, useUser } from '../socketContext';
+import { useIsPlaying, useLastTrack, usePlayer, usePosition, useSetDownloading, useSetErrors, useSetLastMessage, useSetSound, useSetUploading, useSocket, useUser } from '../socketContext';
 import { updateMessage, getRoom } from '../utils/DB';
 import { useSharedValue, withTiming } from 'react-native-reanimated';
 import LoadingPage from '../components/LoadingPage';
@@ -31,7 +31,9 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	const { downloading, setDownloading } = useSetDownloading();
 	const { errors, setErrors } = useSetErrors();
 	const { uploading, setUploading } = useSetUploading();
-	const { sound, setSound } = useSetSound();
+	const { player, setPlayer } = usePlayer();
+	const { currentPosition, setCurrentPosition } = usePosition();
+	const { lastTrack, setLastTrack } = useLastTrack();
 
 	const translateY = useSharedValue(1000);
 	const { colors } = useTheme();
@@ -218,8 +220,8 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 				user={user}
 				renderMessageImage={(e: any) => RenderMessageImage(e, { setMessages, downloading, uploading, errors, setDownloading })}
 				renderMessageVideo={(e: any) => renderMessageVideo(e, { setMessages, downloading, uploading, errors, setDownloading, videoRef })}
-				renderMessageAudio={(e: any) => renderMessageAudio(e, { setMessages, downloading, setDownloading, uploading, errors, colors, sound, setSound })}
-				renderCustomView={(e: any) => renderMessageFile(e, { setMessages, downloading, setDownloading, uploading, errors, colors, sound, setSound })}
+				renderMessageAudio={(e: any) => renderMessageAudio(e, { setMessages, downloading, setDownloading, uploading, errors, colors,player, setPlayer,currentPosition, setCurrentPosition,lastTrack, setLastTrack  })}
+				renderCustomView={(e: any) => renderMessageFile(e, { setMessages, downloading, setDownloading, uploading, errors, colors,player, setPlayer })}
 				alwaysShowSend
 				scrollToBottom
 				loadEarlier
@@ -229,7 +231,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 				renderActions={(e) => renderActions(e, { setOpen, open, colors })}
 				renderBubble={(e) => renderBubble(e, { colors })}
 				renderSend={(e) => renderSend(e, { colors })}
-				renderChatFooter={() => RenderChatFooter({ user, socket, translateY, roomId, setMessages, colors, setUploading, setErrors, recording, setRecording, handleAudioPermissions, setSound })}
+				renderChatFooter={() => RenderChatFooter({ user, socket, translateY, roomId, setMessages, colors, setUploading, setErrors, recording, setRecording, handleAudioPermissions })}
 				renderInputToolbar={(e) => renderInputToolbar(e, { colors })}
 				renderTime={(e) => renderTime(e, { colors })}
 				optionTintColor='#fff'
