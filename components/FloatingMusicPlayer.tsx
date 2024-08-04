@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, TouchableOpacity, TouchableHighlight } from 'react-native';
 import React, { useEffect, useRef, useState } from 'react';
-import { useLastTrack, usePlayer, usePosition } from '../socketContext';
+import { useIsOpen, useLastTrack, usePlayer, usePosition } from '../socketContext';
 import useTheme from '../utils/theme';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { formatMillisecondsToTime } from '../utils/utils';
@@ -8,44 +8,17 @@ import { Audio, AVPlaybackStatusSuccess } from 'expo-av';
 import { useNavigation } from '@react-navigation/native';
 import { useAudioList } from '../hooks/useAudioList';
 
-// type lastTrack = {
-//     duration?: number,
-//     name?: string,
-//     id?: number | string,
-//     uri?: string
-// };
-
-// const initialLastTrack: lastTrack = {
-//     duration: undefined,
-//     id: undefined,
-//     name: undefined,
-//     uri: undefined
-// };
-
-type progress = {
-    position?: number,
-    duration?: number,
-    id?: number | string,
-};
-
-const initialProgress: progress = {
-    duration: undefined,
-    position: undefined,
-    id: undefined,
-};
-
 const FloatingMusicPlayer = () => {
-    const [open, setOpen] = useState(false);
+    // const [open, setOpen] = useState(false);
     const { colors } = useTheme();
-    // const [lastTrack, setLastTrack] = useState<lastTrack>(initialLastTrack);
     const { player, setPlayer } = usePlayer();
     const { navigate } = useNavigation();
     const { lastTrack, setLastTrack } = useLastTrack();
+    const setOpen = useIsOpen(state=>state.setOpen);
 
     const { currentPosition, setCurrentPosition } = usePosition();
 
     const previousPositionRef = useRef<number | null>(null);
-
 
     const AudioList = useAudioList();
 
@@ -63,7 +36,7 @@ const FloatingMusicPlayer = () => {
         setPlayer((e) => {
             return { uri: undefined, track: undefined, name: undefined, id: e?.id, uuid: undefined, duration: undefined, lastPosition, playing: isForStart ? true : false };
         });
-        setCurrentPosition(lastPosition);
+        setCurrentPosition((e) => ({ position: lastPosition, id: e?.id }));
 
     };
 
@@ -87,7 +60,7 @@ const FloatingMusicPlayer = () => {
         if (player?.lastPosition) {
             await newSound.playFromPositionAsync(player?.lastPosition)
         } else {
-			setCurrentPosition(()=>({id:player?.uuid,position:undefined}));
+            setCurrentPosition(() => ({ id: player?.uuid, position: undefined }));
             await newSound.playAsync();
         };
 
@@ -101,19 +74,15 @@ const FloatingMusicPlayer = () => {
     const onPlaybackStatusUpdate = (status: AVPlaybackStatusSuccess) => {
         const currentPosition = status.positionMillis;
         if (!currentPosition) return;
-        // console.log(player?.uuid===player?.id,'uuid===id',status.isPlaying);
-        // console.log(player?.playing,'uuid===id',status.isPlaying);
-        // console.log(player?.uuid===player?.id,'uuid===id',status.isPlaying);
-
-        if(status.isPlaying===true){
+        if (status.isPlaying === true) {
             if (previousPositionRef.current === null || currentPosition !== previousPositionRef.current) {
-                setCurrentPosition(()=>({id:player?.uuid,position:currentPosition}));
+                setCurrentPosition(() => ({ id: player?.uuid, position: currentPosition }));
                 previousPositionRef.current = currentPosition;
             }
         }
-            
+
         if (status.didJustFinish) {
-            setCurrentPosition(()=>({id:player?.uuid,position:undefined}));
+            setCurrentPosition(() => ({ id: player?.uuid, position: undefined }));
             stopPlaying({ isEnded: true });
         };
     };
@@ -127,41 +96,36 @@ const FloatingMusicPlayer = () => {
         if (!player?.playing) return;
         setOpen(true);
         if (player?.track) {
-            // (async () => {
-                // @ts-ignore
-                player.track.setOnPlaybackStatusUpdate(onPlaybackStatusUpdate);
-                // })();
-            }
-            setLastTrack((e) => {
-                //@ts-ignore
-                return { ...e, name: player?.name, id: player?.id, duration: player?.duration };
-            });
+            // @ts-ignore
+            player.track.setOnPlaybackStatusUpdate(onPlaybackStatusUpdate);
+        }
+        setLastTrack((e) => {
+            //@ts-ignore
+            return { ...e, name: player?.name, id: player?.id, duration: player?.duration };
+        });
     }, [player?.uuid]);
 
     const time = lastTrack.duration ? formatMillisecondsToTime(Math.floor((lastTrack.duration / 1000))) : 'unknown';
     const currentPositionTime = currentPosition.position ? formatMillisecondsToTime(Math.floor((currentPosition.position / 1000))) : time;
 
-    if (open === true) {
+    // if (open === true) {
         return (
             //@ts-ignore
             <TouchableOpacity onPress={() => navigate('ModalMusic')} style={[styles.container, { backgroundColor: colors.card, borderColor: colors.primary }]}>
                 <View style={styles.innerContainer}>
                     <View style={styles.close}>
                         <Text>{currentPositionTime}</Text>
-                        {/* <Text>{}</Text> */}
                         <Ionicons onPress={handleClose} name='close-circle' size={28} color={colors.red} />
                     </View>
                     <Text>{lastTrack.name}</Text>
                     <TouchableHighlight onPress={player?.playing ? () => stopPlaying({}) : startPlaying} style={[styles.iconContainer, { backgroundColor: colors.undetlay }]}>
-                        <Ionicons name={player?.playing ? "pause" : "play"} size={17} color="#fff" style={{ marginRight: -2 }} />
+                        <Ionicons name={player?.playing ? "pause" : "play"} size={20} color="#fff" style={{ marginLeft: player?.playing ? 0 : 2 }} />
                     </TouchableHighlight>
                 </View>
             </TouchableOpacity>
         );
     }
-
-    return null;
-};
+// };
 
 export default FloatingMusicPlayer;
 

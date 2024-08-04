@@ -5,7 +5,7 @@ import SearchBar from "../components/SearchBar";
 import { Room, User, ChatNavigationProps, IMessagePro, CountNewMessageType } from "../utils/types";
 import { DrawerScreenProps } from '@react-navigation/drawer';
 import { Ionicons } from "@expo/vector-icons";
-import { useSetLastMessage, useSetSound, useSocket, useUser } from "../socketContext";
+import { useIsOpen, useSetLastMessage, useSocket, useUser } from "../socketContext";
 import { getAllRooms, getRoom, insertRoom, updateMessage } from "../utils/DB";
 import Toast from "react-native-toast-message";
 import LoadingPage from "../components/LoadingPage";
@@ -25,7 +25,6 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 	const user = useUser(state => state.user);
 	const socket = useSocket(state => state.socket);
 	const { lastMessage, setLastMessage } = useSetLastMessage();
-	const setSound = useSetSound(state => state.setSound);
 
 	const { colors } = useTheme();
 	const { expoPushToken, notification } = usePushNotifications();
@@ -38,6 +37,7 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 	const [screen, setScreen] = useState<'users' | 'rooms'>('rooms');
 	const [countNewMessages, setCountNewMessages] = useState<CountNewMessageType[] | []>([]);
 	const [currentRoomId, setCurrentRoomId] = useState<string | undefined>(undefined);
+	const isPlayerOpen = useIsOpen(state=>state.open);
 
 	const initDarkMode = storage.getBoolean("darkMode");
 	const colorScheme = useColorScheme();
@@ -180,9 +180,6 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 				handleLastMessages({ roomId, newMessage: 'New File' });
 			} else if (newMessage.audio && newMessage.fileName) {
 				await ensureDirExists();
-				setSound(e => {
-					return [...e, { audio: newMessage.audio ?? '',audioName:newMessage.fileName??"unknown", messageId: newMessage._id, duration:newMessage.duration, playing: false }]
-				});
 			} else {
 				handleLastMessages({ roomId, newMessage: newMessage.text })
 			};
@@ -266,7 +263,7 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 							<SearchBar setUsers={setUsers} setScreen={setScreen} />
 						</View>
 					</View>
-					<FloatingMusicPlayer />
+					{isPlayerOpen ? <FloatingMusicPlayer /> : null}
 					<View style={styles.chatlistContainer}>
 						{screen === "users" && users.length > 0 ?
 							<View>

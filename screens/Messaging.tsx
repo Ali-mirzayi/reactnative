@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { GiftedChat, IMessage } from 'react-native-gifted-chat'
 import { StackScreenProps } from "@react-navigation/stack";
-import { IMessagePro, Room, RootStackParamList } from '../utils/types';
-import { useIsPlaying, useLastTrack, usePlayer, usePosition, useSetDownloading, useSetErrors, useSetLastMessage, useSetSound, useSetUploading, useSocket, useUser } from '../socketContext';
+import { IMessagePro, RootStackParamList } from '../utils/types';
+import { useIsOpen, useLastTrack, usePlayer, usePosition, useSetDownloading, useSetErrors, useSetLastMessage, useSetUploading, useSocket, useUser } from '../socketContext';
 import { updateMessage, getRoom } from '../utils/DB';
 import { useSharedValue, withTiming } from 'react-native-reanimated';
 import LoadingPage from '../components/LoadingPage';
@@ -34,6 +34,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	const { player, setPlayer } = usePlayer();
 	const { currentPosition, setCurrentPosition } = usePosition();
 	const { lastTrack, setLastTrack } = useLastTrack();
+	const {open:isPlayerOpen,setOpen:setIsOpen} = useIsOpen();
 
 	const translateY = useSharedValue(1000);
 	const { colors } = useTheme();
@@ -212,7 +213,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 				</View>
 			</View>
 			<View style={{height: 40}}>
-				<FloatingMusicPlayer />
+				{isPlayerOpen ? <FloatingMusicPlayer /> : null}
 			</View>
 			<GiftedChat
 				messages={messages}
@@ -220,7 +221,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 				user={user}
 				renderMessageImage={(e: any) => RenderMessageImage(e, { setMessages, downloading, uploading, errors, setDownloading })}
 				renderMessageVideo={(e: any) => renderMessageVideo(e, { setMessages, downloading, uploading, errors, setDownloading, videoRef })}
-				renderMessageAudio={(e: any) => renderMessageAudio(e, { setMessages, downloading, setDownloading, uploading, errors, colors,player, setPlayer,currentPosition, setCurrentPosition,lastTrack, setLastTrack  })}
+				renderMessageAudio={(e: any) => renderMessageAudio(e, { setMessages, downloading, setDownloading, uploading, errors, colors,player, setPlayer,currentPosition, setCurrentPosition,setIsOpen  })}
 				renderCustomView={(e: any) => renderMessageFile(e, { setMessages, downloading, setDownloading, uploading, errors, colors,player, setPlayer })}
 				alwaysShowSend
 				scrollToBottom

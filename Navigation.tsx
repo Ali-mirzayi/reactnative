@@ -1,4 +1,4 @@
-import { NavigationContainer, useNavigation } from '@react-navigation/native'
+import { NavigationContainer } from '@react-navigation/native'
 import Login from "./screens/Login";
 import { CardStyleInterpolators, createStackNavigator } from '@react-navigation/stack';
 import Messaging from "./screens/Messaging";
@@ -7,7 +7,7 @@ import LoginPrev from './screens/LoginPrev';
 import { useColorScheme, Easing } from 'react-native';
 import { TransitionSpec } from '@react-navigation/stack/lib/typescript/src/types';
 import { useEffect, useLayoutEffect, useState } from 'react';
-import { ChatNavigationProps, LoginNavigationProps, RootStackParamList, User } from './utils/types';
+import { ChatNavigationProps, LoginNavigationProps, RootStackParamList } from './utils/types';
 import { useUser } from './socketContext';
 import { createTable, deleteDB } from "./utils/DB";
 import LoadingPage from './components/LoadingPage';
@@ -15,8 +15,6 @@ import { storage } from './mmkv';
 import baseURL from './utils/baseURL';
 import * as FileSystem from 'expo-file-system';
 import { fileDirectory } from './utils/directories';
-import DrawerCore from './components/Drawer';
-import FloatingMusicPlayer from './components/FloatingMusicPlayer';
 import ModalMusic from './screens/ModalMusic';
 
 
@@ -226,11 +224,8 @@ export default function Navigation() {
                         headerShown: false,
                         gestureEnabled: true,
                         gestureDirection: "vertical",
-                        // transitionSpec: {
-                        //     open: config,
-                        //     close: closeConfig
-                        // },
-                        cardStyleInterpolator: CardStyleInterpolators.forVerticalIOS,
+                        // cardStyleInterpolator: CardStyleInterpolators.forBottomSheetAndroid,
+                        cardStyleInterpolator: CardStyleInterpolators.forRevealFromBottomAndroid,
                     }}>
                         <Stack.Screen name="ModalMusic" component={ModalMusic} />
                     </Stack.Group>
