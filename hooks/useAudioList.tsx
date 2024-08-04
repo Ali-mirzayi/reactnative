@@ -1,10 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useSetSound } from "../socketContext";
 import { Room } from '../utils/types';
 import { getAllRooms } from '../utils/DB';
-import Toast from 'react-native-toast-message';
-import TrackPlayer from 'react-native-track-player';
-import { SetupService } from '../utils/service';
 
 type audioListType = {
   uri: string;
@@ -13,9 +9,9 @@ type audioListType = {
 };
 
 export const useAudioList = () => {
-  const [audioList,setAudioList] = useState<audioListType[]>([]);
-   
+  const [audioList,setAudioList] = useState<audioListType[]>([]); 
   useEffect(() => {
+    console.log('useAudioList');
     getAllRooms().then((result: Room[] | any) => {
       if (result.length > 0) {
         const messages: audioListType[] = [];

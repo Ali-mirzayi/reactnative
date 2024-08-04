@@ -50,15 +50,6 @@ interface useSetLastMessage {
 	lastMessage: LastMessageType[] | []
 	setLastMessage: (callback: (prev: LastMessageType[] | []) => (LastMessageType[] | [])) => void
 }
-interface useSetSound {
-	sound: {audio:string,audioName:string,messageId:string|number,duration:number | undefined,playing:boolean}[] | []
-	setSound: (callback: (prev: {audio:string,audioName:string,messageId:string|number,duration:number | undefined,playing:boolean}[]) => ({audio:string,audioName:string,messageId:string|number,duration:number | undefined ,playing:boolean}[])) => void
-}
-
-interface useIsPlaying {
-	isPlaying: boolean
-	setIsPlaying: (e:boolean) => void
-}
 interface usePlayer {
 	player: player
 	setPlayer: (callback: (prev: player) => (player)) => void
@@ -76,6 +67,11 @@ interface useLastTrack {
 interface useBeCheck {
 	beCheck: boolean
 	setBeCheck: (e: boolean) => void
+}
+
+interface useIsOpen {
+	open: boolean
+	setOpen: (e: boolean) => void
 }
 
 export const useSocket = create<useSocket>()((set) => ({
@@ -118,16 +114,6 @@ export const useSetLastMessage = create<useSetLastMessage>()((set) => ({
 	setLastMessage: (callback) => set((state) => ({ lastMessage: callback(state.lastMessage) })),
 }));
 
-export const useSetSound = create<useSetSound>()((set) => ({
-	sound: [],
-	setSound: (callback) => set((state) => ({ sound: callback(state.sound) })),
-}));
-
-export const useIsPlaying = create<useIsPlaying>()((set) => ({
-	isPlaying: false,
-	setIsPlaying: (e) => set({ isPlaying: e })
-}));
-
 export const usePlayer = create<usePlayer>()((set) => ({
 	player: undefined,
 	setPlayer: (callback) => set((state) => ({ player: callback(state.player) })),
@@ -146,4 +132,11 @@ export const usePosition = create<usePosition>()((set) => ({
 export const useLastTrack = create<useLastTrack>()((set) => ({
 	lastTrack: initialLastTrack,
 	setLastTrack: (callback) => set((state) => ({ lastTrack: callback(state.lastTrack) })),
+}));
+
+//for open or close FloatingMusicPlayer  useIsOpen
+
+export const useIsOpen = create<useIsOpen>()((set) => ({
+	open: false,
+	setOpen: (e) => set({ open: e })
 }));

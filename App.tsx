@@ -11,7 +11,6 @@ import baseURL from "./utils/baseURL";
 import useCheckConnection from "./utils/checkConnection";
 import LoadingPage from "./components/LoadingPage";
 import io from 'socket.io-client';
-// import {useSetSounds,useSetupPlayer} from "./hooks/useSetSounds";
 import TrackPlayer from "react-native-track-player";
 
 function App() {
@@ -23,7 +22,6 @@ function App() {
 
   useCheckConnection(setError);
   // const isSetup = useSetupPlayer();
-  // useSetSounds();
   
   
   useEffect(() => {
