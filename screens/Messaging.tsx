@@ -8,7 +8,7 @@ import { useSharedValue, withTiming } from 'react-native-reanimated';
 import LoadingPage from '../components/LoadingPage';
 import { renderActions, renderBubble, RenderChatFooter, renderInputToolbar, renderMessageAudio, renderMessageFile, RenderMessageImage, renderMessageVideo, renderSend, renderTime } from '../components/Message';
 import useTheme from '../utils/theme';
-import { Text, View } from 'react-native';
+import { Animated, PanResponder, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import PushNotificationSend from '../components/SendPushNotification';
 import { Audio } from 'expo-av';
@@ -20,7 +20,8 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	const [messages, setMessages] = useState<IMessage[]>([]);
 	const [open, setOpen] = useState<boolean>(false); // renderChatFooter
 	const [status, setStatus] = useState<boolean | undefined>(undefined); // connection
-	const [recording, setRecording] = useState<undefined | Audio.Recording>();
+	const [recording, setRecording] = useState<undefined | { record?: Audio.Recording, playing: boolean }>();
+	// const [recording, setRecording] = useState<undefined | Audio.Recording>();
 	const [isInRoom, setIsInRoom] = useState<boolean>(true);
 	const [isPending, setPending] = useState(true); // set for roomId and save it db
 
@@ -33,13 +34,80 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	const { uploading, setUploading } = useSetUploading();
 	const { player, setPlayer } = usePlayer();
 	const { currentPosition, setCurrentPosition } = usePosition();
-	const { lastTrack, setLastTrack } = useLastTrack();
-	const {open:isPlayerOpen,setOpen:setIsOpen} = useIsOpen();
+	const { open: isPlayerOpen, setOpen: setIsOpen } = useIsOpen();
 
 	const translateY = useSharedValue(1000);
 	const { colors } = useTheme();
 	const videoRef: any = useRef(null);
 	const [permissionResponse, requestPermission] = Audio.usePermissions();
+	const pan = useRef(new Animated.Value(0)).current;
+
+
+	const panResponder = useRef(
+		PanResponder.create({
+			onMoveShouldSetPanResponder: () => true,
+			//   onPanResponderMove: Animated.event([null, { dy: pan }], { useNativeDriver: false }),  
+			onPanResponderMove: (evt, gestureState) => {
+				// Allow movement only in the upward direction  -50 to -90
+				if (gestureState.dy < 0) { // Check if moving upwards 
+					// console.log(gestureState.dy,'gestureState.dy')
+ 
+					pan.setValue(gestureState.dy); // Update position only if moving upwards  
+				}
+			},
+			onPanResponderRelease: (evt, gestureState) => {
+				// Extract the current value as an offset  
+				pan.extractOffset();
+				if (gestureState.dy <= -50 && gestureState.dy >= -90) {  
+					console.log(`gestureState.dy on release is: ${gestureState.dy}`);  
+				  };
+				  
+				Animated.spring(pan, {
+					toValue: 0, // Reset to 0  
+					useNativeDriver: true, // Set to true for better performance if possible  
+					bounciness: 10, // Optional: adjust bounciness  
+					speed: 0.5
+				}).start(() => {
+					// Reset the offset after animation completes  
+					pan.setOffset(0);
+				});
+			},
+		})
+	).current;
+
+	// const panResponder = useRef(
+	// 	PanResponder.create({
+	// 		onMoveShouldSetPanResponder: () => true,
+	// 		//   onPanResponderMove: Animated.event([null, { dy: pan }], { useNativeDriver: false }),  
+	// 		onPanResponderMove: (evt, gestureState) => {
+	// 			// Allow movement only in the upward direction  -50 to -90
+	// 			if (gestureState.dy < 0) { // Check if moving upwards 
+	// 				// console.log(gestureState.dy,'gestureState.dy')
+ 
+	// 				pan.setValue(gestureState.dy); // Update position only if moving upwards  
+	// 			}
+	// 		},
+	// 		onPanResponderRelease: (evt, gestureState) => {
+	// 			// Extract the current value as an offset  
+	// 			pan.extractOffset();
+	// 			if (gestureState.dy <= -50 && gestureState.dy >= -90) {  
+	// 				console.log(`gestureState.dy on release is: ${gestureState.dy}`);  
+	// 			  }else{
+	// 				console.log('stopping');
+	// 			  }
+
+	// 			Animated.spring(pan, {
+	// 				toValue: 0, // Reset to 0  
+	// 				useNativeDriver: true, // Set to true for better performance if possible  
+	// 				bounciness: 10, // Optional: adjust bounciness  
+	// 				speed: 0.5
+	// 			}).start(() => {
+	// 				// Reset the offset after animation completes  
+	// 				pan.setOffset(0);
+	// 			});
+	// 		},
+	// 	})
+	// ).current;
 
 	const handleAudioPermissions = async () => {
 		try {
@@ -212,7 +280,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 					</View>
 				</View>
 			</View>
-			<View style={{height: 40}}>
+			<View style={{ height: 40 }}>
 				{isPlayerOpen ? <FloatingMusicPlayer /> : null}
 			</View>
 			<GiftedChat
@@ -221,8 +289,8 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 				user={user}
 				renderMessageImage={(e: any) => RenderMessageImage(e, { setMessages, downloading, uploading, errors, setDownloading })}
 				renderMessageVideo={(e: any) => renderMessageVideo(e, { setMessages, downloading, uploading, errors, setDownloading, videoRef })}
-				renderMessageAudio={(e: any) => renderMessageAudio(e, { setMessages, downloading, setDownloading, uploading, errors, colors,player, setPlayer,currentPosition, setCurrentPosition,setIsOpen  })}
-				renderCustomView={(e: any) => renderMessageFile(e, { setMessages, downloading, setDownloading, uploading, errors, colors,player, setPlayer })}
+				renderMessageAudio={(e: any) => renderMessageAudio(e, { setMessages, downloading, setDownloading, uploading, errors, colors, player, setPlayer, currentPosition, setCurrentPosition, setIsOpen })}
+				renderCustomView={(e: any) => renderMessageFile(e, { setMessages, downloading, setDownloading, uploading, errors, colors, player, setPlayer })}
 				alwaysShowSend
 				scrollToBottom
 				loadEarlier
@@ -232,7 +300,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 				renderActions={(e) => renderActions(e, { setOpen, open, colors })}
 				renderBubble={(e) => renderBubble(e, { colors })}
 				renderSend={(e) => renderSend(e, { colors })}
-				renderChatFooter={() => RenderChatFooter({ user, socket, translateY, roomId, setMessages, colors, setUploading, setErrors, recording, setRecording, handleAudioPermissions })}
+				renderChatFooter={() => RenderChatFooter({ user, socket, translateY, roomId, setMessages, colors, setUploading, setErrors, recording, setRecording, handleAudioPermissions, panResponder, pan })}
 				renderInputToolbar={(e) => renderInputToolbar(e, { colors })}
 				renderTime={(e) => renderTime(e, { colors })}
 				optionTintColor='#fff'

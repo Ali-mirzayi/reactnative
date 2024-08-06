@@ -1,4 +1,4 @@
-import { ActivityIndicator, Image, ImageProps, Pressable, StyleSheet, Text, TouchableHighlight, View } from "react-native";
+import { ActivityIndicator, Image, ImageProps, Pressable, StyleSheet, Text, TouchableHighlight, View, Animated as NativeAnimated, PanResponder, PanResponderInstance } from "react-native";
 import Animated from "react-native-reanimated";
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
@@ -16,8 +16,6 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { fileDirectory } from "../utils/directories";
 import Lightbox from 'react-native-lightbox-v2';
 import { startActivityAsync } from 'expo-intent-launcher';
-import * as MediaLibrary from 'expo-media-library';
-
 
 type RenderChatFooterProps = {
 	user: User,
@@ -25,15 +23,18 @@ type RenderChatFooterProps = {
 	translateY: any,
 	roomId: any,
 	setMessages: React.Dispatch<React.SetStateAction<IMessage[]>>,
-	recording: undefined | Audio.Recording,
-	setRecording: React.Dispatch<React.SetStateAction<undefined | Audio.Recording>>,
+	recording: undefined | { record?: Audio.Recording, playing: boolean },
+	setRecording: React.Dispatch<React.SetStateAction<undefined | { record?: Audio.Recording, playing: boolean }>>,
 	colors: typeof darkTheme.colors,
 	setUploading: (callback: (prev: (string | number)[]) => (string | number)[]) => void,
 	setErrors: (callback: (prev: (string | number)[]) => (string | number)[]) => void,
 	handleAudioPermissions: () => Promise<boolean>,
+	//@ts-ignore
+	pan: Animated.Value,
+	panResponder: PanResponderInstance
 }
 
-export function RenderChatFooter({ user, socket, translateY, roomId, setMessages, recording, setRecording, colors, setErrors, setUploading, handleAudioPermissions }: RenderChatFooterProps) {
+export function RenderChatFooter({ user, socket, translateY, roomId, setMessages, recording, setRecording, colors, setErrors, setUploading, handleAudioPermissions, pan, panResponder }: RenderChatFooterProps) {
 	async function sendMedia({ uri, type, name, mimType, duration }: { uri: string | null | undefined, type: "image" | "video" | "file" | "audio" | undefined, name?: string, mimType?: string, duration?: number }) {
 		const id = generateID();
 
@@ -131,19 +132,27 @@ export function RenderChatFooter({ user, socket, translateY, roomId, setMessages
 		const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
 
 		console.log('Recording started');
-		setRecording(recording);
+		setRecording({ record: recording, playing: true });
 	};
 
 	async function stopRecording() {
 		console.log('Stopping recording..');
-		setRecording(undefined);
-		await recording?.stopAndUnloadAsync();
-		const status = await recording?.getStatusAsync();
-		const uri = recording?._uri;
-		const extension = recording?._options?.android.extension;
+		setRecording({ record: undefined, playing: false });
+		await recording?.record?.stopAndUnloadAsync();
+		const status = await recording?.record?.getStatusAsync();
+		const uri = recording?.record?._uri;
+		const extension = recording?.record?._options?.android.extension;
 		sendMedia({ uri, type: "audio", duration: status?.durationMillis });
 		// console.log('Recording stopped and stored at', uri3);
 	};
+
+	async function cancelRecording() {
+		console.log('cancelling recording..');
+		setRecording({ record: undefined, playing: false });
+		await recording?.record?.stopAndUnloadAsync();
+		pan.setValue(0);
+	};
+
 
 	return (
 		<Animated.View style={{ transform: [{ translateY }] }}>
@@ -157,9 +166,21 @@ export function RenderChatFooter({ user, socket, translateY, roomId, setMessages
 				<TouchableHighlight onPress={handlePickFile} underlayColor={colors.undetlay} style={[styles.iconContainer, { backgroundColor: colors.background }]}>
 					<Feather name='file' size={30} color={colors.primary} />
 				</TouchableHighlight>
-				<TouchableHighlight onPressIn={startRecording} onPressOut={stopRecording} underlayColor={colors.undetlay} style={[styles.iconContainer, { backgroundColor: colors.background }]}>
-					<Feather name='mic' size={30} color={colors.primary} />
-				</TouchableHighlight>
+				<NativeAnimated.View {...panResponder.panHandlers} style={{transform: [{translateY: pan}]}}>
+					<TouchableHighlight underlayColor={colors.undetlay} style={[styles.iconContainer, { backgroundColor: colors.background }]}>
+						<Feather name='mic' size={30} color={colors.primary} />
+					</TouchableHighlight>
+				</NativeAnimated.View>
+				{/* <TouchableHighlight style={[styles.trashIconContainer,{backgroundColor:colors.red,opacity:0.85}]} onPress={cancelRecording}>
+							<Feather name='trash' size={30} color={colors.background} />
+						</TouchableHighlight> */}
+				{
+					recording?.playing ? (
+						<TouchableHighlight style={[styles.trashIconContainer,{backgroundColor:colors.red,opacity:0.85}]} onPress={cancelRecording}>
+							<Feather name='trash' size={30} color={colors.background} />
+						</TouchableHighlight>
+					) : null
+				}
 			</View>
 		</Animated.View>
 	)
@@ -581,7 +602,7 @@ export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setM
 				}
 			</View>
 			<View style={{ margin: 12 }}>
-				<Text style={[{ color: color, width: '60%' }]}>{Message?.fileName}</Text>
+				<Text style={[{ color: color, width: '60%' }]}>{Message?.fileName ? Message?.fileName : 'Voice'}</Text>
 				<Text style={{ color }}>{currentPositionTime}</Text>
 			</View>
 		</View>
@@ -656,6 +677,14 @@ const styles = StyleSheet.create({
 		justifyContent: 'center',
 		alignItems: 'center',
 		borderRadius: 50,
+	},
+	trashIconContainer: {
+		position: 'absolute',
+		top: '-12%',
+		left: '84%',
+		transform: [{ translateY: -15 }],
+		borderRadius: 50,
+		padding: 10
 	},
 	image: {
 		width: 150,
