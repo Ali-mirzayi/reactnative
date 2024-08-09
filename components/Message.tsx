@@ -1,4 +1,4 @@
-import { ActivityIndicator, Image, ImageProps, Pressable, StyleSheet, Text, TouchableHighlight, View, Animated as NativeAnimated, PanResponder, PanResponderInstance } from "react-native";
+import { ActivityIndicator, Image, ImageProps, Pressable, StyleSheet, Text, TouchableHighlight, View, Animated as NativeAnimated, PanResponder, PanResponderInstance, TouchableOpacity } from "react-native";
 import Animated from "react-native-reanimated";
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
@@ -8,7 +8,7 @@ import * as FileSystem from 'expo-file-system';
 import { Actions, ActionsProps, Bubble, BubbleProps, Composer, GiftedChat, IMessage, InputToolbar, InputToolbarProps, MessageAudioProps, MessageImage, MessageImageProps, MessageProps, MessageVideoProps, Send, SendProps, Time, TimeProps } from "react-native-gifted-chat";
 import { ResizeMode, Video, Audio } from "expo-av";
 import { darkTheme } from "../utils/theme";
-import { currentPosition, IMessagePro, player, User } from "../utils/types";
+import { currentPosition, IMessagePro, player, RecordingEnum, User } from "../utils/types";
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Entypo from '@expo/vector-icons/Entypo';
 import Feather from '@expo/vector-icons/Feather';
@@ -16,6 +16,9 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { fileDirectory } from "../utils/directories";
 import Lightbox from 'react-native-lightbox-v2';
 import { startActivityAsync } from 'expo-intent-launcher';
+import { sendMedia, startRecording } from "./SendMedia";
+
+const AnimatedTouchable = NativeAnimated.createAnimatedComponent(TouchableOpacity);
 
 type RenderChatFooterProps = {
 	user: User,
@@ -24,7 +27,11 @@ type RenderChatFooterProps = {
 	roomId: any,
 	setMessages: React.Dispatch<React.SetStateAction<IMessage[]>>,
 	recording: undefined | { record?: Audio.Recording, playing: boolean },
-	setRecording: React.Dispatch<React.SetStateAction<undefined | { record?: Audio.Recording, playing: boolean }>>,
+	setRecording: React.Dispatch<React.SetStateAction<{
+		record?: Audio.Recording;
+		playing: boolean;
+		status: RecordingEnum;
+	} | undefined>>,
 	colors: typeof darkTheme.colors,
 	setUploading: (callback: (prev: (string | number)[]) => (string | number)[]) => void,
 	setErrors: (callback: (prev: (string | number)[]) => (string | number)[]) => void,
@@ -35,56 +42,56 @@ type RenderChatFooterProps = {
 }
 
 export function RenderChatFooter({ user, socket, translateY, roomId, setMessages, recording, setRecording, colors, setErrors, setUploading, handleAudioPermissions, pan, panResponder }: RenderChatFooterProps) {
-	async function sendMedia({ uri, type, name, mimType, duration }: { uri: string | null | undefined, type: "image" | "video" | "file" | "audio" | undefined, name?: string, mimType?: string, duration?: number }) {
-		const id = generateID();
+	// async function sendMedia({ uri, type, name, mimType, duration }: { uri: string | null | undefined, type: "image" | "video" | "file" | "audio" | undefined, name?: string, mimType?: string, duration?: number }) {
+	// 	const id = generateID();
 
-		if (type === 'image' && uri) {
-			setUploading(e => [...e, id]);
-			setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, image: uri }]));
-			const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file' });
-			if (response.body === "ok") {
-				socket?.emit('sendImage', { _id: id, text: "", createdAt: new Date(), user, roomId }, setUploading(e => e.filter(r => r !== id)));
-			} else {
-				setErrors(e => [...e, id]);
-				console.log(response, 'error image upload');
-			}
-		} else if (type === 'video' && uri) {
-			setUploading(e => [...e, id]);
-			setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, video: uri }]));
-			const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file' })
-			if (response.body === "ok") {
-				socket?.emit('sendVideo', { _id: id, text: "", createdAt: new Date(), user, roomId }, setUploading(e => e.filter(r => r !== id)));
-			} else {
-				setErrors(e => [...e, id]);
-				console.log(response, 'error video upload');
-			}
-		} else if (type === 'file' && uri) {
-			// setUploading(e => [...e, id]);
-			const isMusic = isMusicFile(name);
-			if (isMusic) {
-				const { status } = await Audio.Sound.createAsync({ uri });
-				// @ts-ignore
-				const totalSeconds = Math.floor(status?.durationMillis / 1000);
-				console.log(status, 'status');
-				// @ts-ignore
-				setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, audio: uri, fileName: name, duration: totalSeconds, playing: false }]));
-			} else {
-				setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, file: uri, fileName: name, mimType }]));
-				const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file' })
-				if (response.body === "ok") {
-					socket?.emit('sendFile', { _id: id, text: "", createdAt: new Date(), user, roomId, fileName: name }, setUploading(e => e.filter(r => r !== id)));
-				} else {
-					setErrors(e => [...e, id]);
-					console.log(response, 'error file upload');
-				}
-			}
-		} else if (type === 'audio' && uri) {
-			// setUploading(e => [...e, id]);
-			const totalSeconds = typeof duration === "number" ? Math.floor(duration / 1000) : undefined;
-			setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, audio: uri, fileName: name, duration: totalSeconds, playing: false }]));
+	// 	if (type === 'image' && uri) {
+	// 		setUploading(e => [...e, id]);
+	// 		setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, image: uri }]));
+	// 		const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file' });
+	// 		if (response.body === "ok") {
+	// 			socket?.emit('sendImage', { _id: id, text: "", createdAt: new Date(), user, roomId }, setUploading(e => e.filter(r => r !== id)));
+	// 		} else {
+	// 			setErrors(e => [...e, id]);
+	// 			console.log(response, 'error image upload');
+	// 		}
+	// 	} else if (type === 'video' && uri) {
+	// 		setUploading(e => [...e, id]);
+	// 		setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, video: uri }]));
+	// 		const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file' })
+	// 		if (response.body === "ok") {
+	// 			socket?.emit('sendVideo', { _id: id, text: "", createdAt: new Date(), user, roomId }, setUploading(e => e.filter(r => r !== id)));
+	// 		} else {
+	// 			setErrors(e => [...e, id]);
+	// 			console.log(response, 'error video upload');
+	// 		}
+	// 	} else if (type === 'file' && uri) {
+	// 		// setUploading(e => [...e, id]);
+	// 		const isMusic = isMusicFile(name);
+	// 		if (isMusic) {
+	// 			const { status } = await Audio.Sound.createAsync({ uri });
+	// 			// @ts-ignore
+	// 			const totalSeconds = Math.floor(status?.durationMillis / 1000);
+	// 			console.log(status, 'status');
+	// 			// @ts-ignore
+	// 			setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, audio: uri, fileName: name, duration: totalSeconds, playing: false }]));
+	// 		} else {
+	// 			setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, file: uri, fileName: name, mimType }]));
+	// 			const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file' })
+	// 			if (response.body === "ok") {
+	// 				socket?.emit('sendFile', { _id: id, text: "", createdAt: new Date(), user, roomId, fileName: name }, setUploading(e => e.filter(r => r !== id)));
+	// 			} else {
+	// 				setErrors(e => [...e, id]);
+	// 				console.log(response, 'error file upload');
+	// 			}
+	// 		}
+	// 	} else if (type === 'audio' && uri) {
+	// 		// setUploading(e => [...e, id]);
+	// 		const totalSeconds = typeof duration === "number" ? Math.floor(duration / 1000) : undefined;
+	// 		setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, audio: uri, fileName: name, duration: totalSeconds, playing: false }]));
 
-		}
-	};
+	// 	}
+	// };
 
 	const handleCamera = async () => {
 		await ImagePicker.requestCameraPermissionsAsync();
@@ -96,7 +103,9 @@ export function RenderChatFooter({ user, socket, translateY, roomId, setMessages
 			preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Current
 		});
 		if (!result.canceled) {
-			sendMedia({ uri: result.assets[0].uri, type: result.assets[0].type });
+			// sendMedia({ uri: result.assets[0].uri, type: result.assets[0].type });
+			sendMedia({ uri: result.assets[0].uri, type: result.assets[0].type, setErrors, setMessages, setUploading, roomId, socket, user });
+
 		};
 	};
 
@@ -109,7 +118,9 @@ export function RenderChatFooter({ user, socket, translateY, roomId, setMessages
 			videoQuality: 1,
 		});
 		if (!result.canceled) {
-			sendMedia({ uri: result.assets[0].uri, type: result.assets[0].type });
+			sendMedia({ uri: result.assets[0].uri, type: result.assets[0].type, setErrors, setMessages, setUploading, roomId, socket, user });
+
+			// sendMedia({ uri: result.assets[0].uri, type: result.assets[0].type });
 		}
 	};
 
@@ -119,39 +130,49 @@ export function RenderChatFooter({ user, socket, translateY, roomId, setMessages
 				type: "*/*",
 			});
 			if (!result.canceled) {
-				sendMedia({ uri: result.assets[0].uri, type: "file", name: result.assets[0].name, mimType: result.assets[0].mimeType });
+				sendMedia({ uri: result.assets[0].uri, type: "file", name: result.assets[0].name, mimType: result.assets[0].mimeType, setErrors, setMessages, setUploading, roomId, socket, user });
+				// sendMedia({ uri: result.assets[0].uri, type: "file", name: result.assets[0].name, mimType: result.assets[0].mimeType });
 			};
 		} catch (error) {
 			console.log(error);
 		}
 	};
 
-	async function startRecording() {
-		const per = await handleAudioPermissions();
-		if (!per) return;
-		const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+	// async function startRecording() {
+	// 	setRecording((e)=>({...e,playing:true,status:RecordingEnum.start}));
+	// 	// stopRecording();
+	// 	// console.log('start 0');
+	// 	// const per = await handleAudioPermissions();
+	// 	// console.log('start 1');
+	// 	// if (!per) return;
+	// 	// console.log('start 2');
+	// 	// // setRecording({ record:undefined, playing: false });
+	// 	// // console.log('start 2.2');
+	// 	// // await recording?.record?.stopAndUnloadAsync();
+	// 	// // console.log('start 2.5');
+	// 	// const { recording:record } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+	// 	// console.log('start 3');
+	// 	// setRecording({ record, playing: true,status:RecordingEnum.start });
+	// 	// console.log('start 4');
+	// };
 
-		console.log('Recording started');
-		setRecording({ record: recording, playing: true });
-	};
+	// async function stopRecording() {
+	// 	console.log('Stopping recording..');
+	// 	setRecording({ record: undefined, playing: false,status:RecordingEnum.stop });
+	// 	await recording?.record?.stopAndUnloadAsync();
+	// 	const status = await recording?.record?.getStatusAsync();
+	// 	const uri = recording?.record?._uri;
+	// 	const extension = recording?.record?._options?.android.extension;
+	// 	// sendMedia({ uri, type: "audio", duration: status?.durationMillis,setErrors,setMessages,setUploading,roomId,socket,user });
+	// 	// console.log('Recording stopped and stored at', uri3);
+	// };
 
-	async function stopRecording() {
-		console.log('Stopping recording..');
-		setRecording({ record: undefined, playing: false });
-		await recording?.record?.stopAndUnloadAsync();
-		const status = await recording?.record?.getStatusAsync();
-		const uri = recording?.record?._uri;
-		const extension = recording?.record?._options?.android.extension;
-		sendMedia({ uri, type: "audio", duration: status?.durationMillis });
-		// console.log('Recording stopped and stored at', uri3);
-	};
-
-	async function cancelRecording() {
-		console.log('cancelling recording..');
-		setRecording({ record: undefined, playing: false });
-		await recording?.record?.stopAndUnloadAsync();
-		pan.setValue(0);
-	};
+	// async function cancelRecording() {
+	// 	console.log('cancelling recording..');
+	// 	setRecording({ record: undefined, playing: false });
+	// 	await recording?.record?.stopAndUnloadAsync();
+	// 	pan.setValue(0);
+	// };
 
 
 	return (
@@ -166,17 +187,19 @@ export function RenderChatFooter({ user, socket, translateY, roomId, setMessages
 				<TouchableHighlight onPress={handlePickFile} underlayColor={colors.undetlay} style={[styles.iconContainer, { backgroundColor: colors.background }]}>
 					<Feather name='file' size={30} color={colors.primary} />
 				</TouchableHighlight>
-				<NativeAnimated.View {...panResponder.panHandlers} style={{transform: [{translateY: pan}]}}>
-					<TouchableHighlight underlayColor={colors.undetlay} style={[styles.iconContainer, { backgroundColor: colors.background }]}>
+				<NativeAnimated.View {...panResponder.panHandlers} style={{ transform: [{ translateY: pan }] }}>
+					<AnimatedTouchable
+						onPressIn={()=>startRecording({handleAudioPermissions,setRecording,pan})}
+						// onPressIn={() => setRecording((e) => ({ ...e, playing: true, status: RecordingEnum.start }))}
+						// onPressOut={() => setRecording((e) => ({ ...e, playing: false, status: RecordingEnum.stop }))}
+						style={[styles.iconContainer, { backgroundColor: colors.background }]}
+					>
 						<Feather name='mic' size={30} color={colors.primary} />
-					</TouchableHighlight>
+					</AnimatedTouchable>
 				</NativeAnimated.View>
-				{/* <TouchableHighlight style={[styles.trashIconContainer,{backgroundColor:colors.red,opacity:0.85}]} onPress={cancelRecording}>
-							<Feather name='trash' size={30} color={colors.background} />
-						</TouchableHighlight> */}
 				{
 					recording?.playing ? (
-						<TouchableHighlight style={[styles.trashIconContainer,{backgroundColor:colors.red,opacity:0.85}]} onPress={cancelRecording}>
+						<TouchableHighlight onPressOut={() => setRecording((e) => ({ ...e, playing: false, status: RecordingEnum.cancel }))} style={[styles.trashIconContainer, { backgroundColor: colors.red, opacity: 0.85 }]}>
 							<Feather name='trash' size={30} color={colors.background} />
 						</TouchableHighlight>
 					) : null
