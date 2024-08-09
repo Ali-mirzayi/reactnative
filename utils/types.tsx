@@ -82,3 +82,9 @@ export type lastTrack = {
     id?: number | string,
     uri?: string
 };
+
+export enum RecordingEnum {
+    "start" = 0,
+    "stop" = 1,
+    "cancel" = 2,
+}
