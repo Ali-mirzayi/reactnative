@@ -13,7 +13,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import PushNotificationSend from '../components/SendPushNotification';
 import { Audio } from 'expo-av';
 import FloatingMusicPlayer from '../components/FloatingMusicPlayer';
-import { cancelRecording, startRecording, stopRecording } from '../components/SendMedia';
+import { cancelRecording, stopRecording } from '../components/SendMedia';
 
 const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>) => {
 	const { contact, roomId }: any = route.params;
@@ -21,8 +21,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	const [messages, setMessages] = useState<IMessage[]>([]);
 	const [open, setOpen] = useState<boolean>(false); // renderChatFooter
 	const [status, setStatus] = useState<boolean | undefined>(undefined); // connection
-	const [recording, setRecording] = useState<undefined | { record?: Audio.Recording, playing: boolean, status: RecordingEnum }>();
-	// const [recording, setRecording] = useState<undefined | Audio.Recording>();
+	const [recording, setRecording] = useState<undefined | { playing: boolean, status: RecordingEnum }>();
 	const [isInRoom, setIsInRoom] = useState<boolean>(true);
 	const [isPending, setPending] = useState(true); // set for roomId and save it db
 
@@ -46,92 +45,31 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	const panResponder = useRef(
 		PanResponder.create({
 			onMoveShouldSetPanResponder: () => true,
-			//   onPanResponderMove: Animated.event([null, { dy: pan }], { useNativeDriver: false }),  
-			// onPanResponderGrant: async() => {  
-			// 	// console.log('Gesture started');
-			//  	// await startRecording({handleAudioPermissions,setRecording})  
-			// },  
 			onPanResponderMove: (evt, gestureState) => {
-				// Allow movement only in the upward direction  -50 to -90
-				if (gestureState.dy < 0) { // Check if moving upwards 
-					// console.log(gestureState.dy,'gestureState.dy')
-
-					pan.setValue(gestureState.dy); // Update position only if moving upwards  
+				if (gestureState.dy < 0) {
+					pan.setValue(gestureState.dy);
 				}
 			},
-			onPanResponderRelease: async (evt, gestureState) => {
-				// Extract the current value as an offset  
-				pan.extractOffset();
+			onPanResponderRelease: (evt, gestureState) => {
+				// if (recording?.playing === true) return;
 				if (gestureState.dy <= -50 && gestureState.dy >= -110) {
-					// console.log(`gestureState.dy on release is: ${gestureState.dy}`);
-					await cancelRecording({ pan, recording, setRecording })
-					// setRecording({ record: undefined, playing: false, status: RecordingEnum.cancel });
+					(async () => {
+						await cancelRecording({ pan, recording, setRecording });
+					})();
 				} else {
 					(async () => {
 						await stopRecording({ recording, setRecording, roomId, setErrors, setMessages, setUploading, socket, user, pan });
-						console.log('stop switched');
 					})();
-					// setRecording({ record: undefined, playing: false, status: RecordingEnum.stop });
-					await stopRecording({ recording, setRecording, roomId, setErrors, setMessages, setUploading, socket, user, pan });
 				}
-
-				Animated.timing(pan, {  
-					toValue: 0,  
-					useNativeDriver: true,  
-					duration: 3000   ,
-					easing:Easing.linear   // Higher tension to simulate a heavier feel while returning  
-				}).start(() => {  
-					// Reset the offset after animation completes  
-					pan.setOffset(0);  
-				});  
-				
-
-				// Animated.spring(pan, {
-				// 	toValue: 0, // Reset to 0  
-				// 	useNativeDriver: true, // Set to true for better performance if possible  
-				// 	bounciness: 10, // Optional: adjust bounciness  
-				// 	speed: 0.5
-				// }).start(() => {
-				// 	// Reset the offset after animation completes  
-				// 	pan.setOffset(0);
-				// });
+				Animated.timing(pan, {
+					toValue: 0,
+					duration: 700,
+					easing: Easing.bounce,
+					useNativeDriver: true,
+				}).start();
 			},
 		})
 	).current;
-
-	// const panResponder = useRef(
-	// 	PanResponder.create({
-	// 		onMoveShouldSetPanResponder: () => true,
-	// 		//   onPanResponderMove: Animated.event([null, { dy: pan }], { useNativeDriver: false }),  
-	// 		onPanResponderMove: (evt, gestureState) => {
-	// 			// Allow movement only in the upward direction  -50 to -90
-	// 			if (gestureState.dy < 0) { // Check if moving upwards 
-	// 				// console.log(gestureState.dy,'gestureState.dy')
-
-	// 				pan.setValue(gestureState.dy); // Update position only if moving upwards  
-	// 			}
-	// 		},
-	// 		onPanResponderRelease: (evt, gestureState) => {
-	// 			// Extract the current value as an offset  
-	// 			pan.extractOffset();
-	// 			if (gestureState.dy <= -50 && gestureState.dy >= -90) {  
-	// 				console.log(`gestureState.dy on release is: ${gestureState.dy}`);  
-	// 			  }else{
-	// 				console.log('stopping');
-	// 			  }
-
-	// 			Animated.spring(pan, {
-	// 				toValue: 0, // Reset to 0  
-	// 				useNativeDriver: true, // Set to true for better performance if possible  
-	// 				bounciness: 10, // Optional: adjust bounciness  
-	// 				speed: 0.5
-	// 			}).start(() => {
-	// 				// Reset the offset after animation completes  
-	// 				pan.setOffset(0);
-	// 			});
-	// 		},
-	// 	})
-	// ).current;
 
 	const handleAudioPermissions = async () => {
 		try {
@@ -246,7 +184,6 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	}, [messages]);
 
 	useEffect(() => {
-		console.log('//////////////////////////////////////////////////////////////')
 		if (open === true) {
 			translateY.value = withTiming(300, { duration: 400 });
 		} else {
@@ -263,8 +200,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 					setMessages(roomMessage.map(e => ({ ...e, playing: false })));
 					setPending(false);
 				}
-			})
-			.catch(error => {
+			}).catch(error => {
 				console.log(error, 'v2');
 				setPending(false)
 			});
@@ -283,31 +219,6 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 			};
 		}, [socket])
 	);
-
-	// useEffect(() => {
-	// 	// if(!recording)return;
-	// 	// console.log(recording?.status,'status');
-	// 	switch (recording?.status) {
-	// 		case RecordingEnum.start:
-	// 			(async () => {
-	// 				await startRecording({ handleAudioPermissions, setRecording });
-	// 				console.log('start switched');	
-	// 			})();
-	// 			break;
-	// 		case RecordingEnum.stop:
-	// 			(async () => {
-	// 				await stopRecording({ recording, setRecording, roomId, setErrors, setMessages, setUploading, socket, user, pan });
-	// 				console.log('stop switched');	
-	// 			})();
-	// 			break;
-	// 		case RecordingEnum.cancel:
-	// 			(async () => {
-	// 				await cancelRecording({ pan, recording, setRecording })
-	// 				console.log('cancel switched');	
-	// 			})();
-	// 			break;
-	// 	}
-	// }, [recording?.playing]);
 
 	const onSend = (newMessage: IMessage[]) => {
 		if ((!socket)) return;
