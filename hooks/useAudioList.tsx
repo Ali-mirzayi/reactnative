@@ -11,7 +11,6 @@ type audioListType = {
 export const useAudioList = () => {
   const [audioList,setAudioList] = useState<audioListType[]>([]); 
   useEffect(() => {
-    console.log('useAudioList');
     getAllRooms().then((result: Room[] | any) => {
       if (result.length > 0) {
         const messages: audioListType[] = [];

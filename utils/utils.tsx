@@ -15,14 +15,17 @@ export const time = (date: string | undefined) => {
     return `${hour}:${mins}`
 };
 
-export const formatMillisecondsToTime = (durationSeconds: number | undefined) => {
-    if (durationSeconds === undefined) return;
-    const minutes = Math.floor(durationSeconds / 60);
-    const seconds = durationSeconds % 60;
-    const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;
-    const formattedSeconds = seconds < 10 ? '0' + seconds : seconds;
+export const formatMillisecondsToTime = (durationMillis: number | undefined) => {  
+    if (durationMillis === undefined) return;  
 
-    return `${formattedMinutes}:${formattedSeconds}`;
+    const totalSeconds = Math.floor(durationMillis / 1000);  
+    const minutes = Math.floor(totalSeconds / 60);  
+    const seconds = totalSeconds % 60;  
+
+    const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;  
+    const formattedSeconds = seconds < 10 ? '0' + seconds : seconds;  
+
+    return `${formattedMinutes}:${formattedSeconds}`;  
 }
 
 export const isMusicFile = (filename: string | undefined) => {

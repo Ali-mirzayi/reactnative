@@ -99,14 +99,11 @@ const ModalMusic = () => {
     }
   }, [player?.uuid]);
 
-  const time = lastTrack?.duration ? formatMillisecondsToTime(Math.floor(lastTrack?.duration / 1000)) : 'unknown';
+  const time = lastTrack?.duration ? formatMillisecondsToTime(lastTrack?.duration) : 'unknown';
 
   //@ts-ignore
-  const currentPositionTime = (currentPosition?.position > 1) && (player?.id === currentPosition?.id) ? `${formatMillisecondsToTime(Math.floor((currentPosition.position / 1000)))} / ${time}` : time;
+  // const currentPositionTime = (currentPosition?.position > 1) && (player?.id === currentPosition?.id) ? `${formatMillisecondsToTime(currentPosition.position)} / ${time}` : time;
 
-  {/* <Text>{time}</Text> */ }
-  {/* <Text>{track?.audioName}</Text> */ }
-  {/* <Text style={{ marginHorizontal: 20 }}>{currentPositionTime}</Text> */ }
   const sliderValue = (currentPosition?.position && lastTrack?.duration) ? currentPosition?.position / lastTrack?.duration : 0;
   const onSlidingComplete = async (value: number) => {
     //@ts-ignore

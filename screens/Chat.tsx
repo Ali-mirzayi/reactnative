@@ -182,7 +182,7 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 				await ensureDirExists();
 				const fileUri = (baseURL() + '/' + newMessage.audio).replace(/\\/g, '/');
 				newMessage["audio"] = fileUri;
-				handleLastMessages({ roomId, newMessage: 'New Image' });
+				handleLastMessages({ roomId, newMessage: 'New audio' });
 			} else {
 				handleLastMessages({ roomId, newMessage: newMessage.text })
 			};
