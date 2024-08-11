@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, TouchableOpacity, TouchableHighlight } from 'react-native';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useIsOpen, useLastTrack, usePlayer, usePosition } from '../socketContext';
 import useTheme from '../utils/theme';
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -9,7 +9,6 @@ import { useNavigation } from '@react-navigation/native';
 import { useAudioList } from '../hooks/useAudioList';
 
 const FloatingMusicPlayer = () => {
-    // const [open, setOpen] = useState(false);
     const { colors } = useTheme();
     const { player, setPlayer } = usePlayer();
     const { navigate } = useNavigation();
@@ -105,10 +104,9 @@ const FloatingMusicPlayer = () => {
         });
     }, [player?.uuid]);
 
-    const time = lastTrack.duration ? formatMillisecondsToTime(Math.floor((lastTrack.duration / 1000))) : 'unknown';
-    const currentPositionTime = currentPosition.position ? formatMillisecondsToTime(Math.floor((currentPosition.position / 1000))) : time;
+    const time = lastTrack.duration ? formatMillisecondsToTime(lastTrack.duration) : 'unknown';
+    const currentPositionTime = currentPosition.position ? formatMillisecondsToTime(currentPosition.position) : time;
 
-    // if (open === true) {
         return (
             //@ts-ignore
             <TouchableOpacity onPress={() => navigate('ModalMusic')} style={[styles.container, { backgroundColor: colors.card, borderColor: colors.primary }]}>

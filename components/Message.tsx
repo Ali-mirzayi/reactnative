@@ -42,57 +42,6 @@ type RenderChatFooterProps = {
 }
 
 export function RenderChatFooter({ user, socket, translateY, roomId, setMessages, recording, setRecording, colors, setErrors, setUploading, handleAudioPermissions, pan, panResponder }: RenderChatFooterProps) {
-	// async function sendMedia({ uri, type, name, mimType, duration }: { uri: string | null | undefined, type: "image" | "video" | "file" | "audio" | undefined, name?: string, mimType?: string, duration?: number }) {
-	// 	const id = generateID();
-
-	// 	if (type === 'image' && uri) {
-	// 		setUploading(e => [...e, id]);
-	// 		setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, image: uri }]));
-	// 		const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file' });
-	// 		if (response.body === "ok") {
-	// 			socket?.emit('sendImage', { _id: id, text: "", createdAt: new Date(), user, roomId }, setUploading(e => e.filter(r => r !== id)));
-	// 		} else {
-	// 			setErrors(e => [...e, id]);
-	// 			console.log(response, 'error image upload');
-	// 		}
-	// 	} else if (type === 'video' && uri) {
-	// 		setUploading(e => [...e, id]);
-	// 		setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, video: uri }]));
-	// 		const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file' })
-	// 		if (response.body === "ok") {
-	// 			socket?.emit('sendVideo', { _id: id, text: "", createdAt: new Date(), user, roomId }, setUploading(e => e.filter(r => r !== id)));
-	// 		} else {
-	// 			setErrors(e => [...e, id]);
-	// 			console.log(response, 'error video upload');
-	// 		}
-	// 	} else if (type === 'file' && uri) {
-	// 		// setUploading(e => [...e, id]);
-	// 		const isMusic = isMusicFile(name);
-	// 		if (isMusic) {
-	// 			const { status } = await Audio.Sound.createAsync({ uri });
-	// 			// @ts-ignore
-	// 			const totalSeconds = Math.floor(status?.durationMillis / 1000);
-	// 			console.log(status, 'status');
-	// 			// @ts-ignore
-	// 			setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, audio: uri, fileName: name, duration: totalSeconds, playing: false }]));
-	// 		} else {
-	// 			setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, file: uri, fileName: name, mimType }]));
-	// 			const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file' })
-	// 			if (response.body === "ok") {
-	// 				socket?.emit('sendFile', { _id: id, text: "", createdAt: new Date(), user, roomId, fileName: name }, setUploading(e => e.filter(r => r !== id)));
-	// 			} else {
-	// 				setErrors(e => [...e, id]);
-	// 				console.log(response, 'error file upload');
-	// 			}
-	// 		}
-	// 	} else if (type === 'audio' && uri) {
-	// 		// setUploading(e => [...e, id]);
-	// 		const totalSeconds = typeof duration === "number" ? Math.floor(duration / 1000) : undefined;
-	// 		setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, audio: uri, fileName: name, duration: totalSeconds, playing: false }]));
-
-	// 	}
-	// };
-
 	const handleCamera = async () => {
 		await ImagePicker.requestCameraPermissionsAsync();
 		let result = await ImagePicker.launchCameraAsync({
@@ -491,18 +440,6 @@ export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setM
 			await newSound.playAsync();
 			setCurrentPosition(() => ({ id: Message?._id, position: undefined }));
 		};
-
-		if(!Message.duration){
-			setMessages((prevMessages: IMessagePro[]) => (prevMessages.map(e => {
-				if (e._id === Message._id) {
-					//@ts-ignore
-					return { ...e,duration:Math.floor(status?.durationMillis/1000)  };
-				} else {
-					return e;
-				}
-			})));
-		}
-
 		setPlayer(() => {
 			//@ts-ignore
 			return { track: newSound, name: Message.fileName, uri: Message.audio, uuid: Message._id, duration: status?.durationMillis, id: Message._id, playing: true }
@@ -510,6 +447,7 @@ export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setM
 	};
 
 	async function handlePress() {
+		console.log(Message,'message')
 		if (Message?.file?.startsWith('file') || !Message?.audio || !Message.fileName) return;
 		setDownloading(e => [...e, Message._id]);
 		await FileSystem.downloadAsync(Message?.audio, fileDirectory + Message.fileName)
@@ -522,13 +460,29 @@ export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setM
 				setDownloading(e => e.filter(r => r !== Message._id));
 			});
 		const newFile = fileDirectory + Message.fileName;
-		setMessages((prevMessages: IMessagePro[]) => (prevMessages.map(e => {
-			if (e._id === Message._id) {
-				return { ...e, audio: newFile };
-			} else {
-				return e;
-			}
-		})));
+		// console.log('delete this it at last');
+		//delete this it at last
+		if (!Message.duration) {
+			const { sound,status } = await Audio.Sound.createAsync({ uri: newFile }, { shouldPlay: false });
+			//@ts-ignore
+			const duration:number = status?.durationMillis;
+			setMessages((prevMessages: IMessagePro[]) => (prevMessages.map(e => {
+				if (e._id === Message._id) {
+					return { ...e, audio: newFile,duration };
+				} else {
+					return e;
+				}
+			})));
+			await sound.unloadAsync();
+		}else{
+			setMessages((prevMessages: IMessagePro[]) => (prevMessages.map(e => {
+				if (e._id === Message._id) {
+					return { ...e, audio: newFile };
+				} else {
+					return e;
+				}
+			})));
+		}
 	};
 
 	//@ts-ignore
@@ -536,7 +490,7 @@ export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setM
 	const time = formatMillisecondsToTime(Message?.duration);
 
 	//@ts-ignore
-	const currentPositionTime = (currentPosition.position > 1) && (Message?._id === currentPosition?.id) ? `${formatMillisecondsToTime(Math.floor((currentPosition.position / 1000)))} / ${time}` : time;
+	const currentPositionTime = (currentPosition.position > 1) && (Message?._id === currentPosition?.id) ? `${formatMillisecondsToTime(currentPosition.position)} / ${time}` : time;
 
 	return (
 		<View style={[{ zIndex: 10, position: 'relative', width: 200, height: 80, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', overflow: 'hidden' }]}>
@@ -554,7 +508,7 @@ export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setM
 				}
 			</View>
 			<View style={{ marginLeft: 0, marginRight: 'auto', width: 130, overflow: 'hidden' }}>
-				<MovingText disable={isPlaying?false:true} animationThreshold={15} style={[{ color: color, size: 10 }]}>{Message?.fileName ? Message?.fileName : 'Voice'}</MovingText>
+				<MovingText disable={isPlaying ? false : true} animationThreshold={15} style={[{ color: color, size: 10 }]}>{Message?.fileName ? Message?.fileName : 'Voice'}</MovingText>
 				<Text style={{ color, margin: 'auto' }}>{currentPositionTime}</Text>
 			</View>
 		</View>
