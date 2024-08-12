@@ -54,11 +54,11 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 				// if (recording?.playing === true) return;
 				if (gestureState.dy <= -50 && gestureState.dy >= -110) {
 					(async () => {
-						await cancelRecording({ pan, recording, setRecording });
+						await cancelRecording({ recording, setRecording });
 					})();
 				} else {
 					(async () => {
-						await stopRecording({ recording, setRecording, roomId, setErrors, setMessages, setUploading, socket, user, pan });
+						await stopRecording({ recording, setRecording, roomId, setErrors, setMessages, setUploading, socket, user });
 					})();
 				}
 				Animated.timing(pan, {
@@ -261,7 +261,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 				renderActions={(e) => renderActions(e, { setOpen, open, colors })}
 				renderBubble={(e) => renderBubble(e, { colors })}
 				renderSend={(e) => renderSend(e, { colors })}
-				renderChatFooter={() => RenderChatFooter({ user, socket, translateY, roomId, setMessages, colors, setUploading, setErrors, recording, setRecording, handleAudioPermissions, panResponder, pan })}
+				renderChatFooter={() => RenderChatFooter({ user, socket, translateY, roomId, setMessages, colors, setUploading, setErrors, recording, setRecording, handleAudioPermissions, panResponder, pan,permissionResponse })}
 				renderInputToolbar={(e) => renderInputToolbar(e, { colors })}
 				renderTime={(e) => renderTime(e, { colors })}
 				optionTintColor='#fff'
