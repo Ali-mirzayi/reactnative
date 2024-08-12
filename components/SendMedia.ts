@@ -4,7 +4,6 @@ import { IMessagePro, RecordingEnum, User } from "../utils/types";
 import { generateID, isMusicFile } from "../utils/utils";
 import * as FileSystem from "expo-file-system";
 import { Audio } from "expo-av";
-import { Animated, Easing } from "react-native";
 
 let recordingObg: Audio.Recording | undefined = undefined;
 
@@ -86,21 +85,21 @@ type startRecordingProps = {
         status: RecordingEnum;
     } | undefined>>,
     handleAudioPermissions: () => Promise<boolean>,
-    //@ts-ignore
-    pan: Animated.Value,
+    permissionResponse:Audio.PermissionResponse | null
 };
 
-export async function startRecording({ setRecording, handleAudioPermissions, pan }: startRecordingProps) {
+export async function startRecording({ setRecording, handleAudioPermissions,permissionResponse }: startRecordingProps) {
     try {
-        const per = await handleAudioPermissions();
-        if (!per) return;
+        setRecording({ playing: true, status: RecordingEnum.start });
+        if(permissionResponse?.status !== 'granted'){
+            await handleAudioPermissions();
+            return;
+        };
         recordingObg = new Audio.Recording();
-
         await recordingObg.prepareToRecordAsync(
             Audio.RecordingOptionsPresets.HIGH_QUALITY
         );
         await recordingObg.startAsync();
-        setRecording({ playing: true, status: RecordingEnum.start });
     } catch (err) {
         recordingObg = undefined;
         setRecording({ playing: false, status: RecordingEnum.cancel });
@@ -119,17 +118,15 @@ type stopRecordingProps = {
     setMessages: React.Dispatch<React.SetStateAction<IMessagePro[]>>,
     setUploading: (callback: (prev: (string | number)[]) => (string | number)[]) => void,
     setErrors: (callback: (prev: (string | number)[]) => (string | number)[]) => void,
-    //@ts-ignore
-    pan: Animated.Value,
 };
 
 
-export async function stopRecording({ setRecording, roomId, setErrors, setMessages, setUploading, socket, user, pan }: stopRecordingProps) {
+export async function stopRecording({ setRecording, roomId, setErrors, setMessages, setUploading, socket, user }: stopRecordingProps) {
     setRecording({ playing: false, status: RecordingEnum.stop });
     await recordingObg?.stopAndUnloadAsync();
     const duration = recordingObg?._finalDurationMillis
     const uri = recordingObg?.getURI();
-    sendMedia({ uri, type: "audio", duration, setErrors, setMessages, setUploading, roomId, socket, user,name:generateID() });
+    sendMedia({ uri, type: "audio", duration, setErrors, setMessages, setUploading, roomId, socket, user, name: generateID() });
     recordingObg = undefined;
 };
 
@@ -138,13 +135,11 @@ type cancelRecordingProps = {
         playing: boolean;
         status: RecordingEnum;
     } | undefined>>,
-    recording: undefined | { record?: Audio.Recording, playing: boolean },
-    //@ts-ignore
-    pan: Animated.Value,
+    recording: undefined | { record?: Audio.Recording, playing: boolean }
 };
 
 
-export async function cancelRecording({ setRecording, pan }: cancelRecordingProps) {
+export async function cancelRecording({ setRecording }: cancelRecordingProps) {
     setRecording({ playing: false, status: RecordingEnum.stop });
     await recordingObg?.stopAndUnloadAsync();
     recordingObg = undefined;

@@ -38,10 +38,11 @@ type RenderChatFooterProps = {
 	handleAudioPermissions: () => Promise<boolean>,
 	//@ts-ignore
 	pan: Animated.Value,
-	panResponder: PanResponderInstance
+	panResponder: PanResponderInstance,
+	permissionResponse:Audio.PermissionResponse | null
 }
 
-export function RenderChatFooter({ user, socket, translateY, roomId, setMessages, recording, setRecording, colors, setErrors, setUploading, handleAudioPermissions, pan, panResponder }: RenderChatFooterProps) {
+export function RenderChatFooter({ user, socket, translateY, roomId, setMessages, recording, setRecording, colors, setErrors, setUploading, handleAudioPermissions, pan, panResponder,permissionResponse }: RenderChatFooterProps) {
 	const handleCamera = async () => {
 		await ImagePicker.requestCameraPermissionsAsync();
 		let result = await ImagePicker.launchCameraAsync({
@@ -100,16 +101,17 @@ export function RenderChatFooter({ user, socket, translateY, roomId, setMessages
 					<Feather name='file' size={30} color={colors.primary} />
 				</TouchableHighlight>
 				<NativeAnimated.View {...panResponder.panHandlers} style={{ transform: [{ translateY: pan }] }}>
-					<AnimatedTouchable
-						onPressIn={() => startRecording({ handleAudioPermissions, setRecording, pan })}
+					<TouchableHighlight
+						onPressIn={() => startRecording({ handleAudioPermissions, setRecording,permissionResponse })}
 						style={[styles.iconContainer, { backgroundColor: colors.background }]}
+						underlayColor={colors.undetlay}
 					>
 						<Feather name='mic' size={30} color={colors.primary} />
-					</AnimatedTouchable>
+					</TouchableHighlight>
 				</NativeAnimated.View>
 				{
 					recording?.playing ? (
-						<TouchableHighlight onPressOut={() => setRecording((e) => ({ ...e, playing: false, status: RecordingEnum.cancel }))} style={[styles.trashIconContainer, { backgroundColor: colors.red, opacity: 0.85 }]}>
+						<TouchableHighlight onPress={() => setRecording((e) => ({ ...e, playing: false, status: RecordingEnum.cancel }))} style={[styles.trashIconContainer, { backgroundColor: colors.red, opacity: 0.85 }]}>
 							<Feather name='trash' size={30} color={colors.background} />
 						</TouchableHighlight>
 					) : null
