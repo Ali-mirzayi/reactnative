@@ -9,15 +9,16 @@ export type LoginNavigationProps = {
 };
 
 export type ChatNavigationProps = {
-    Chat: { beCheck: boolean };
-    Messaging: { contact: User | undefined, roomId: string };
+    Chat: { beCheck:boolean };
+    Messaging: { contact: User | undefined,roomId: string
+    };
 };
 
 export type RootStackParamList = {
     LoginNavigation?: undefined;
-    Chat: { beCheck: boolean };
-    Messaging: { contact: User | undefined, roomId: string };
-    ModalMusic: undefined;
+    Chat: { beCheck:boolean };
+    Messaging: { contact: User | undefined,roomId: string
+    };
 };
 
 export type IMessagePro = IMessage & { fileName?: string, file?: string, mimType?: string, preView?: string, thumbnail?: string, duration?: number, playing?: boolean }
