@@ -5,7 +5,7 @@ import SearchBar from "../components/SearchBar";
 import { Room, User, ChatNavigationProps, IMessagePro, CountNewMessageType } from "../utils/types";
 import { DrawerScreenProps } from '@react-navigation/drawer';
 import { Ionicons } from "@expo/vector-icons";
-import { useLastMessage, useSocket, useUser } from "../socketContext";
+import { useIsOpen, useSetLastMessage, useSocket, useUser } from "../socketContext";
 import { getAllRooms, getRoom, insertRoom, updateMessage } from "../utils/DB";
 import Toast from "react-native-toast-message";
 import LoadingPage from "../components/LoadingPage";
@@ -24,7 +24,7 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 	const setUser = useUser(state => state.setUser);
 	const user = useUser(state => state.user);
 	const socket = useSocket(state => state.socket);
-	const {lastMessage, setLastMessage} = useLastMessage();
+	const { lastMessage, setLastMessage } = useSetLastMessage();
 
 	const { colors } = useTheme();
 	const { expoPushToken, notification } = usePushNotifications();
@@ -36,37 +36,39 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 	const [users, setUsers] = useState<User[] | []>([]);
 	const [screen, setScreen] = useState<'users' | 'rooms'>('rooms');
 	const [countNewMessages, setCountNewMessages] = useState<CountNewMessageType[] | []>([]);
+	const [currentRoomId, setCurrentRoomId] = useState<string | undefined>(undefined);
+	const isPlayerOpen = useIsOpen(state=>state.open);
+
+	const initDarkMode = storage.getBoolean("darkMode");
+	const colorScheme = useColorScheme();
+	const scheme = (colorScheme === 'dark' ? false : true);
+	const [darkMode, setDarkMode] = useState(initDarkMode !== undefined ? initDarkMode : scheme);
 
 	const isFocused = useIsFocused();
 
 	const pressUserHandler = async ({ contact }: { contact: User | undefined }) => {
 		setPending(true);
-		const roomIfExists = rooms.find(e=>e.users[0]._id || e.users[1]._id === contact?._id);
-		if(roomIfExists){
-			navigation.navigate("Messaging", { contact:contact, roomId:roomIfExists.id });
+		const roomIfExists = rooms.find(e => e.users[0]._id === contact?._id || e.users[1]._id === contact?._id);
+		if (!!roomIfExists) {
+			setCurrentRoomId(roomIfExists.id);
+			navigation.navigate("Messaging", { contact: contact, roomId: roomIfExists.id });
 			setPending(false);
 		} else {
 			socket?.emit("createRoom", { user, contact: contact });
-			socket?.on("createRoomResponse", (data: Room) => {
-				if (!data) setPending(false);
-				console.log(data, 'setter', user?.name);
-				insertRoom(data);
-				navigation.navigate("Messaging", { contact: contact, roomId: data.id });
-				setRooms(e => [...e, data]);
-				setPending(false);
-			});
+			await sleep(5000);
+			setPending(false);
 		}
 	};
 
 	const pressrRoomHandler = ({ contact, roomId }: { contact: User, roomId: string }) => {
+		setCurrentRoomId(roomId);
 		navigation.navigate("Messaging", { contact, roomId });
-		handleCountNewMessages({roomId,erase:true});
+		handleCountNewMessages({ roomId, erase: true });
 	};
 
 	function setter(data: Room) {
-		console.log(data, 'setter', user?.name);
-		socket?.emit('joinInRoom', data.id);
 		insertRoom(data);
+		socket?.emit('joinInRoom', data.id);
 		setRooms(e => [...e, data]);
 	};
 
@@ -122,11 +124,7 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 	const notifData = notification?.request.content.data;
 
 	useEffect(() => {
-		if (!socket || !isFocused || !user) return;
-		socket.on("connected", (e: any) => {
-			socket.emit('joinInRooms', user._id);
-			socket.emit('setSocketId', { 'socketId': e, 'userId': user._id, 'userRoomId': undefined });
-		});
+		if (!socket) return;
 
 		socket.on('chatNewMessage', async (data: IMessagePro & { roomId: string }) => {
 			const { roomId, ...newMessage } = data;
@@ -223,7 +221,7 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 			navigation.navigate('Messaging', {
 				contact: notifData?.user,
 				roomId: notifData?.roomId
-				});
+			});
 			setLoading(false);
 		};
 		if (expoPushToken && user) {
@@ -355,6 +353,7 @@ const styles = StyleSheet.create({
 		justifyContent: 'center',
 		position: "relative",
 		height: 500,
+		// width: 400
 	},
 	paragraph: {
 		padding: 16,
