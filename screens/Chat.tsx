@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback, useLayoutEffect } from "react";
-import { View, Text, FlatList, StyleSheet, DrawerLayoutAndroid, TouchableHighlight, useColorScheme } from "react-native";
+import React, { useState, useEffect, useLayoutEffect } from "react";
+import { View, Text, FlatList, StyleSheet, TouchableHighlight, useColorScheme } from "react-native";
 import baseURL from "../utils/baseURL";
 import SearchBar from "../components/SearchBar";
-import { Room, User, ChatNavigationProps, IMessagePro, CountNewMessageType, LastMessageType } from "../utils/types";
+import { Room, User, ChatNavigationProps, IMessagePro, CountNewMessageType } from "../utils/types";
 import { DrawerScreenProps } from '@react-navigation/drawer';
 import { Ionicons } from "@expo/vector-icons";
 import { useLastMessage, useSocket, useUser } from "../socketContext";
@@ -12,44 +12,40 @@ import LoadingPage from "../components/LoadingPage";
 import ChatComponent from "../components/ChatComponent";
 import useTheme from "../utils/theme";
 import { useIsFocused } from "@react-navigation/native";
-import DrawerCore from "../components/Drawer";
-import { storage } from "../mmkv";
 import { usePushNotifications } from "../utils/usePushNotifications";
 import { ensureDirExists, fileDirectory } from "../utils/directories";
 import * as FileSystem from 'expo-file-system';
+import sleep from "../utils/wait";
+import DrawerCore from "../components/Drawer";
+import { storage } from "../mmkv";
+import FloatingMusicPlayer from "../components/FloatingMusicPlayer";
 
-const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) => {
-	const { beCheck } = route?.params || {};
-
+const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) => {
 	const setUser = useUser(state => state.setUser);
 	const user = useUser(state => state.user);
 	const socket = useSocket(state => state.socket);
 	const {lastMessage, setLastMessage} = useLastMessage();
 
-	const drawer = useRef<DrawerLayoutAndroid>(null);
 	const { colors } = useTheme();
-	const initDarkMode = storage.getBoolean("darkMode");
-	const colorScheme = useColorScheme();
-	const scheme = (colorScheme === 'dark' ? false : true);
 	const { expoPushToken, notification } = usePushNotifications();
 
+	const [open, setOpen] = React.useState(false);
 	const [isPending, setPending] = useState(false);
 	const [loading, setLoading] = useState(false)
 	const [rooms, setRooms] = useState<Room[]>([]);
 	const [users, setUsers] = useState<User[] | []>([]);
 	const [screen, setScreen] = useState<'users' | 'rooms'>('rooms');
-	const [darkMode, setDarkMode] = useState(initDarkMode !== undefined ? initDarkMode : scheme);
 	const [countNewMessages, setCountNewMessages] = useState<CountNewMessageType[] | []>([]);
 
 	const isFocused = useIsFocused();
 
-	const pressUserHandler = ({contact}: {contact:User | undefined}) => {
+	const pressUserHandler = async ({ contact }: { contact: User | undefined }) => {
 		setPending(true);
 		const roomIfExists = rooms.find(e=>e.users[0]._id || e.users[1]._id === contact?._id);
 		if(roomIfExists){
 			navigation.navigate("Messaging", { contact:contact, roomId:roomIfExists.id });
 			setPending(false);
-		}else{
+		} else {
 			socket?.emit("createRoom", { user, contact: contact });
 			socket?.on("createRoomResponse", (data: Room) => {
 				if (!data) setPending(false);
@@ -74,7 +70,7 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 		setRooms(e => [...e, data]);
 	};
 
-	const handleLastMessages = ({roomId,newMessage}: {roomId:string,newMessage:string}) => {
+	const handleLastMessages = ({ roomId, newMessage }: { roomId: string, newMessage: string }) => {
 		setLastMessage(prevState => {
 			const existingItem = prevState.find((item) => item.roomId === roomId);
 			if (existingItem) {
@@ -82,22 +78,34 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 					item.roomId === roomId ? { ...item, message: newMessage } : item
 				);
 			} else {
-				return [...prevState, { roomId,message: newMessage }];
+				return [...prevState, { roomId, message: newMessage }];
 			}
 		})
 	};
-	const handleCountNewMessages = ({roomId,erase}: {roomId:string,erase:boolean}) => {
+
+	const handleCountNewMessages = ({ roomId, erase }: { roomId: string, erase: boolean }) => {
 		setCountNewMessages(prevState => {
 			const existingItem = prevState.find((item) => item.id === roomId);
 			if (existingItem) {
-				return prevState.map((item) =>
-					item.id === roomId ? { ...item, count: erase ? 0 : item.count + 1 } : item
-				);
+				return prevState.map((item) => item.id === roomId ? { ...item, count: erase ? 0 : item.count + 1 } : item);
 			} else {
 				return [...prevState, { count: erase ? 0 : 1, id: roomId }];
 			}
 		});
 	};
+
+	const handleCreateRoomResponse = async ({ newRoom, contact }: { newRoom: Room, contact: User }) => {
+		const roomIfExists = rooms.find(e => e.id === newRoom.id);
+		if (roomIfExists !== undefined) {
+			setPending(false);
+		} else {
+			await insertRoom(newRoom);
+			setRooms(e => [...e, newRoom]);
+			setCurrentRoomId(newRoom.id);
+			navigation.navigate("Messaging", { contact: contact, roomId: newRoom.id });
+			setPending(false);
+		}
+	}
 
 	useEffect(() => {
 		getAllRooms().then((result: Room[] | any) => {
@@ -128,11 +136,11 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 				const fileName = `${new Date().getTime()}.jpeg`;
 				const fileNamePrev = `${new Date().getTime() - 1000}.jpeg`;
 				const fileUri = (baseURL() + '/' + newMessage.image).replace(/\\/g, '/');
-				if(!newMessage.preView){
+				if (!newMessage.preView) {
 					newMessage["preView"] = undefined;
 					newMessage["image"] = fileUri;
 					newMessage["fileName"] = fileName;
-				}else{
+				} else {
 					await FileSystem.writeAsStringAsync(fileDirectory + fileNamePrev, newMessage.preView, { encoding: "base64" }).then(() => {
 						newMessage["preView"] = fileDirectory + fileNamePrev;
 						newMessage["image"] = fileUri;
@@ -144,17 +152,17 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 						console.error(error, 'errrrrrrrr');
 					});
 				};
-				handleLastMessages({roomId,newMessage:'New Image'});
+				handleLastMessages({ roomId, newMessage: 'New Image' });
 			} else if (newMessage.video) {
 				await ensureDirExists();
 				const thumbnailName = `${new Date().getTime()}.jpeg`;
 				const fileName = `${new Date().getTime()}.mp4`;
 				const videoUri = (baseURL() + '/' + newMessage.video).replace(/\\/g, '/');
-				if(!newMessage.thumbnail){
+				if (!newMessage.thumbnail) {
 					newMessage["thumbnail"] = undefined;
 					newMessage["fileName"] = fileName;
 					newMessage["video"] = videoUri;
-				}else{
+				} else {
 					await FileSystem.writeAsStringAsync(fileDirectory + thumbnailName, newMessage.thumbnail, { encoding: "base64" }).then(() => {
 						newMessage["thumbnail"] = fileDirectory + thumbnailName;
 						newMessage["fileName"] = fileName;
@@ -166,40 +174,57 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 						console.error(error, 'errrrrrrrr');
 					});
 				};
-				handleLastMessages({roomId,newMessage:'New Video'});
+				handleLastMessages({ roomId, newMessage: 'New Video' });
 			} else if (newMessage.file && newMessage.fileName) {
 				await ensureDirExists();
 				const fileUri = (baseURL() + '/' + newMessage.file).replace(/\\/g, '/');
 				newMessage["file"] = fileUri;
-				handleLastMessages({roomId,newMessage:'New File'});
-			}else{
-				handleLastMessages({roomId,newMessage:newMessage.text})
+				handleLastMessages({ roomId, newMessage: 'New File' });
+			} else if (newMessage.audio && newMessage.fileName) {
+				await ensureDirExists();
+				const fileUri = (baseURL() + '/' + newMessage.audio).replace(/\\/g, '/');
+				newMessage["audio"] = fileUri;
+				handleLastMessages({ roomId, newMessage: 'New audio' });
+			} else {
+				handleLastMessages({ roomId, newMessage: newMessage.text })
 			};
 			const roomMessage: Room[] = selectedRoom.map((e) => JSON.parse(e.data))[0]?.messages;
 			const newRoomMessage = [newMessage, ...roomMessage];
 			const contact = newMessage.user;
 			//@ts-ignore
 			await updateMessage({ id: roomId, users: [user, contact], messages: newRoomMessage });
-			handleCountNewMessages({roomId,erase:false});
+			if (currentRoomId !== roomId) {
+				handleCountNewMessages({ roomId, erase: false });
+			};
 		});
+
+
+		if (!isFocused || !user) return;
+		socket.on("connected", (e: any) => {
+			socket.emit('joinInRooms', user._id);
+			socket.emit('setSocketId', { 'socketId': socket.id, 'userId': user._id, 'userRoomId': undefined });
+		});
+
+		socket.on("createRoomResponse", handleCreateRoomResponse);
 
 		socket.on("newRoom", setter);
 
 		return () => {
 			socket.off('chatNewMessage');
 			socket.off('connected');
+			socket.off('createRoomResponse', handleCreateRoomResponse);
 			socket.off("newRoom", setter);
 		};
 	}, [socket, isFocused]);
 
 	useLayoutEffect(() => {
 		if (notifData) {
+			setCurrentRoomId(notifData?.roomId);
 			navigation.navigate('Messaging', {
 				contact: notifData?.user,
 				roomId: notifData?.roomId
 				});
 			setLoading(false);
-			// setPending(false);
 		};
 		if (expoPushToken && user) {
 			//@ts-ignore
@@ -226,9 +251,8 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 		<View style={{ flex: 1 }}>
 			<LoadingPage active={isPending} />
 			<DrawerCore
-				drawerRef={drawer}
-				name={user?.name}
-				beCheck={beCheck}
+				open={open}
+				setOpen={setOpen}
 				darkMode={darkMode}
 				setDarkMode={setDarkMode}
 			>
@@ -236,7 +260,7 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 					<View style={[styles.chattopContainer, { backgroundColor: colors.card }]}>
 						<View style={styles.chatheader}>
 							<View style={styles.burgerView}>
-								<TouchableHighlight style={styles.mr10} underlayColor={"#e3e5ef"} onPress={() => drawer.current?.openDrawer()} >
+								<TouchableHighlight style={styles.mr10} underlayColor={"#e3e5ef"} onPress={() => setOpen(true)} >
 									<Ionicons name="menu-sharp" style={styles.menu} color={colors.text} size={25} />
 								</TouchableHighlight>
 								<Text testID="ChatScreen" style={[styles.chatheading, { color: colors.mirza }]}>MirzaGram</Text>
@@ -244,11 +268,12 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 							<SearchBar setUsers={setUsers} setScreen={setScreen} />
 						</View>
 					</View>
+					{isPlayerOpen ? <FloatingMusicPlayer /> : null}
 					<View style={styles.chatlistContainer}>
 						{screen === "users" && users.length > 0 ?
 							<View>
 								<FlatList
-									renderItem={({ item }) => <ChatComponent contact={item} lastMessage={undefined} countNewMessage={undefined} messages={{ text: "Tap to start chatting" }} handleNavigation={() => pressUserHandler({contact:item})} />}
+									renderItem={({ item }) => <ChatComponent contact={item} lastMessage={undefined} countNewMessage={undefined} messages={{ text: "Tap to start chatting" }} handleNavigation={() => pressUserHandler({ contact: item })} />}
 									data={users}
 								/>
 							</View> : <View />
@@ -257,7 +282,7 @@ const Chat = ({ route, navigation }: DrawerScreenProps<ChatNavigationProps, 'Cha
 							screen === "rooms" && rooms.length > 0 ? (
 								<View>
 									<FlatList
-										renderItem={({ item }) => <ChatComponent lastMessage={lastMessage.find(e=>e.roomId===item.id)?.message} messages={item.messages[0]} countNewMessage={countNewMessages.find(e=>e.id===item.id)} contact={item.users[0].name == user?.name ? item.users[1] : item.users[0]} handleNavigation={() => pressrRoomHandler({ contact: item.users[0].name === user?.name ? item.users[1] : item.users[0], roomId: item.id })} />}
+										renderItem={({ item }) => <ChatComponent lastMessage={lastMessage.find(e => e.roomId === item.id)?.message} messages={item.messages[0]} countNewMessage={countNewMessages.find(e => e.id === item.id)} contact={item.users[0].name == user?.name ? item.users[1] : item.users[0]} handleNavigation={() => pressrRoomHandler({ contact: item.users[0].name === user?.name ? item.users[1] : item.users[0], roomId: item.id })} />}
 										data={rooms}
 										keyExtractor={(item) => item.id}
 										extraData={lastMessage}

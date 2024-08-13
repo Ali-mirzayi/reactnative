@@ -1,11 +1,11 @@
-import { DrawerLayoutAndroid } from "react-native";
 import { IMessage } from "react-native-gifted-chat";
 import * as Notifications from "expo-notifications";
+import { Audio } from "expo-av";
 
 export type LoginNavigationProps = {
     LoginPrev: undefined;
-    Login:{ beCheck:boolean };
-    Chat: { beCheck:boolean };
+    Login: { beCheck: boolean };
+    Chat: { beCheck: boolean };
 };
 
 export type ChatNavigationProps = {
@@ -21,7 +21,7 @@ export type RootStackParamList = {
     };
 };
 
-export type IMessagePro = IMessage & { fileName?: string, file?:string, mimType?: string , preView?: string, thumbnail?: string }
+export type IMessagePro = IMessage & { fileName?: string, file?: string, mimType?: string, preView?: string, thumbnail?: string, duration?: number, playing?: boolean }
 
 export type User = {
     _id: string;
@@ -31,18 +31,18 @@ export type User = {
 };
 
 export type Room = {
-	id: string,
-	users: [user:User,contact:User],
-	messages: IMessagePro[]
+    id: string,
+    users: [user: User, contact: User],
+    messages: IMessagePro[]
 }
 
 export type DrawerCoreType = {
-    darkMode:boolean,
-    setDarkMode:React.Dispatch<React.SetStateAction<boolean>>,
-    beCheck:boolean,
-    name:string | undefined,
-    children:React.ReactNode,
-    drawerRef:React.RefObject<DrawerLayoutAndroid>
+    darkMode: boolean,
+    setDarkMode: React.Dispatch<React.SetStateAction<boolean>>,
+    // beCheck: boolean,
+    children: React.ReactNode,
+    open: boolean,
+    setOpen: React.Dispatch<React.SetStateAction<boolean>>
 }
 
 export type CountNewMessageType = {
@@ -50,7 +50,42 @@ export type CountNewMessageType = {
     id: string;
 }
 
+// export type LastMessageType = {
+//     count: number;
+//     message: string;
+//     roomId: string;
+// }
+
 export type LastMessageType = {
     message: string;
     roomId: string;
+}
+
+export type player = {
+    name?: string,
+    uri?: string,
+    playing?: boolean,
+    id?: string | number,
+    duration?: number,
+    track?: Audio.Sound,
+    lastPosition?: number,
+    uuid?: string | number
+} | undefined;
+
+export type currentPosition = {
+    position?: number,
+    id?: number | string
+};
+
+export type lastTrack = {
+    duration?: number,
+    name?: string,
+    id?: number | string,
+    uri?: string
+};
+
+export enum RecordingEnum {
+    "start" = 0,
+    "stop" = 1,
+    "cancel" = 2,
 }

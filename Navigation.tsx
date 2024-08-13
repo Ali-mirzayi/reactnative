@@ -7,7 +7,7 @@ import LoginPrev from './screens/LoginPrev';
 import { useColorScheme, Easing } from 'react-native';
 import { TransitionSpec } from '@react-navigation/stack/lib/typescript/src/types';
 import { useEffect, useLayoutEffect, useState } from 'react';
-import { ChatNavigationProps, LoginNavigationProps, RootStackParamList, User } from './utils/types';
+import { ChatNavigationProps, LoginNavigationProps, RootStackParamList } from './utils/types';
 import { useUser } from './socketContext';
 import { createTable, deleteDB } from "./utils/DB";
 import LoadingPage from './components/LoadingPage';
@@ -15,6 +15,7 @@ import { storage } from './mmkv';
 import baseURL from './utils/baseURL';
 import * as FileSystem from 'expo-file-system';
 import { fileDirectory } from './utils/directories';
+import ModalMusic from './screens/ModalMusic';
 
 
 const config: TransitionSpec = {
@@ -69,7 +70,7 @@ export const LoginNavigation = () => {
 
 export const ChatNavigation = ({ beCheck }: any) => {
     const Stack = createStackNavigator<ChatNavigationProps>();
-    return (
+    return (<>
         <Stack.Navigator initialRouteName='Chat' screenOptions={{
             gestureEnabled: true,
             gestureDirection: "horizontal",
@@ -98,11 +99,12 @@ export const ChatNavigation = ({ beCheck }: any) => {
                     options={{
                         title: "Messaging",
                         headerShown: false,
-                        freezeOnBlur:false
+                        freezeOnBlur: false
                     }}
                 />
             </Stack.Group>
         </Stack.Navigator>
+    </>
     )
 }
 
@@ -139,8 +141,6 @@ export default function Navigation() {
 
     async function purge() {
         try {
-            // (function () {
-            // for delete user and related rooms he's joined
             fetch(`${baseURL()}/deleteUser`, {
                 method: 'POST',
                 headers: {
@@ -149,21 +149,20 @@ export default function Navigation() {
                 },
                 body: storage.getString('user')
             });
-            // })();
             storage.delete('user');
             await deleteDB();
             await createTable();
             setBeCheck(true);
             FileSystem.deleteAsync(fileDirectory);
         } catch (err) {
-            console.log(err,'err')
+            console.log(err, 'err')
         }
     };
 
     useLayoutEffect(() => {
         setLoading(true);
         const value = storage.getBoolean("clearAll");
-        if (value === undefined || null) {
+        if (value === undefined) {
             storage.set("clearAll", false);
         };
         if (value == true) {
@@ -179,46 +178,57 @@ export default function Navigation() {
     return (
         <>
             <NavigationContainer fallback={<LoadingPage active={true} />} >
-                <Stack.Navigator screenOptions={{
-                    headerShown: false,
-                    gestureEnabled: true,
-                    gestureDirection: "horizontal",
-                    transitionSpec: {
-                        open: config,
-                        close: closeConfig
-                    },
-                    cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS
-                }}
-                >
-                    {user ?
-                        null
-                        :
+                <Stack.Navigator>
+                    <Stack.Group screenOptions={{
+                        headerShown: false,
+                        gestureEnabled: true,
+                        gestureDirection: "horizontal",
+                        transitionSpec: {
+                            open: config,
+                            close: closeConfig
+                        },
+                        cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS
+                    }}>
+                        {user ?
+                            null
+                            :
+                            <Stack.Screen
+                                name='LoginNavigation'
+                                component={LoginNavigation}
+                                options={{ headerShown: false, presentation: 'card' }} />
+                        }
                         <Stack.Screen
-                            name='LoginNavigation'
-                            component={LoginNavigation}
-                            options={{ headerShown: false, presentation: 'card' }} />
-                    }
-                    <Stack.Screen
-                        name='Chat'
-                        component={Chat}
-                        initialParams={{ beCheck }}
-                        options={{
-                            headerShown: false,
-                        }}
-                        listeners={{
-                            focus: () => {
-                                setChat(true);
-                            }
-                        }}
-                    />
-                    <Stack.Screen
-                        name='Messaging'
-                        component={Messaging}
-                        initialParams={{ contact: undefined }}
-                        options={{
-                            headerShown: false
-                        }}
-                    />
+                            name='Chat'
+                            component={Chat}
+                            initialParams={{ beCheck }}
+                            options={{
+                                headerShown: false,
+                            }}
+                            listeners={{
+                                focus: () => {
+                                    setChat(true);
+                                }
+                            }}
+                        />
+                        <Stack.Screen
+                            name='Messaging'
+                            component={Messaging}
+                            initialParams={{ contact: undefined }}
+                            options={{
+                                headerShown: false
+                            }}
+                        />
+                    </Stack.Group>
+                    <Stack.Group  screenOptions={{
+                        presentation: 'modal',
+                        headerShown: false,
+                        gestureEnabled: true,
+                        gestureDirection: "vertical",
+                        // cardStyleInterpolator: CardStyleInterpolators.forBottomSheetAndroid,
+                        cardStyleInterpolator: CardStyleInterpolators.forRevealFromBottomAndroid,
+                    }}>
+                        <Stack.Screen name="ModalMusic" component={ModalMusic} />
+                    </Stack.Group>
                 </Stack.Navigator>
             </NavigationContainer>
         </>

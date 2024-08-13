@@ -1,6 +1,7 @@
 import { Text, StyleSheet, TextInput, View, Button, ToastAndroid } from 'react-native'
 import useTheme from '../utils/theme';
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@expo/vector-icons/Ionicons";
+// import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from 'react';
 import * as Notifications from "expo-notifications";
 import baseURL from '../utils/baseURL';

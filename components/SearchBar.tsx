@@ -42,17 +42,17 @@ export default function SearchBar({ setUsers, setScreen }: props) {
         }
     }
 
-	useFocusEffect(
-		useCallback(() => {
-            (async()=>{
-                setScreen("rooms");
-                setSearch(undefined);
-                setUsers([]);
-                await sleep(300);
-                handlePressIn();
-            })()
-		}, [])
-	  );
+	// useFocusEffect(
+	// 	useCallback(() => {
+    //         (async()=>{
+    //             setScreen("rooms");
+    //             setSearch(undefined);
+    //             setUsers([]);
+    //             await sleep(300);
+    //             handlePressIn();
+    //         })()
+	// 	}, [])
+	//   );
 
     return (
         <OutsidePressHandler onOutsidePress={handlePressOut} style={styles.container}>

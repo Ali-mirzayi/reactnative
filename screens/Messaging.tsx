@@ -1,25 +1,26 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { GiftedChat, IMessage } from 'react-native-gifted-chat'
 import { StackScreenProps } from "@react-navigation/stack";
-import { IMessagePro, RootStackParamList } from '../utils/types';
+import { IMessagePro, RecordingEnum, RootStackParamList } from '../utils/types';
 import { useLastMessage, useSetDownloading, useSetErrors, useSetUploading, useSocket, useUser } from '../socketContext';
 import { updateMessage, getRoom } from '../utils/DB';
 import { useSharedValue, withTiming } from 'react-native-reanimated';
-import * as FileSystem from 'expo-file-system';
-import { ensureDirExists, fileDirectory } from '../utils/directories';
 import LoadingPage from '../components/LoadingPage';
-import { renderActions, renderBubble, RenderChatFooter, renderInputToolbar, renderMessageFile, RenderMessageImage, renderMessageVideo, renderSend, renderTime } from '../components/Message';
+import { renderActions, renderBubble, RenderChatFooter, renderInputToolbar, renderMessageAudio, renderMessageFile, RenderMessageImage, renderMessageVideo, renderSend, renderTime } from '../components/Message';
 import useTheme from '../utils/theme';
-import { Text, View } from 'react-native';
+import { Animated, Easing, PanResponder, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import PushNotificationSend from '../components/SendPushNotification';
-import baseURL from '../utils/baseURL';
+import { Audio } from 'expo-av';
+import FloatingMusicPlayer from '../components/FloatingMusicPlayer';
+import { cancelRecording, stopRecording } from '../components/SendMedia';
 
 const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>) => {
 	const { contact, roomId }: any = route.params;
 	const [messages, setMessages] = useState<IMessage[]>([]);
 	const [open, setOpen] = useState<boolean>(false); // renderChatFooter
 	const [status, setStatus] = useState<boolean | undefined>(undefined); // connection
+	const [recording, setRecording] = useState<undefined | { playing: boolean, status: RecordingEnum }>();
 	const [isInRoom, setIsInRoom] = useState<boolean>(true);
 	const setLastMessage = useLastMessage(state => state.setLastMessage);
 	const { downloading, setDownloading } = useSetDownloading();
@@ -28,9 +29,67 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	const user: any = useUser(state => state.user);
 	const translateY = useSharedValue(1000);
 	const [isPending, setPending] = useState(true); // set for roomId and save it db
+
 	const socket = useSocket(state => state.socket);
+	const user: any = useUser(state => state.user);
+
+	const { lastMessage, setLastMessage } = useSetLastMessage();
+	const { downloading, setDownloading } = useSetDownloading();
+	const { errors, setErrors } = useSetErrors();
+	const { uploading, setUploading } = useSetUploading();
+	const { player, setPlayer } = usePlayer();
+	const { currentPosition, setCurrentPosition } = usePosition();
+	const { open: isPlayerOpen, setOpen: setIsOpen } = useIsOpen();
+
+	const translateY = useSharedValue(1000);
 	const { colors } = useTheme();
 	const videoRef: any = useRef(null);
+	const [permissionResponse, requestPermission] = Audio.usePermissions();
+	const pan = useRef(new Animated.Value(0)).current;
+
+	const panResponder = useRef(
+		PanResponder.create({
+			onMoveShouldSetPanResponder: () => true,
+			onPanResponderMove: (evt, gestureState) => {
+				if (gestureState.dy < 0) {
+					pan.setValue(gestureState.dy);
+				}
+			},
+			onPanResponderRelease: (evt, gestureState) => {
+				// if (recording?.playing === true) return;
+				if (gestureState.dy <= -50 && gestureState.dy >= -110) {
+					(async () => {
+						await cancelRecording({ recording, setRecording });
+					})();
+				} else {
+					(async () => {
+						await stopRecording({ recording, setRecording, roomId, setErrors, setMessages, setUploading, socket, user });
+					})();
+				}
+				Animated.timing(pan, {
+					toValue: 0,
+					duration: 700,
+					easing: Easing.bounce,
+					useNativeDriver: true,
+				}).start();
+			},
+		})
+	).current;
+
+	const handleAudioPermissions = async () => {
+		try {
+			if (permissionResponse?.status !== 'granted') {
+				console.log('Requesting permission..');
+				await requestPermission();
+				return true;
+			} else {
+				return true;
+			}
+		} catch (err) {
+			console.log('error to request permision', err);
+			return false;
+		}
+	};
 
 	const handleLastMessages = ({ messageRoomId, newMessage }: { messageRoomId: string, newMessage: string }) => {
 		setLastMessage((prevState: any) => {
@@ -136,19 +195,16 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 		getRoom(roomId)
 			.then((result) => {
 				if (result.length > 0) {
-					setMessages(result.map((e: any) => JSON.parse(e.data))[0]?.messages);
-					setPending(false)
+					const roomMessage: IMessagePro[] = result.map((e: any) => JSON.parse(e.data))[0]?.messages;
+					setMessages(roomMessage.map(e => ({ ...e, playing: false })));
+					setPending(false);
 				}
-			})
-			.catch(error => {
+			}).catch(error => {
 				console.log(error, 'v2');
 				setPending(false)
 			});
 		setPending(false);
-		return () => {
-			socket?.off('findRoomResponse');
-		}
-	}, []);
+	}, [lastMessage]);
 
 	useFocusEffect(
 		useCallback(() => {
@@ -159,7 +215,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 			return () => {
 				socket?.emit('isUserInRoom', { userId: user._id, userRoomId: undefined, contactId: contact._id });
 				socket?.off('isUserInRoomResponse');
-			}
+			};
 		}, [socket])
 	);
 
@@ -183,13 +239,17 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 					</View>
 				</View>
 			</View>
+			<View style={{ height: 40 }}>
+				{isPlayerOpen ? <FloatingMusicPlayer /> : null}
+			</View>
 			<GiftedChat
 				messages={messages}
 				onSend={messages => onSend(messages)}
 				user={user}
 				renderMessageImage={(e: any) => RenderMessageImage(e, { setMessages, downloading, uploading, errors, setDownloading })}
 				renderMessageVideo={(e: any) => renderMessageVideo(e, { setMessages, downloading, uploading, errors, setDownloading, videoRef })}
-				renderCustomView={(e: any) => renderMessageFile(e, { setMessages, downloading, setDownloading, uploading, errors, colors })}
+				renderMessageAudio={(e: any) => renderMessageAudio(e, { setMessages, downloading, setDownloading, uploading, errors, colors, player, setPlayer, currentPosition, setCurrentPosition, setIsOpen })}
+				renderCustomView={(e: any) => renderMessageFile(e, { setMessages, downloading, setDownloading, uploading, errors, colors, player, setPlayer })}
 				alwaysShowSend
 				scrollToBottom
 				loadEarlier
@@ -199,7 +259,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 				renderActions={(e) => renderActions(e, { setOpen, open, colors })}
 				renderBubble={(e) => renderBubble(e, { colors })}
 				renderSend={(e) => renderSend(e, { colors })}
-				renderChatFooter={() => RenderChatFooter({ user, socket, translateY, roomId, setMessages, colors, setUploading, setErrors })}
+				renderChatFooter={() => RenderChatFooter({ user, socket, translateY, roomId, setMessages, colors, setUploading, setErrors, recording, setRecording, handleAudioPermissions, panResponder, pan,permissionResponse })}
 				renderInputToolbar={(e) => renderInputToolbar(e, { colors })}
 				renderTime={(e) => renderTime(e, { colors })}
 				optionTintColor='#fff'

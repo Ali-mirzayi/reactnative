@@ -1,14 +1,14 @@
-import { ActivityIndicator, Image, ImageProps, ImageSourcePropType, Pressable, StyleProp, StyleSheet, Text, TouchableHighlight, View } from "react-native";
+import { ActivityIndicator, Image, ImageProps, Pressable, StyleSheet, Text, TouchableHighlight, View, Animated as NativeAnimated, PanResponder, PanResponderInstance, TouchableOpacity } from "react-native";
 import Animated from "react-native-reanimated";
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
-import { generateID } from "../utils/utils";
+import { formatMillisecondsToTime, generateID, isMusicFile } from "../utils/utils";
 import baseURL from "../utils/baseURL";
 import * as FileSystem from 'expo-file-system';
-import { Actions, ActionsProps, Bubble, BubbleProps, Composer, GiftedChat, IMessage, InputToolbar, InputToolbarProps, MessageImage, MessageImageProps, MessageProps, MessageVideoProps, Send, SendProps, Time, TimeProps } from "react-native-gifted-chat";
-import { ResizeMode, Video } from "expo-av";
+import { Actions, ActionsProps, Bubble, BubbleProps, Composer, GiftedChat, IMessage, InputToolbar, InputToolbarProps, MessageAudioProps, MessageImage, MessageImageProps, MessageProps, MessageVideoProps, Send, SendProps, Time, TimeProps } from "react-native-gifted-chat";
+import { ResizeMode, Video, Audio } from "expo-av";
 import { darkTheme } from "../utils/theme";
-import { IMessagePro, User } from "../utils/types";
+import { currentPosition, IMessagePro, player, RecordingEnum, User } from "../utils/types";
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Entypo from '@expo/vector-icons/Entypo';
 import Feather from '@expo/vector-icons/Feather';
@@ -16,6 +16,10 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { fileDirectory } from "../utils/directories";
 import Lightbox from 'react-native-lightbox-v2';
 import { startActivityAsync } from 'expo-intent-launcher';
+import { sendMedia, startRecording } from "./SendMedia";
+import MovingText from "./MovingText";
+
+const AnimatedTouchable = NativeAnimated.createAnimatedComponent(TouchableOpacity);
 
 type RenderChatFooterProps = {
 	user: User,
@@ -23,47 +27,22 @@ type RenderChatFooterProps = {
 	translateY: any,
 	roomId: any,
 	setMessages: React.Dispatch<React.SetStateAction<IMessage[]>>,
+	recording: undefined | { playing: boolean, status: RecordingEnum },
+	setRecording: React.Dispatch<React.SetStateAction<{
+		playing: boolean;
+		status: RecordingEnum;
+	} | undefined>>,
 	colors: typeof darkTheme.colors,
 	setUploading: (callback: (prev: (string | number)[]) => (string | number)[]) => void,
-	setErrors: (callback: (prev: (string | number)[]) => (string | number)[]) => void
+	setErrors: (callback: (prev: (string | number)[]) => (string | number)[]) => void,
+	handleAudioPermissions: () => Promise<boolean>,
+	//@ts-ignore
+	pan: Animated.Value,
+	panResponder: PanResponderInstance,
+	permissionResponse:Audio.PermissionResponse | null
 }
 
-export function RenderChatFooter({ user, socket, translateY, roomId, setMessages, colors, setErrors, setUploading }: RenderChatFooterProps) {
-	async function sendMedia({ uri, type, name, mimType }: { uri: string | null | undefined, type: "image" | "video" | "file" | undefined, name?: string, mimType?: string }) {
-		const id = generateID();
-		if (type === 'image' && uri) {
-			setUploading(e => [...e, id]);
-			setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, image: uri }]));
-			const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file' });
-			if (response.body === "ok") {
-				socket?.emit('sendImage', { _id: id, text: "", createdAt: new Date(), user, roomId }, setUploading(e => e.filter(r => r !== id)));
-			} else {
-				setErrors(e => [...e, id]);
-				console.log(response, 'error image upload');
-			}
-		} else if (type === 'video' && uri) {
-			setUploading(e => [...e, id]);
-			setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, video: uri }]));
-			const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file' })
-			if (response.body === "ok") {
-				socket?.emit('sendVideo', { _id: id, text: "", createdAt: new Date(), user, roomId }, setUploading(e => e.filter(r => r !== id)));
-			} else {
-				setErrors(e => [...e, id]);
-				console.log(response, 'error video upload');
-			}
-		} else if (type === 'file' && uri) {
-			setUploading(e => [...e, id]);
-			setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, file: uri, fileName: name, mimType }]));
-			const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file' })
-			if (response.body === "ok") {
-				socket?.emit('sendFile', { _id: id, text: "", createdAt: new Date(), user, roomId, fileName: name }, setUploading(e => e.filter(r => r !== id)));
-			} else {
-				setErrors(e => [...e, id]);
-				console.log(response, 'error file upload');
-			}
-		}
-	};
-
+export function RenderChatFooter({ user, socket, translateY, roomId, setMessages, recording, setRecording, colors, setErrors, setUploading, handleAudioPermissions, pan, panResponder,permissionResponse }: RenderChatFooterProps) {
 	const handleCamera = async () => {
 		await ImagePicker.requestCameraPermissionsAsync();
 		let result = await ImagePicker.launchCameraAsync({
@@ -74,7 +53,9 @@ export function RenderChatFooter({ user, socket, translateY, roomId, setMessages
 			preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Current
 		});
 		if (!result.canceled) {
-			sendMedia({ uri: result.assets[0].uri, type: result.assets[0].type });
+			// sendMedia({ uri: result.assets[0].uri, type: result.assets[0].type });
+			sendMedia({ uri: result.assets[0].uri, type: result.assets[0].type, setErrors, setMessages, setUploading, roomId, socket, user });
+
 		};
 	};
 
@@ -87,7 +68,9 @@ export function RenderChatFooter({ user, socket, translateY, roomId, setMessages
 			videoQuality: 1,
 		});
 		if (!result.canceled) {
-			sendMedia({ uri: result.assets[0].uri, type: result.assets[0].type });
+			sendMedia({ uri: result.assets[0].uri, type: result.assets[0].type, setErrors, setMessages, setUploading, roomId, socket, user });
+
+			// sendMedia({ uri: result.assets[0].uri, type: result.assets[0].type });
 		}
 	};
 
@@ -97,7 +80,8 @@ export function RenderChatFooter({ user, socket, translateY, roomId, setMessages
 				type: "*/*",
 			});
 			if (!result.canceled) {
-				sendMedia({ uri: result.assets[0].uri, type: "file", name: result.assets[0].name, mimType: result.assets[0].mimeType });
+				sendMedia({ uri: result.assets[0].uri, type: "file", name: result.assets[0].name, mimType: result.assets[0].mimeType, setErrors, setMessages, setUploading, roomId, socket, user });
+				// sendMedia({ uri: result.assets[0].uri, type: "file", name: result.assets[0].name, mimType: result.assets[0].mimeType });
 			};
 		} catch (error) {
 			console.log(error);
@@ -116,9 +100,22 @@ export function RenderChatFooter({ user, socket, translateY, roomId, setMessages
 				<TouchableHighlight onPress={handlePickFile} underlayColor={colors.undetlay} style={[styles.iconContainer, { backgroundColor: colors.background }]}>
 					<Feather name='file' size={30} color={colors.primary} />
 				</TouchableHighlight>
-				<TouchableHighlight onPress={() => console.log('object')} underlayColor={colors.undetlay} style={[styles.iconContainer, { backgroundColor: colors.background }]}>
-					<Feather name='mic' size={30} color={colors.primary} />
-				</TouchableHighlight>
+				<NativeAnimated.View {...panResponder.panHandlers} style={{ transform: [{ translateY: pan }] }}>
+					<TouchableHighlight
+						onPressIn={() => startRecording({ handleAudioPermissions, setRecording,permissionResponse })}
+						style={[styles.iconContainer, { backgroundColor: colors.background }]}
+						underlayColor={colors.undetlay}
+					>
+						<Feather name='mic' size={30} color={colors.primary} />
+					</TouchableHighlight>
+				</NativeAnimated.View>
+				{
+					recording?.playing ? (
+						<TouchableHighlight onPress={() => setRecording((e) => ({ ...e, playing: false, status: RecordingEnum.cancel }))} style={[styles.trashIconContainer, { backgroundColor: colors.red, opacity: 0.85 }]}>
+							<Feather name='trash' size={30} color={colors.background} />
+						</TouchableHighlight>
+					) : null
+				}
 			</View>
 		</Animated.View>
 	)
@@ -203,12 +200,15 @@ export function renderTime(props: TimeProps<IMessage>, { colors }: { colors: typ
 		/>)
 };
 
-type RenderMessageImageProps = { setMessages: React.Dispatch<React.SetStateAction<IMessage[]>>, downloading: (string | number)[], setDownloading: (callback: (prev: (string | number)[]) => (string | number)[]) => void, uploading: (string | number)[], errors: (string | number)[] };
+type renderMessageImageProps = { setMessages: React.Dispatch<React.SetStateAction<IMessage[]>>, downloading: (string | number)[], setDownloading: (callback: (prev: (string | number)[]) => (string | number)[]) => void, uploading: (string | number)[], errors: (string | number)[] };
 type renderMessageVideoProps = { setMessages: React.Dispatch<React.SetStateAction<IMessage[]>>, downloading: (string | number)[], setDownloading: (callback: (prev: (string | number)[]) => (string | number)[]) => void, videoRef: React.MutableRefObject<Video>, uploading: (string | number)[], errors: (string | number)[] };
-type renderMessageFileProps = { setMessages: React.Dispatch<React.SetStateAction<IMessage[]>>, downloading: (string | number)[], setDownloading: (callback: (prev: (string | number)[]) => (string | number)[]) => void, colors: typeof darkTheme.colors, uploading: (string | number)[], errors: (string | number)[] };
+type renderMessageFileProps = { setMessages: React.Dispatch<React.SetStateAction<IMessage[]>>, downloading: (string | number)[], setDownloading: (callback: (prev: (string | number)[]) => (string | number)[]) => void, colors: typeof darkTheme.colors, uploading: (string | number)[], errors: (string | number)[], player: player, setPlayer: (callback: (prev: player) => (player)) => void };
+type renderMessageAudioProps = { setMessages: React.Dispatch<React.SetStateAction<IMessagePro[]>>, downloading: (string | number)[], setDownloading: (callback: (prev: (string | number)[]) => (string | number)[]) => void, colors: typeof darkTheme.colors, uploading: (string | number)[], errors: (string | number)[], player: player, setPlayer: (callback: (prev: player) => (player)) => void, currentPosition: currentPosition, setCurrentPosition: (callback: (prev: currentPosition) => (currentPosition)) => void, setIsOpen: (e: boolean) => void };
 
-export const renderMessageFile = (props: MessageProps<IMessagePro>, { setMessages, downloading, setDownloading, colors, uploading }: renderMessageFileProps) => {
+export const renderMessageFile = (props: MessageProps<IMessagePro>, { setMessages, downloading, setDownloading, colors, uploading, setPlayer }: renderMessageFileProps) => {
 	const Message = props.currentMessage;
+	//@ts-ignore
+	const color = props.position === 'right' ? '#fff' : colors.text === "#F1F6F9" ? '#fff' : '#000'
 
 	async function handlePress() {
 		if (Message?.file?.startsWith('file') || !Message?.file || !Message.fileName) return;
@@ -219,7 +219,7 @@ export const renderMessageFile = (props: MessageProps<IMessagePro>, { setMessage
 			})
 			.catch(error => {
 				console.error(error, 'errrrrrrrr');
-			}).finally(()=>{
+			}).finally(() => {
 				setDownloading(e => e.filter(r => r !== Message._id));
 			});
 		const newFile = fileDirectory + Message.fileName;
@@ -248,7 +248,7 @@ export const renderMessageFile = (props: MessageProps<IMessagePro>, { setMessage
 		}
 	};
 
-	if (props?.currentMessage?.file) {
+	if (Message?.file) {
 		return (
 			<View style={[{ zIndex: 10, position: 'relative', width: 200, height: 80, flexDirection: 'row', alignItems: 'center' }]}>
 				<View style={{ width: 50, height: 50, borderRadius: 50, marginHorizontal: 10, justifyContent: 'center', alignItems: 'center' }}>
@@ -264,13 +264,16 @@ export const renderMessageFile = (props: MessageProps<IMessagePro>, { setMessage
 								</TouchableHighlight>
 					}
 				</View>
-				<Text style={[{ marginLeft: 'auto', marginRight: 10, color: props.position === 'right' ? '#fff' : colors.text === "#F1F6F9" ? '#fff' : '#000', width: '50%' }]}>{Message?.fileName}</Text>
+				<View style={{ marginLeft: 0, marginRight: 'auto', width: 130, overflow: 'hidden' }}>
+					<MovingText disable={false} animationThreshold={15} style={[{ color: color, size: 10 }]}>{Message?.fileName ? Message?.fileName : 'Voice'}</MovingText>
+				</View>
 			</View>
 		)
+		// }
 	}
 };
 
-export const RenderMessageImage = (props: MessageImageProps<IMessagePro>, { setMessages, downloading, setDownloading, uploading }: RenderMessageImageProps) => {
+export const RenderMessageImage = (props: MessageImageProps<IMessagePro>, { setMessages, downloading, setDownloading, uploading }: renderMessageImageProps) => {
 	const Message = props.currentMessage;
 
 	async function handlePress() {
@@ -279,11 +282,11 @@ export const RenderMessageImage = (props: MessageImageProps<IMessagePro>, { setM
 		setDownloading(e => [...e, Message._id]);
 		await FileSystem.downloadAsync(Message?.image, fileDirectory + Message.fileName)
 			.then(result => {
-				console.log('Finished downloading to ', result);
+				console.log('Finished downloading to ', 'result');
 			})
 			.catch(error => {
 				console.error(error, 'errrrrrrrr');
-			}).finally(()=>{
+			}).finally(() => {
 				setDownloading(e => e.filter(r => r !== Message._id));
 			});
 		const newImage = fileDirectory + Message.fileName;
@@ -333,11 +336,11 @@ export function renderMessageVideo(props: MessageVideoProps<IMessagePro>, { setM
 		setDownloading(e => [...e, Message._id]);
 		await FileSystem.downloadAsync(Message?.video, fileDirectory + Message.fileName)
 			.then(result => {
-				console.log('Finished downloading to ', result);
+				console.log('Finished downloading to ', 'result');
 			})
 			.catch(error => {
 				console.error(error, 'errrrrrrrr');
-			}).finally(()=>{
+			}).finally(() => {
 				setDownloading(e => e.filter(r => r !== Message._id));
 			});
 		const newVideo = fileDirectory + Message.fileName;
@@ -400,6 +403,120 @@ export function renderMessageVideo(props: MessageVideoProps<IMessagePro>, { setM
 		}
 	</Pressable>)
 };
+
+export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setMessages, downloading, setDownloading, uploading, colors, errors, setPlayer, player, currentPosition, setCurrentPosition, setIsOpen }: renderMessageAudioProps) => {
+	const Message = props.currentMessage;
+	const isPlaying = player?.playing === true && Message?._id === player.id;
+
+	const stopPlaying = async ({ isForStart }: { isForStart: boolean }) => {
+		if (!player?.track) return;
+		const status = await player.track.getStatusAsync();
+		await player.track.stopAsync();
+		await player.track.unloadAsync();
+		// @ts-ignore 
+		const lastPosition = Message?._id === player.id ? status.positionMillis : 0;
+		setPlayer((e) => {
+			//@ts-ignore
+			return { uri: undefined, track: undefined, name: undefined, id: Message?._id, duration: status.durationMillis, lastPosition, playing: isForStart ? true : false };
+		});
+		setCurrentPosition(() => ({ id: Message?._id, position: lastPosition }));
+	};
+
+	const startPlaying = async () => {
+		if (!Message?.audio) return;
+		setPlayer((e) => {
+			return { ...e, uri: Message?.audio, id: Message?._id };
+		});
+
+		setIsOpen(true);
+		await stopPlaying({ isForStart: true });
+
+		const { sound: newSound, status } = await Audio.Sound.createAsync(
+			{ uri: Message.audio },
+			{ isLooping: false, progressUpdateIntervalMillis: 1000, shouldPlay: false }
+		);
+
+		if (currentPosition.id === Message?._id && currentPosition.position) {
+			await newSound.playFromPositionAsync(currentPosition.position);
+		} else {
+			await newSound.playAsync();
+			setCurrentPosition(() => ({ id: Message?._id, position: undefined }));
+		};
+		setPlayer(() => {
+			//@ts-ignore
+			return { track: newSound, name: Message.fileName, uri: Message.audio, uuid: Message._id, duration: status?.durationMillis, id: Message._id, playing: true }
+		});
+	};
+
+	async function handlePress() {
+		console.log(Message,'message')
+		if (Message?.file?.startsWith('file') || !Message?.audio || !Message.fileName) return;
+		setDownloading(e => [...e, Message._id]);
+		await FileSystem.downloadAsync(Message?.audio, fileDirectory + Message.fileName)
+			.then(result => {
+				console.log('Finished downloading to ', 'result');
+			})
+			.catch(error => {
+				console.error(error, 'errrrrrrrr');
+			}).finally(() => {
+				setDownloading(e => e.filter(r => r !== Message._id));
+			});
+		const newFile = fileDirectory + Message.fileName;
+		// console.log('delete this it at last');
+		//delete this it at last
+		if (!Message.duration) {
+			const { sound,status } = await Audio.Sound.createAsync({ uri: newFile }, { shouldPlay: false });
+			//@ts-ignore
+			const duration:number = status?.durationMillis;
+			setMessages((prevMessages: IMessagePro[]) => (prevMessages.map(e => {
+				if (e._id === Message._id) {
+					return { ...e, audio: newFile,duration };
+				} else {
+					return e;
+				}
+			})));
+			await sound.unloadAsync();
+		}else{
+			setMessages((prevMessages: IMessagePro[]) => (prevMessages.map(e => {
+				if (e._id === Message._id) {
+					return { ...e, audio: newFile };
+				} else {
+					return e;
+				}
+			})));
+		}
+	};
+
+	//@ts-ignore
+	const color = props.position === 'right' ? '#fff' : colors.text === "#F1F6F9" ? '#fff' : '#000';
+	const time = formatMillisecondsToTime(Message?.duration);
+
+	//@ts-ignore
+	const currentPositionTime = (currentPosition.position > 1) && (Message?._id === currentPosition?.id) ? `${formatMillisecondsToTime(currentPosition.position)} / ${time}` : time;
+
+	return (
+		<View style={[{ zIndex: 10, position: 'relative', width: 200, height: 80, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', overflow: 'hidden' }]}>
+			<View style={{ width: 50, height: 50, borderRadius: 50, marginHorizontal: 10, justifyContent: 'center', alignItems: 'center' }}>
+				{
+					!!uploading.find(e => e === Message?._id) ? <ActivityIndicator style={[styles.iconContainer, { backgroundColor: colors.background }]} size="large" color={colors.mirza} /> : Message?.audio?.startsWith('file') ?
+						<TouchableHighlight onPress={isPlaying ? () => stopPlaying({ isForStart: false }) : startPlaying} style={[styles.iconContainer, { backgroundColor: colors.undetlay }]}>
+							<Ionicons name={isPlaying ? "pause" : "play"} size={30} color="#fff" style={{ marginRight: isPlaying ? 0 : -4 }} />
+						</TouchableHighlight> :
+						!!downloading.find(e => e === Message?._id) ?
+							<ActivityIndicator style={[styles.iconContainer, { backgroundColor: colors.background }]} size="large" color={colors.mirza} /> :
+							<TouchableHighlight onPress={handlePress} style={[styles.iconContainer, { backgroundColor: colors.background }]}>
+								<MaterialCommunityIcons name="download" size={34} color={colors.mirza} />
+							</TouchableHighlight>
+				}
+			</View>
+			<View style={{ marginLeft: 0, marginRight: 'auto', width: 130, overflow: 'hidden' }}>
+				<MovingText disable={isPlaying ? false : true} animationThreshold={15} style={[{ color: color, size: 10 }]}>{Message?.fileName ? Message?.fileName : 'Voice'}</MovingText>
+				<Text style={{ color, margin: 'auto' }}>{currentPositionTime}</Text>
+			</View>
+		</View>
+	)
+};
+
 
 export function renderSend(props: SendProps<IMessage>, { colors }: { colors: typeof darkTheme.colors }) {
 	return (<View style={{ flexDirection: 'row', alignItems: "center" }}>
@@ -468,6 +585,14 @@ const styles = StyleSheet.create({
 		justifyContent: 'center',
 		alignItems: 'center',
 		borderRadius: 50,
+	},
+	trashIconContainer: {
+		position: 'absolute',
+		top: '-12%',
+		left: '84%',
+		transform: [{ translateY: -15 }],
+		borderRadius: 50,
+		padding: 10
 	},
 	image: {
 		width: 150,
