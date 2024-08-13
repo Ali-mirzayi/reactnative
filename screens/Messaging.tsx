@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { GiftedChat, IMessage } from 'react-native-gifted-chat'
 import { StackScreenProps } from "@react-navigation/stack";
 import { IMessagePro, RecordingEnum, RootStackParamList } from '../utils/types';
-import { useLastMessage, useSetDownloading, useSetErrors, useSetUploading, useSocket, useUser } from '../socketContext';
+import { useIsOpen, useLastTrack, usePlayer, usePosition, useSetDownloading, useSetErrors, useSetLastMessage, useSetUploading, useSocket, useUser } from '../socketContext';
 import { updateMessage, getRoom } from '../utils/DB';
 import { useSharedValue, withTiming } from 'react-native-reanimated';
 import LoadingPage from '../components/LoadingPage';
@@ -17,17 +17,12 @@ import { cancelRecording, stopRecording } from '../components/SendMedia';
 
 const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>) => {
 	const { contact, roomId }: any = route.params;
+
 	const [messages, setMessages] = useState<IMessage[]>([]);
 	const [open, setOpen] = useState<boolean>(false); // renderChatFooter
 	const [status, setStatus] = useState<boolean | undefined>(undefined); // connection
 	const [recording, setRecording] = useState<undefined | { playing: boolean, status: RecordingEnum }>();
 	const [isInRoom, setIsInRoom] = useState<boolean>(true);
-	const setLastMessage = useLastMessage(state => state.setLastMessage);
-	const { downloading, setDownloading } = useSetDownloading();
-	const { uploading, setUploading } = useSetUploading();
-	const { errors, setErrors } = useSetErrors();
-	const user: any = useUser(state => state.user);
-	const translateY = useSharedValue(1000);
 	const [isPending, setPending] = useState(true); // set for roomId and save it db
 
 	const socket = useSocket(state => state.socket);
@@ -91,15 +86,15 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 		}
 	};
 
-	const handleLastMessages = ({ messageRoomId, newMessage }: { messageRoomId: string, newMessage: string }) => {
+	const handleLastMessages = ({ roomId, newMessage }: { roomId: string, newMessage: string }) => {
 		setLastMessage((prevState: any) => {
-			const existingItem = prevState.find((item: any) => item.roomId === messageRoomId);
+			const existingItem = prevState.find((item: any) => item.roomId === roomId);
 			if (existingItem) {
 				return prevState.map((item: any) =>
-					item.roomId === messageRoomId ? { ...item, message: newMessage } : item
+					item.roomId === roomId ? { ...item, message: newMessage } : item
 				);
 			} else {
-				return [...prevState, { messageRoomId, message: newMessage }];
+				return [...prevState, { roomId, message: newMessage }];
 			}
 		})
 	};
@@ -107,68 +102,74 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	useEffect(() => {
 		if (socket) {
 			socket.emit('checkStatus', { contactId: contact._id, userRoomId: roomId });
-			socket.on('checkStatusResponse', (res) => {
-				setStatus(res?.status);
-				setIsInRoom(res?.isInRoom);
+			socket.on('checkStatusResponse', (res: { status: boolean, isInRoom: boolean }) => {
+				setStatus(res.status);
+				setIsInRoom(res.isInRoom);
+			});
+			socket.on('userConnected', (res: string[]) => {
+				const isContactDisconected = res.find(e => e === contact._id);
+				setStatus(!!isContactDisconected);
+			});
+			socket.on('userDisconnected', (res: string[]) => {
+				const isContactDisconected = res.find(e => e === contact._id);
+				setStatus(!!isContactDisconected);
 			});
 			// Listen for new messages from the server
-			socket.on('newMessage', async (data: IMessagePro & { messageRoomId: string }) => {
-				const { messageRoomId, ...newMessage } = data;
-				// console.log(data,'messageRoomId')
-				if (newMessage.image) {
-					await ensureDirExists();
-					const fileName = `${new Date().getTime()}.jpeg`;
-					const fileNamePrev = `${new Date().getTime() - 1000}.jpeg`;
-					const fileUri = (baseURL() + '/' + newMessage.image).replace(/\\/g, '/');
-					if (!newMessage.preView) {
-						newMessage["preView"] = undefined;
-						newMessage["image"] = fileUri;
-						newMessage["fileName"] = fileName;
-					} else {
-						await FileSystem.writeAsStringAsync(fileDirectory + fileNamePrev, newMessage.preView, { encoding: "base64" }).then(() => {
-							newMessage["preView"] = fileDirectory + fileNamePrev;
-							newMessage["image"] = fileUri;
-							newMessage["fileName"] = fileName;
-						}).catch(error => {
-							newMessage["preView"] = undefined;
-							newMessage["image"] = fileUri;
-							newMessage["fileName"] = fileName;
-							console.error(error, 'errrrrrrrr');
-						});
-					};
-					handleLastMessages({ messageRoomId: roomId, newMessage: 'New Image' });
-				} else if (newMessage.video) {
-					await ensureDirExists();
-					const thumbnailName = `${new Date().getTime()}.jpeg`;
-					const fileName = `${new Date().getTime()}.mp4`;
-					const videoUri = (baseURL() + '/' + newMessage.video).replace(/\\/g, '/');
-					if (!newMessage.thumbnail) {
-						newMessage["thumbnail"] = undefined;
-						newMessage["fileName"] = fileName;
-						newMessage["video"] = videoUri;
-					} else {
-						await FileSystem.writeAsStringAsync(fileDirectory + thumbnailName, newMessage.thumbnail, { encoding: "base64" }).then(() => {
-							newMessage["thumbnail"] = fileDirectory + thumbnailName;
-							newMessage["fileName"] = fileName;
-							newMessage["video"] = videoUri;
-						}).catch(error => {
-							newMessage["thumbnail"] = undefined;
-							newMessage["fileName"] = fileName;
-							newMessage["video"] = videoUri;
-							console.error(error, 'errrrrrrrr');
-						});
-					};
-					handleLastMessages({ messageRoomId: roomId, newMessage: 'New Video' });
-				} else if (newMessage.file && newMessage.fileName) {
-					await ensureDirExists();
-					const fileUri = (baseURL() + '/' + newMessage.file).replace(/\\/g, '/');
-					newMessage["file"] = fileUri;
-					handleLastMessages({ messageRoomId: roomId, newMessage: 'New File' });
-				} else {
-					handleLastMessages({ messageRoomId: roomId, newMessage: newMessage.text });
-				};
-				setMessages((prevMessages: IMessage[]) => GiftedChat.append(prevMessages, [newMessage]));
-			});
+			// socket.on('newMessage', async (newMessage: IMessagePro) => {
+			// 	if (newMessage.image) {
+			// 		await ensureDirExists();
+			// 		const fileName = `${new Date().getTime()}.jpeg`;
+			// 		const fileNamePrev = `${new Date().getTime() - 1000}.jpeg`;
+			// 		const fileUri = (baseURL() + '/' + newMessage.image).replace(/\\/g, '/');
+			// 		if (!newMessage.preView) {
+			// 			newMessage["preView"] = undefined;
+			// 			newMessage["image"] = fileUri;
+			// 			newMessage["fileName"] = fileName;
+			// 		} else {
+			// 			await FileSystem.writeAsStringAsync(fileDirectory + fileNamePrev, newMessage.preView, { encoding: "base64" }).then(() => {
+			// 				newMessage["preView"] = fileDirectory + fileNamePrev;
+			// 				newMessage["image"] = fileUri;
+			// 				newMessage["fileName"] = fileName;
+			// 			}).catch(error => {
+			// 				newMessage["preView"] = undefined;
+			// 				newMessage["image"] = fileUri;
+			// 				newMessage["fileName"] = fileName;
+			// 				console.error(error, 'errrrrrrrr');
+			// 			});
+			// 		};
+			// 		handleLastMessages({ roomId, newMessage: 'New Image' });
+			// 	} else if (newMessage.video) {
+			// 		await ensureDirExists();
+			// 		const thumbnailName = `${new Date().getTime()}.jpeg`;
+			// 		const fileName = `${new Date().getTime()}.mp4`;
+			// 		const videoUri = (baseURL() + '/' + newMessage.video).replace(/\\/g, '/');
+			// 		if (!newMessage.thumbnail) {
+			// 			newMessage["thumbnail"] = undefined;
+			// 			newMessage["fileName"] = fileName;
+			// 			newMessage["video"] = videoUri;
+			// 		} else {
+			// 			await FileSystem.writeAsStringAsync(fileDirectory + thumbnailName, newMessage.thumbnail, { encoding: "base64" }).then(() => {
+			// 				newMessage["thumbnail"] = fileDirectory + thumbnailName;
+			// 				newMessage["fileName"] = fileName;
+			// 				newMessage["video"] = videoUri;
+			// 			}).catch(error => {
+			// 				newMessage["thumbnail"] = undefined;
+			// 				newMessage["fileName"] = fileName;
+			// 				newMessage["video"] = videoUri;
+			// 				console.error(error, 'errrrrrrrr');
+			// 			});
+			// 		};
+			// 		handleLastMessages({ roomId, newMessage: 'New Video' });
+			// 	} else if (newMessage.file && newMessage.fileName) {
+			// 		await ensureDirExists();
+			// 		const fileUri = (baseURL() + '/' + newMessage.file).replace(/\\/g, '/');
+			// 		newMessage["file"] = fileUri;
+			// 		handleLastMessages({ roomId, newMessage: 'New File' });
+			// 	} else {
+			// 		handleLastMessages({ roomId, newMessage: newMessage.text });
+			// 	};
+			// 	setMessages((prevMessages: IMessage[]) => GiftedChat.append(prevMessages, [newMessage]));
+			// });
 			return () => {
 				socket.off('newMessage');
 				socket.off('checkStatusResponse');
@@ -208,12 +209,12 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 
 	useFocusEffect(
 		useCallback(() => {
-			socket?.emit('isUserInRoom', { userId: user._id, userRoomId: roomId, contactId: contact._id });
+			socket?.emit('isUserInRoom', { userId: user._id, contactId: contact._id, userRoomId: roomId });
 			socket?.on('isUserInRoomResponse', (res) => {
-				setIsInRoom(res);
+				setIsInRoom(res)
 			});
 			return () => {
-				socket?.emit('isUserInRoom', { userId: user._id, userRoomId: undefined, contactId: contact._id });
+				socket?.emit('isUserInRoom', { userId: user._id, contactId: contact._id, userRoomId: undefined });
 				socket?.off('isUserInRoomResponse');
 			};
 		}, [socket])
@@ -222,7 +223,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	const onSend = (newMessage: IMessage[]) => {
 		if ((!status || !socket)) return;
 		socket.emit('sendMessage', { ...newMessage[0], user, roomId }, setMessages((prevMessages: IMessage[]) => GiftedChat.append(prevMessages, [...newMessage])));
-		handleLastMessages({ messageRoomId:roomId, newMessage: newMessage[0].text })
+		handleLastMessages({ roomId, newMessage: newMessage[0].text })
 	};
 
 	return (
