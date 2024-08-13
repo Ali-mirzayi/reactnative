@@ -1,7 +1,20 @@
 import { Socket } from 'socket.io-client';
-import { LastMessageType, User } from './utils/types';
+import { currentPosition, LastMessageType, lastTrack, player, User } from './utils/types';
 import { create } from 'zustand';
 import * as Notifications from "expo-notifications";
+import { Audio } from 'expo-av';
+
+const initialCurrentPosition: currentPosition = {
+    position:undefined,
+	id:undefined
+};
+
+const initialLastTrack: lastTrack = {
+    duration: undefined,
+    id: undefined,
+    name: undefined,
+    uri: undefined
+};
 
 interface useSocket {
 	socket: Socket | null
@@ -35,6 +48,34 @@ interface useSetErrors {
 interface useLastMessage {
 	lastMessage: LastMessageType[] | []
 	setLastMessage: (callback: (prev: LastMessageType[]) => LastMessageType[]) => void
+}
+
+interface useSetLastMessage {
+	lastMessage: LastMessageType[] | []
+	setLastMessage: (callback: (prev: LastMessageType[] | []) => (LastMessageType[] | [])) => void
+}
+interface usePlayer {
+	player: player
+	setPlayer: (callback: (prev: player) => (player)) => void
+}
+interface usePosition {
+	currentPosition: currentPosition
+	setCurrentPosition: (callback: (prev: currentPosition) => (currentPosition)) => void
+}
+
+interface useLastTrack {
+	lastTrack: lastTrack
+	setLastTrack: (callback: (prev: lastTrack) => (lastTrack)) => void
+}
+
+interface useBeCheck {
+	beCheck: boolean
+	setBeCheck: (e: boolean) => void
+}
+
+interface useIsOpen {
+	open: boolean
+	setOpen: (e: boolean) => void
 }
 
 export const useSocket = create<useSocket>()((set) => ({
