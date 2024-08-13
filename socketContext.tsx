@@ -1,5 +1,5 @@
 import { Socket } from 'socket.io-client';
-import { CountNewMessageType, currentPosition, LastMessageType, lastTrack, player, User } from './utils/types';
+import { currentPosition, LastMessageType, lastTrack, player, User } from './utils/types';
 import { create } from 'zustand';
 import * as Notifications from "expo-notifications";
 import { Audio } from 'expo-av';
@@ -44,6 +44,10 @@ interface useSetUploading {
 interface useSetErrors {
 	errors: (string | number)[]
 	setErrors: (callback: (prev: (string | number)[]) => (string | number)[]) => void
+}
+interface useLastMessage {
+	lastMessage: LastMessageType[] | []
+	setLastMessage: (callback: (prev: LastMessageType[]) => LastMessageType[]) => void
 }
 
 interface useSetLastMessage {
@@ -109,34 +113,7 @@ export const useSetErrors = create<useSetErrors>()((set) => ({
 	setErrors: (callback) => set((state) => ({ errors: callback(state.errors) })),
 }));
 
-export const useSetLastMessage = create<useSetLastMessage>()((set) => ({
+export const useLastMessage = create<useLastMessage>()((set) => ({
 	lastMessage: [],
 	setLastMessage: (callback) => set((state) => ({ lastMessage: callback(state.lastMessage) })),
-}));
-
-export const usePlayer = create<usePlayer>()((set) => ({
-	player: undefined,
-	setPlayer: (callback) => set((state) => ({ player: callback(state.player) })),
-}));
-
-export const useBeCheck = create<useBeCheck>()((set) => ({
-	beCheck : false,
-	setBeCheck: (e) => set({ beCheck: e })
-}));
-
-export const usePosition = create<usePosition>()((set) => ({
-	currentPosition : initialCurrentPosition,
-	setCurrentPosition: (callback) => set((state) => ({ currentPosition: callback(state.currentPosition) }))
-}));
-
-export const useLastTrack = create<useLastTrack>()((set) => ({
-	lastTrack: initialLastTrack,
-	setLastTrack: (callback) => set((state) => ({ lastTrack: callback(state.lastTrack) })),
-}));
-
-//for open or close FloatingMusicPlayer  useIsOpen
-
-export const useIsOpen = create<useIsOpen>()((set) => ({
-	open: false,
-	setOpen: (e) => set({ open: e })
 }));
