@@ -221,8 +221,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	);
 
 	const onSend = (newMessage: IMessage[]) => {
-		if ((!socket)) return;
-		// if ((!status || !socket)) return;
+		if ((!status || !socket)) return;
 		socket.emit('sendMessage', { ...newMessage[0], user, roomId }, setMessages((prevMessages: IMessage[]) => GiftedChat.append(prevMessages, [...newMessage])));
 		handleLastMessages({ roomId, newMessage: newMessage[0].text })
 	};
