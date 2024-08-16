@@ -1,12 +1,11 @@
 import { TouchableHighlight, StyleSheet, TextInput } from 'react-native'
-import { useCallback, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Ionicons } from "@expo/vector-icons";
 import Animated, { useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import OutsidePressHandler from 'react-native-outside-press';
 import { User } from '../utils/types';
 import { useSocket, useUser } from '../socketContext';
-import { useFocusEffect } from '@react-navigation/native';
-import sleep from '../utils/wait';
+import useDebounce from '../hooks/useDebounce';
 
 type props = {
     setUsers: React.Dispatch<React.SetStateAction<[] | User[]>>,
@@ -14,17 +13,18 @@ type props = {
 };
 
 export default function SearchBar({ setUsers, setScreen }: props) {
-	const user = useUser(state=>state.user);
+    const user = useUser(state => state.user);
     const [search, setSearch] = useState<string | undefined>();
     const width = useSharedValue(50);
     const inputRef = useRef<TextInput>(null);
-    const socket = useSocket(state=>state.socket);
+    const socket = useSocket(state => state.socket);
+    const debouncedInputValue = useDebounce(search?.toLocaleLowerCase(), 500);
 
     const handlePressIn = () => {
         width.value = withTiming(175, { duration: 500 });
         inputRef.current?.focus();
     };
-    
+
     const handlePressOut = () => {
         width.value = withDelay(500, withTiming(50, { duration: 500 }));
         inputRef.current?.blur();
@@ -37,26 +37,18 @@ export default function SearchBar({ setUsers, setScreen }: props) {
             setScreen("rooms");
         } else {
             setScreen("users");
-            socket?.emit("findUser", { search: e, user: user });
-            socket?.on("findUser", (roomChats: any) => setUsers(roomChats));
         }
     }
 
-	// useFocusEffect(
-	// 	useCallback(() => {
-    //         (async()=>{
-    //             setScreen("rooms");
-    //             setSearch(undefined);
-    //             setUsers([]);
-    //             await sleep(300);
-    //             handlePressIn();
-    //         })()
-	// 	}, [])
-	//   );
+    useEffect(() => {
+        if (!debouncedInputValue) return;
+        socket?.emit("findUser", { search: debouncedInputValue, user: user });
+        socket?.on("findUser", (roomChats: any) => setUsers(roomChats));
+    }, [debouncedInputValue]);
 
     return (
         <OutsidePressHandler onOutsidePress={handlePressOut} style={styles.container}>
-            <Animated.View style={[styles.inner, {width}]}>
+            <Animated.View style={[styles.inner, { width }]}>
                 <TextInput ref={inputRef} placeholder="Search Users" value={search} onChangeText={handleSearch} style={styles.Input} />
                 <TouchableHighlight style={styles.icon} onPress={handlePressIn} underlayColor={"#c8cce0"}>
                     <Ionicons name='search' size={25} color='#3F72AF' />
@@ -80,7 +72,7 @@ const styles = StyleSheet.create({
         zIndex: 1000,
         overflow: "hidden",
         height: 40,
-        width:50,
+        width: 50,
     },
     icon: {
         position: "absolute",
@@ -93,7 +85,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         height: 35,
         width: "70%",
-        right:50,
-        paddingLeft:8
+        right: 50,
+        paddingLeft: 8
     }
 })
