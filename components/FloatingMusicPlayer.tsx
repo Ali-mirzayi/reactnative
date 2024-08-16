@@ -112,10 +112,10 @@ const FloatingMusicPlayer = () => {
             <TouchableOpacity onPress={() => navigate('ModalMusic')} style={[styles.container, { backgroundColor: colors.card, borderColor: colors.primary }]}>
                 <View style={styles.innerContainer}>
                     <View style={styles.close}>
-                        <Text>{currentPositionTime}</Text>
+                        <Text style={{color:colors.text}}>{currentPositionTime}</Text>
                         <Ionicons onPress={handleClose} name='close-circle' size={28} color={colors.red} />
                     </View>
-                    <Text>{lastTrack.name}</Text>
+                    <Text style={{color:colors.text}}>{lastTrack.name}</Text>
                     <TouchableHighlight onPress={player?.playing ? () => stopPlaying({}) : startPlaying} style={[styles.iconContainer, { backgroundColor: colors.undetlay }]}>
                         <Ionicons name={player?.playing ? "pause" : "play"} size={20} color="#fff" style={{ marginLeft: player?.playing ? 0 : 2 }} />
                     </TouchableHighlight>
@@ -123,63 +123,8 @@ const FloatingMusicPlayer = () => {
             </TouchableOpacity>
         );
     }
-// };
 
 export default FloatingMusicPlayer;
-
-// const styles = StyleSheet.create({
-// 	sendIcon: {
-// 		marginBottom: 6,
-// 		marginRight: 8,
-// 		height: "auto"
-// 	},
-// 	footerChatOpen: {
-// 		shadowColor: '#1F2687',
-// 		shadowOpacity: 0.37,
-// 		shadowRadius: 8,
-// 		shadowOffset: { width: 0, height: 8 },
-// 		elevation: 8,
-// 		borderTopLeftRadius: 10,
-// 		borderTopRightRadius: 10,
-// 		borderWidth: 1,
-// 		borderColor: 'rgba(255, 255, 255, 0.18)',
-// 		flexDirection: 'row',
-// 		justifyContent: 'space-around',
-// 		paddingHorizontal: 10,
-// 		paddingTop: 15,
-// 		backgroundColor: '#fff',
-// 		height: 380,
-// 		position: 'absolute',
-// 		bottom: 0,
-// 		right: 0,
-// 		left: 0,
-// 	},
-// 	iconContainer: {
-// 		width: 50,
-// 		height: 50,
-// 		justifyContent: 'center',
-// 		alignItems: 'center',
-// 		borderRadius: 50,
-// 	},
-// 	image: {
-// 		width: 150,
-// 		height: 100,
-// 		borderRadius: 13,
-// 		margin: 3,
-// 		resizeMode: 'cover',
-// 	},
-// 	imageActive: {
-// 		flex: 1,
-// 		resizeMode: 'contain',
-// 	},
-// 	download: {
-// 		position: 'absolute',
-// 		left: 55,
-// 		top: 30,
-// 		zIndex: 50
-// 	}
-// });
-
 
 const styles = StyleSheet.create({
     container: {

@@ -114,62 +114,6 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 				const isContactDisconected = res.find(e => e === contact._id);
 				setStatus(!!isContactDisconected);
 			});
-			// Listen for new messages from the server
-			// socket.on('newMessage', async (newMessage: IMessagePro) => {
-			// 	if (newMessage.image) {
-			// 		await ensureDirExists();
-			// 		const fileName = `${new Date().getTime()}.jpeg`;
-			// 		const fileNamePrev = `${new Date().getTime() - 1000}.jpeg`;
-			// 		const fileUri = (baseURL() + '/' + newMessage.image).replace(/\\/g, '/');
-			// 		if (!newMessage.preView) {
-			// 			newMessage["preView"] = undefined;
-			// 			newMessage["image"] = fileUri;
-			// 			newMessage["fileName"] = fileName;
-			// 		} else {
-			// 			await FileSystem.writeAsStringAsync(fileDirectory + fileNamePrev, newMessage.preView, { encoding: "base64" }).then(() => {
-			// 				newMessage["preView"] = fileDirectory + fileNamePrev;
-			// 				newMessage["image"] = fileUri;
-			// 				newMessage["fileName"] = fileName;
-			// 			}).catch(error => {
-			// 				newMessage["preView"] = undefined;
-			// 				newMessage["image"] = fileUri;
-			// 				newMessage["fileName"] = fileName;
-			// 				console.error(error, 'errrrrrrrr');
-			// 			});
-			// 		};
-			// 		handleLastMessages({ roomId, newMessage: 'New Image' });
-			// 	} else if (newMessage.video) {
-			// 		await ensureDirExists();
-			// 		const thumbnailName = `${new Date().getTime()}.jpeg`;
-			// 		const fileName = `${new Date().getTime()}.mp4`;
-			// 		const videoUri = (baseURL() + '/' + newMessage.video).replace(/\\/g, '/');
-			// 		if (!newMessage.thumbnail) {
-			// 			newMessage["thumbnail"] = undefined;
-			// 			newMessage["fileName"] = fileName;
-			// 			newMessage["video"] = videoUri;
-			// 		} else {
-			// 			await FileSystem.writeAsStringAsync(fileDirectory + thumbnailName, newMessage.thumbnail, { encoding: "base64" }).then(() => {
-			// 				newMessage["thumbnail"] = fileDirectory + thumbnailName;
-			// 				newMessage["fileName"] = fileName;
-			// 				newMessage["video"] = videoUri;
-			// 			}).catch(error => {
-			// 				newMessage["thumbnail"] = undefined;
-			// 				newMessage["fileName"] = fileName;
-			// 				newMessage["video"] = videoUri;
-			// 				console.error(error, 'errrrrrrrr');
-			// 			});
-			// 		};
-			// 		handleLastMessages({ roomId, newMessage: 'New Video' });
-			// 	} else if (newMessage.file && newMessage.fileName) {
-			// 		await ensureDirExists();
-			// 		const fileUri = (baseURL() + '/' + newMessage.file).replace(/\\/g, '/');
-			// 		newMessage["file"] = fileUri;
-			// 		handleLastMessages({ roomId, newMessage: 'New File' });
-			// 	} else {
-			// 		handleLastMessages({ roomId, newMessage: newMessage.text });
-			// 	};
-			// 	setMessages((prevMessages: IMessage[]) => GiftedChat.append(prevMessages, [newMessage]));
-			// });
 			return () => {
 				socket.off('newMessage');
 				socket.off('checkStatusResponse');

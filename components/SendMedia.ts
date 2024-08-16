@@ -126,7 +126,8 @@ export async function stopRecording({ setRecording, roomId, setErrors, setMessag
     await recordingObg?.stopAndUnloadAsync();
     const duration = recordingObg?._finalDurationMillis
     const uri = recordingObg?.getURI();
-    sendMedia({ uri, type: "audio", duration, setErrors, setMessages, setUploading, roomId, socket, user, name: generateID() });
+    sendMedia({ uri, type: "audio", duration, setErrors, setMessages, setUploading, roomId, socket, user, name: "voice"});
+    // sendMedia({ uri, type: "audio", duration, setErrors, setMessages, setUploading, roomId, socket, user, name: generateID() });
     recordingObg = undefined;
 };
 
