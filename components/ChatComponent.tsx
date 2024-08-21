@@ -15,6 +15,7 @@ type props = {
 
 const ChatComponent = ({ messages, contact, handleNavigation, countNewMessage, lastMessage }: props) => {
 	const { colors } = useTheme();
+	// console.log(lastMessage,'countNewMessage')
 	return (
 		<TouchableOpacity style={[styles.cchat, { backgroundColor: colors.card, borderColor: colors.mirza, borderWidth:(countNewMessage?.count === 0 || countNewMessage?.count === undefined) ? 0 : 3 }]} onPress={handleNavigation}>
 			<Ionicons

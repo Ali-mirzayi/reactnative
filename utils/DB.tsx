@@ -2,7 +2,7 @@ import * as SQLite from 'expo-sqlite';
 import { Room } from "./types";
 
 export const getDBConnection = () => {
-  return SQLite.openDatabaseAsync('db.db');
+  return SQLite.openDatabaseAsync('db.db',{useNewConnection:true});
 };
 
 export const createTable = async () => {
@@ -18,9 +18,7 @@ export const insertRoom = async (room: Room) => {
 
 export const updateMessage = async (data: Room) => {
   const db = await getDBConnection();
-  // console.log(data,'update data')
   await db.runAsync('UPDATE rooms SET data = ? WHERE id = ?', [JSON.stringify(data), JSON.stringify(data.id)])
-  // .then((res) => console.log(res, 'update db')).catch((error) => console.log(error, 'error'));
 };
 
 export const getAllRooms = async () => {

@@ -47,6 +47,7 @@ export type DrawerCoreType = {
 export type CountNewMessageType = {
     count: number;
     id: string;
+    // contactId: string;
 }
 
 // export type LastMessageType = {
@@ -58,6 +59,7 @@ export type CountNewMessageType = {
 export type LastMessageType = {
     message: string;
     roomId: string;
+    // contactId: string;
 }
 
 export type player = {
