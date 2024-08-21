@@ -37,8 +37,9 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 	const [screen, setScreen] = useState<'users' | 'rooms'>('rooms');
 	const [countNewMessages, setCountNewMessages] = useState<CountNewMessageType[] | []>([]);
 	const [currentRoomId, setCurrentRoomId] = useState<string | undefined>(undefined);
-	const isPlayerOpen = useIsOpen(state=>state.open);
-
+	const [contactMap,setContactMap] = useState<{[key: string]: string[]}>({});
+	
+	const isPlayerOpen = useIsOpen(state => state.open);
 	const initDarkMode = storage.getBoolean("darkMode");
 	const colorScheme = useColorScheme();
 	const scheme = (colorScheme === 'dark' ? false : true);
@@ -121,11 +122,8 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 		}));
 	}, []);
 
-	const notifData = notification?.request.content.data;
-
 	useEffect(() => {
 		if (!socket) return;
-
 		socket.on('chatNewMessage', async (data: IMessagePro & { roomId: string }) => {
 			const { roomId, ...newMessage } = data;
 			const selectedRoom = await getRoom(roomId);
@@ -191,7 +189,7 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 			const contact = newMessage.user;
 			//@ts-ignore
 			await updateMessage({ id: roomId, users: [user, contact], messages: newRoomMessage });
-			if (currentRoomId !== roomId) {
+			if (isFocused || currentRoomId !== roomId) {
 				handleCountNewMessages({ roomId, erase: false });
 			};
 		});
@@ -214,6 +212,23 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 			socket.off("newRoom", setter);
 		};
 	}, [socket, isFocused]);
+
+	useEffect(()=>{
+		const contactRoomMap: { [key: string]: string[] } = rooms.reduce((acc, room) => {
+			room.users.forEach(e => {  
+				if (e._id !== user?._id) {
+					if (!acc[e._id]) {  
+						acc[e._id] = [];  
+					}  
+					acc[e._id].push(room.id);  
+				}  
+			});  
+			return acc; 
+		}, {} as { [key: string]: string[] });
+		setContactMap(contactRoomMap);
+	},[rooms.length]);
+
+	const notifData = notification?.request.content.data;
 
 	useLayoutEffect(() => {
 		if (notifData) {
@@ -271,8 +286,10 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 						{screen === "users" && users.length > 0 ?
 							<View>
 								<FlatList
-									renderItem={({ item }) => <ChatComponent contact={item} lastMessage={undefined} countNewMessage={undefined} messages={{ text: "Tap to start chatting" }} handleNavigation={() => pressUserHandler({ contact: item })} />}
+									renderItem={({ item }) => <ChatComponent contact={item} lastMessage={lastMessage.find(e => e.roomId === contactMap[item._id]?.[0])?.message} countNewMessage={countNewMessages.find(e => e.id === contactMap[item._id]?.[0])} messages={{ text: "Tap to start chatting" }} handleNavigation={() => pressUserHandler({ contact: item })} />}
 									data={users}
+									keyExtractor={(item) => item._id}
+									extraData={lastMessage}
 								/>
 							</View> : <View />
 						}
