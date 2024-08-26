@@ -28,6 +28,10 @@ interface useUser {
 	user: User | undefined
 	setUser: (e: User) => void
 }
+interface useCurrentContact {
+	contact: User | undefined
+	setContact: (e: User) => void
+}
 interface useForceRerender {
 	forceRerender: boolean
 	setForceRerender: () => void
@@ -87,6 +91,11 @@ export const useDarkMode = create<useDarkMode>()((set) => ({
 export const useUser = create<useUser>()((set) => ({
 	user: undefined,
 	setUser: (e) => set({ user: e })
+}));
+
+export const useCurrentContact = create<useCurrentContact>()((set) => ({
+	contact: undefined,
+	setContact: (e) => set({ contact: e })
 }));
 
 export const useForceRerender = create<useForceRerender>()((set) => ({

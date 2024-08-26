@@ -6871,6 +6871,11 @@ react-native-screens@3.31.1:
     react-freeze "^1.0.0"
     warn-once "^0.1.0"
 
+react-native-theme-switch-animation@^0.8.0:
+  version "0.8.0"
+  resolved "https://registry.yarnpkg.com/react-native-theme-switch-animation/-/react-native-theme-switch-animation-0.8.0.tgz#d9f69d5e41a00697d368897216d318d9430aff0d"
+  integrity sha512-z4f3QGSuUP4tagycls2mekng/7uxAbr75Gn0GGm7JRkrviyao++V2CtJ8VUDx+hSOsgfjEhD9D5JubsGbbHB5w==
+
 react-native-toast-message@^2.1.8:
   version "2.1.8"
   resolved "https://registry.npmjs.org/react-native-toast-message/-/react-native-toast-message-2.1.8.tgz"

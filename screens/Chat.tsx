@@ -37,13 +37,11 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 	const [screen, setScreen] = useState<'users' | 'rooms'>('rooms');
 	const [countNewMessages, setCountNewMessages] = useState<CountNewMessageType[] | []>([]);
 	const [currentRoomId, setCurrentRoomId] = useState<string | undefined>(undefined);
-	const [contactMap,setContactMap] = useState<{[key: string]: string[]}>({});
-	
+	const [contactMap, setContactMap] = useState<{ [key: string]: string[] }>({});
+
 	const isPlayerOpen = useIsOpen(state => state.open);
 	const initDarkMode = storage.getBoolean("darkMode");
-	const colorScheme = useColorScheme();
-	const scheme = (colorScheme === 'dark' ? false : true);
-	const [darkMode, setDarkMode] = useState(initDarkMode !== undefined ? initDarkMode : scheme);
+	const [darkMode, setDarkMode] = useState(initDarkMode !== undefined ? initDarkMode : true);
 
 	const isFocused = useIsFocused();
 
@@ -213,20 +211,20 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 		};
 	}, [socket, isFocused]);
 
-	useEffect(()=>{
+	useEffect(() => {
 		const contactRoomMap: { [key: string]: string[] } = rooms.reduce((acc, room) => {
-			room.users.forEach(e => {  
+			room.users.forEach(e => {
 				if (e._id !== user?._id) {
-					if (!acc[e._id]) {  
-						acc[e._id] = [];  
-					}  
-					acc[e._id].push(room.id);  
-				}  
-			});  
-			return acc; 
+					if (!acc[e._id]) {
+						acc[e._id] = [];
+					}
+					acc[e._id].push(room.id);
+				}
+			});
+			return acc;
 		}, {} as { [key: string]: string[] });
 		setContactMap(contactRoomMap);
-	},[rooms.length]);
+	}, [rooms.length]);
 
 	const notifData = notification?.request.content.data;
 

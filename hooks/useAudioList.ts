@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Room } from '../utils/types';
 import { getAllRooms } from '../utils/DB';
 
-type audioListType = {
+export type audioListType = {
   uri: string;
   audioName: string;
   id: string | number;

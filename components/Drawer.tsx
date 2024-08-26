@@ -1,5 +1,5 @@
 import { Drawer } from 'react-native-drawer-layout';
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import { View, Text, Animated, StyleSheet, Easing, Pressable } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import Checkbox from 'expo-checkbox';
@@ -10,9 +10,11 @@ import useTheme from "../utils/theme";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { DrawerCoreType } from "../utils/types";
 import { useBeCheck, useUser } from '../socketContext';
+import switchTheme from 'react-native-theme-switch-animation';
+import sleep from '../utils/wait';
 
 
-export default function DrawerCore({ children, open, setOpen,darkMode,setDarkMode }: DrawerCoreType) {
+export default function DrawerCore({ children, open, setOpen, darkMode, setDarkMode }: DrawerCoreType) {
     const user = useUser(state => state.user);
     const beCheck = useBeCheck(state => state.beCheck);
     const { colors } = useTheme();
@@ -20,12 +22,68 @@ export default function DrawerCore({ children, open, setOpen,darkMode,setDarkMod
     const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
     const [isChecked, setChecked] = useState<boolean | undefined>(false);
     const navigation = useNavigation();
-
+    const hasMounted = useRef(false);
 
     const DrawerComponent = () => {
-        function onPressHandler() {
-            setDarkMode(!darkMode);
-            storage.set("darkMode", darkMode);
+        async function onPressHandler() {
+            setDarkMode(e => !e);
+            // delay 1 second
+            await sleep(1000);
+            storage.set("darkMode", !darkMode);
+            switchTheme({
+                switchThemeFunction: () => { },
+                animationConfig: {
+                    type: !darkMode ? 'circular' : 'inverted-circular',
+                    duration: 800,
+                    startingPoint: {
+                        cxRatio: 0.58,
+                        cyRatio: 0.06
+                    },
+                    captureType: "layer"
+                },
+            })
+
+            // switchTheme({
+            //     switchThemeFunction: () => {
+            //         (async()=>{
+            //             await sleep(1000);
+            //             storage.set("darkMode", darkMode);
+            //         })();
+            //     },
+            //     animationConfig: {
+            //         type: !darkMode ? 'circular' : 'inverted-circular',
+            //         duration: 1000,
+            //         startingPoint: {
+            //             cx: 240,
+            //             cy: 50
+            //         }
+            //     },
+            // })
+            //    (async()=>{  
+            //         await sleep(500);
+            //         storage.set("darkMode", darkMode);
+            //     })();
+
+            //     setDarkMode((prevMode) => {  
+            //         const newMode = !prevMode;  
+            //         (async () => {
+            //             await sleep(1000);
+            //             storage.set("darkMode", newMode);  
+
+            //             switchTheme({  
+            //                 switchThemeFunction: () => {},  
+            //                 animationConfig: {  
+            //                     type: newMode ? 'circular' : 'inverted-circular',  
+            //                     duration: 1000,  
+            //                     startingPoint: {  
+            //                         cx: 240,  
+            //                         cy: 50  
+            //                     }  
+            //                 },  
+            //             });  
+            //         })()
+            //         return newMode;
+            //     });  
         }
 
         function onValueChange(value: any) {
@@ -34,9 +92,9 @@ export default function DrawerCore({ children, open, setOpen,darkMode,setDarkMod
         }
 
         return (
-            <View style={{ flex: 1, backgroundColor: colors.background}}>
+            <View style={{ flex: 1, backgroundColor: colors.background }}>
                 <Text style={[styles.chatheading, styles.user, { color: colors.mirza }]}>{user?.name}</Text>
-                <Pressable onPress={onPressHandler} style={{ zIndex: 9999, margin: 8 }} >
+                <Pressable onPress={onPressHandler} style={{ zIndex: 9999, margin: 10 }} >
                     <AnimatedLottieView
                         progress={toggleRef}
                         source={require('../assets/toggle2.json')}
@@ -76,24 +134,49 @@ export default function DrawerCore({ children, open, setOpen,darkMode,setDarkMod
         )
     };
 
-    useFocusEffect(
-        useCallback(() => {
-            if (darkMode === false) {
-                Animated.timing(toggleRef, {
-                    toValue: 0.5,
-                    duration: 1400,
-                    easing: Easing.linear,
-                    useNativeDriver: false,
-                }).start();
-            } else {
-                Animated.timing(toggleRef, {
-                    toValue: 0,
-                    duration: 1300,
-                    easing: Easing.linear,
-                    useNativeDriver: false,
-                }).start();
-            }
-        }, [darkMode]))
+    useEffect(() => {
+        if (hasMounted.current) {
+            storage.set("darkMode", !darkMode);
+            Animated.timing(toggleRef, {
+                toValue: darkMode ? 0.4 : 0,
+                duration: 900,
+                easing: Easing.linear,
+                useNativeDriver: true,
+            }).start();
+        } else {
+            hasMounted.current = true;
+        }
+
+        // (async()=>{
+        //     await sleep(500);
+        //     Animated.timing(toggleRef, {  
+        //         toValue: darkMode ? 0.5 : 1,  
+        //         duration: 1000,  
+        //         easing: Easing.linear,  
+        //         useNativeDriver: true,  
+        //     }).start();
+        // })();
+
+    }, [darkMode]);
+
+    // useFocusEffect(
+    //     useCallback(() => {
+    //         if (darkMode === true) {
+    //             Animated.timing(toggleRef, {
+    //                 toValue: 0.5,
+    //                 duration: 1400,
+    //                 easing: Easing.linear,
+    //                 useNativeDriver: true,
+    //             }).start();
+    //         } else {
+    //             Animated.timing(toggleRef, {
+    //                 toValue: 1,
+    //                 duration: 1000,
+    //                 easing: Easing.linear,
+    //                 useNativeDriver: true,
+    //             }).start();
+    //         }
+    //     }, [darkMode]));
 
     useFocusEffect(
         useCallback(() => {
