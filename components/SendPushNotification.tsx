@@ -8,7 +8,7 @@ import baseURL from '../utils/baseURL';
 import { User } from '../utils/types';
 
 
-export default function PushNotificationSend({ active , user, contactToken,roomId }: { active: boolean, user: User, contactToken: Notifications.ExpoPushToken,roomId: string | undefined }) {
+export default function PushNotificationSend({ user, contactToken,roomId }: { user: User, contactToken: Notifications.ExpoPushToken,roomId: string | undefined }) {
     const { colors } = useTheme();
     const [open, setOpen] = useState(true);
     const [value, setValue] = useState<string>("");
@@ -20,11 +20,7 @@ export default function PushNotificationSend({ active , user, contactToken,roomI
         roomId:string | undefined;
         type: "send" | "here"
     }
-
-    useEffect(()=>{
-        setOpen(active)
-    },[active])
-
+    
     const notificationSend: props = { user, message: value, token: contactToken?.data,roomId, type: 'send' }
     const notificationHere: props = { user, message: 'I`m in room', token: contactToken?.data,roomId, type: 'here' }
 
@@ -50,7 +46,7 @@ export default function PushNotificationSend({ active , user, contactToken,roomI
         }
     }
 
-    if (active && open) {
+    if (open) {
         return (
             <View style={[styles.container, StyleSheet.absoluteFill]} >
                 <View style={[styles.modal, { backgroundColor: colors.card }]}>

@@ -224,7 +224,6 @@ export default function Navigation() {
                         headerShown: false,
                         gestureEnabled: true,
                         gestureDirection: "vertical",
-                        // cardStyleInterpolator: CardStyleInterpolators.forBottomSheetAndroid,
                         cardStyleInterpolator: CardStyleInterpolators.forRevealFromBottomAndroid,
                     }}>
                         <Stack.Screen name="ModalMusic" component={ModalMusic} />

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { GiftedChat, IMessage } from 'react-native-gifted-chat'
 import { StackScreenProps } from "@react-navigation/stack";
 import { IMessagePro, RecordingEnum, RootStackParamList } from '../utils/types';
-import { useIsOpen, useLastTrack, usePlayer, usePosition, useSetDownloading, useSetErrors, useSetLastMessage, useSetUploading, useSocket, useUser } from '../socketContext';
+import { useCurrentContact, useIsOpen, useLastTrack, usePlayer, usePosition, useSetDownloading, useSetErrors, useSetLastMessage, useSetUploading, useSocket, useUser } from '../socketContext';
 import { updateMessage, getRoom } from '../utils/DB';
 import { useSharedValue, withTiming } from 'react-native-reanimated';
 import LoadingPage from '../components/LoadingPage';
@@ -35,6 +35,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	const { player, setPlayer } = usePlayer();
 	const { currentPosition, setCurrentPosition } = usePosition();
 	const { open: isPlayerOpen, setOpen: setIsOpen } = useIsOpen();
+	const setContact = useCurrentContact(state => state.setContact);
 
 	const translateY = useSharedValue(1000);
 	const { colors } = useTheme();
@@ -164,9 +165,13 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 		}, [socket])
 	);
 
+	useEffect(() => {
+		setContact(contact);
+	}, []);
+
 	const onSend = (newMessage: IMessage[]) => {
 		// if ((!status || !socket)) return;
-		if (( !socket)) return;
+		if ((!socket)) return;
 		socket.emit('sendMessage', { ...newMessage[0], user, roomId }, setMessages((prevMessages: IMessage[]) => GiftedChat.append(prevMessages, [...newMessage])));
 		handleLastMessages({ roomId, newMessage: newMessage[0].text })
 	};
@@ -174,7 +179,12 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	return (
 		<View style={{ flex: 1, backgroundColor: colors.background }}>
 			<LoadingPage active={isPending} />
-			<PushNotificationSend active={contact?.token && status === false} user={user} contactToken={contact?.token} roomId={roomId} />
+			{
+				contact?.token && status === false ?
+					<PushNotificationSend user={user} contactToken={contact?.token} roomId={roomId} />
+					: null
+			}
+			{/* <PushNotificationSend active={contact?.token && status === false} user={user} contactToken={contact?.token} roomId={roomId} /> */}
 			<View style={{ flexDirection: 'row', padding: 15, alignItems: "center", backgroundColor: colors.undetlay }}>
 				<View style={{ width: 47, height: 47, borderRadius: 25, backgroundColor: colors.border, marginRight: 10 }} />
 				<View style={{ alignItems: "flex-start", flexDirection: "column" }}>
@@ -205,7 +215,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 				renderActions={(e) => renderActions(e, { setOpen, open, colors })}
 				renderBubble={(e) => renderBubble(e, { colors })}
 				renderSend={(e) => renderSend(e, { colors })}
-				renderChatFooter={() => RenderChatFooter({ user, socket, translateY, roomId, setMessages, colors, setUploading, setErrors, recording, setRecording, handleAudioPermissions, panResponder, pan,permissionResponse })}
+				renderChatFooter={() => RenderChatFooter({ user, socket, translateY, roomId, setMessages, colors, setUploading, setErrors, recording, setRecording, handleAudioPermissions, panResponder, pan, permissionResponse })}
 				renderInputToolbar={(e) => renderInputToolbar(e, { colors })}
 				renderTime={(e) => renderTime(e, { colors })}
 				optionTintColor='#fff'

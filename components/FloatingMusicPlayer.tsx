@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, TouchableOpacity, TouchableHighlight } from 'react-native';
 import React, { useEffect, useRef } from 'react';
-import { useIsOpen, useLastTrack, usePlayer, usePosition } from '../socketContext';
+import { useCurrentContact, useIsOpen, useLastTrack, usePlayer, usePosition } from '../socketContext';
 import useTheme from '../utils/theme';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { formatMillisecondsToTime } from '../utils/utils';
@@ -36,11 +36,9 @@ const FloatingMusicPlayer = () => {
             return { uri: undefined, track: undefined, name: undefined, id: e?.id, uuid: undefined, duration: undefined, lastPosition, playing: isForStart ? true : false };
         });
         setCurrentPosition((e) => ({ position: lastPosition, id: e?.id }));
-
     };
 
     const startPlaying = async () => {
-        // console.log('0001');
         if (!track?.uri) return;
 
         setLastTrack((e) => {
@@ -48,14 +46,12 @@ const FloatingMusicPlayer = () => {
         });
 
         await stopPlaying({ isForStart: true });
-        // console.log('0003');
 
         const { sound: newSound, status } = await Audio.Sound.createAsync(
             { uri: track.uri },
             { isLooping: false, progressUpdateIntervalMillis: 1000, shouldPlay: false }
         );
 
-        // console.log('0004');
         if (player?.lastPosition) {
             await newSound.playFromPositionAsync(player?.lastPosition)
         } else {

@@ -1,12 +1,13 @@
-import { View, Text, StyleSheet, TouchableHighlight, FlatList, Pressable } from 'react-native'
+import { View, Text, StyleSheet, TouchableHighlight, FlatList, Pressable, TextInput } from 'react-native'
 import React, { useEffect, useRef, useState } from 'react'
-import { useLastTrack, usePlayer, usePosition } from '../socketContext';
+import { useCurrentContact, useLastTrack, usePlayer, usePosition } from '../socketContext';
 import Slider from '@react-native-community/slider';
 import { formatMillisecondsToTime } from '../utils/utils';
-import { useAudioList } from '../hooks/useAudioList';
+import { audioListType, useAudioList } from '../hooks/useAudioList';
 import { Audio } from 'expo-av';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import useTheme from '../utils/theme';
+import { useNavigation } from '@react-navigation/native';
 
 type lastTrack = {
   duration?: number,
@@ -40,9 +41,13 @@ const ModalMusic = () => {
   const { currentPosition, setCurrentPosition } = usePosition();
   const isPlaying = player?.playing;
   const { colors } = useTheme();
+  const contact = useCurrentContact(state => state.contact);
+  const navigation = useNavigation();
+  const [openSearch, setOpenSearch] = useState(false);
+  const [search, setSearch] = useState<audioListType[]>();
 
   const AudioList = useAudioList();
-  const filteredAudioList = AudioList.filter(audio=>audio.audioName!=="voice");
+  const filteredAudioList = AudioList.filter(audio => audio.audioName !== "voice");
 
   const currentTrack = AudioList.find(audio => audio.id === player?.id);
 
@@ -59,6 +64,12 @@ const ModalMusic = () => {
     });
     setCurrentPosition((e) => ({ id: e.id, position: lastPosition }));
   };
+
+  const handleSearch = (e: string) => {
+    const res = filteredAudioList.filter(track => track.audioName.toLowerCase().includes(e.toLowerCase()));
+    if(e === "" || e === undefined || res.length===0) {setSearch(undefined)}
+    setSearch(res);
+  }
 
   const startPlaying = async () => {
     if (!currentTrack?.uri) return;
@@ -87,12 +98,11 @@ const ModalMusic = () => {
     });
   };
 
-  const playForward = async () => {
+  const playForward = async ({ indexJump }: { indexJump: 1 | -1 }) => {
     const currentTrackIndex = filteredAudioList.findIndex(audio => audio.id === player?.id);
-    console.log(currentTrackIndex,'currentTrackIndex')
-    if (currentTrackIndex===-1) return;
-    const forwardTrack = filteredAudioList.length === currentTrackIndex+1 ? filteredAudioList[0] : filteredAudioList[currentTrackIndex+1];
-    console.log(filteredAudioList.length,'forwardTrack')
+    // console.log(currentTrackIndex,'currentTrackIndex')
+    if (currentTrackIndex === -1) return;
+    const forwardTrack = filteredAudioList.length === currentTrackIndex + indexJump ? filteredAudioList[0] : filteredAudioList[currentTrackIndex + indexJump];
     setPlayer((e) => {
       return { ...e, uri: forwardTrack.uri, id: forwardTrack.id };
     });
@@ -117,6 +127,48 @@ const ModalMusic = () => {
     });
   };
 
+  const renderTrackItem = ({ item }: { item: audioListType }) => {
+    // console.log(item)
+    const isTrackPlaying = (item?.uri === player?.uri) && isPlaying;
+
+    const playTrackItem = async () => {
+      if (!item?.uri) return;
+      setPlayer((e) => {
+        return { ...e, uri: item?.uri, id: item?.id };
+      });
+
+      await stopPlaying({ isForStart: true });
+
+      const { sound: newSound, status } = await Audio.Sound.createAsync(
+        { uri: item.uri },
+        { isLooping: false, progressUpdateIntervalMillis: 1000, shouldPlay: false }
+      );
+
+      if (currentPosition.id === item.id && currentPosition.position) {
+        await newSound.playFromPositionAsync(currentPosition.position);
+      } else {
+        await newSound.playAsync();
+        setCurrentPosition(() => ({ id: item.id, position: undefined }));
+      }
+
+      setPlayer(() => {
+        //@ts-ignore
+        return { track: newSound, name: item.audioName, uri: item.uri, uuid: item.id, duration: status?.durationMillis, id: item.id, playing: true }
+      });
+
+    };
+
+    return (
+      <TouchableHighlight underlayColor={colors.undetlay} onPress={isTrackPlaying ? () => stopPlaying({ isForStart: false }) : playTrackItem} style={{ marginBottom: 10 }}>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <View style={[styles.iconContainer, { backgroundColor: colors.card, width: 43, height: 43, paddingLeft: isTrackPlaying ? 0 : 2 }]}>
+            <Ionicons name={isTrackPlaying ? "pause" : "play"} size={31} color={colors.text} />
+          </View>
+          <Text style={{ color: colors.text }}>{item.audioName}</Text>
+        </View>
+      </TouchableHighlight>
+    )
+  };
 
 
   useEffect(() => {
@@ -140,31 +192,59 @@ const ModalMusic = () => {
     const pos = value * player.duration;
     setCurrentPosition(() => ({ position: pos, id: player?.id }));
     await player?.track?.setPositionAsync(pos);
-  }
+  };
+
+  const handleBack = () => {
+    if(openSearch){
+      setOpenSearch(false);
+      setSearch(undefined);
+    }else{
+      navigation.goBack();
+    }
+  };
 
 
   return (
-    <View style={styles.container}>
-      <View style={{marginTop:'auto'}}>
-        <FlatList
-          data={filteredAudioList}
-          renderItem={({ item }) => <Text>{item.audioName}</Text>}
-          //@ts-ignore
-          keyExtractor={item => item.id}
-        />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={{ flexDirection: 'row', backgroundColor: colors.undetlay, height: 50, alignItems: 'center', justifyContent: "flex-start", paddingHorizontal: 20 }}>
+        <Ionicons onPress={handleBack} name="arrow-back-outline" size={29} color={colors.text} />
+        {openSearch ?
+          <TextInput placeholder='Search' cursorColor={colors.boarder} onChangeText={handleSearch} placeholderTextColor={colors.boarder} style={{ width: "87%", marginLeft: 12, fontSize: 20, color: colors.text }} />
+          :
+          <>
+            <Text style={{ color: colors.text, fontSize: 23, fontWeight: '700', marginLeft: 12 }}>{contact?.name}</Text>
+            <Ionicons onPress={() => setOpenSearch(true)} name="search" size={30} style={{ marginLeft: "auto" }} color={colors.text} />
+          </>
+        }
       </View>
-      <View style={[styles.controllerContainer,{backgroundColor:colors.background}]}>
+      <View style={{ marginTop: 'auto' }}>
+        {search ?
+          <FlatList
+            data={search}
+            renderItem={({ item }) => renderTrackItem({ item })}
+            //@ts-ignore
+            keyExtractor={search => search.id}
+          />
+          : <FlatList
+            data={filteredAudioList}
+            renderItem={({ item }) => renderTrackItem({ item })}
+            //@ts-ignore
+            keyExtractor={item => item.id}
+          />
+        }
+      </View>
+      <View style={[styles.controllerContainer, { backgroundColor: colors.undetlay }]}>
         <View style={styles.infoController}>
           <View style={{ marginRight: 'auto' }}>
-            <Text style={{color:colors.text}}>{lastTrack?.name}</Text>
-            <Text style={{color:colors.text}}>Artist</Text>
+            <Text style={{ color: colors.text }}>{lastTrack?.name}</Text>
+            <Text style={{ color: colors.text }}>Artist</Text>
           </View>
-          <View style={{ width: 30, height: 30, backgroundColor: '#000', marginLeft: 'auto' }}>
+          <View style={{ width: 35, height: 35, backgroundColor: '#000', marginLeft: 'auto' }}>
           </View>
         </View>
         <View style={{}}>
           <Slider
-            style={{ width: 'auto', height: 40}}
+            style={{ width: 'auto', height: 40 }}
             minimumValue={0}
             maximumValue={1}
             minimumTrackTintColor="#FFFFFF"
@@ -172,15 +252,15 @@ const ModalMusic = () => {
             value={sliderValue}
             onSlidingComplete={onSlidingComplete}
           />
-          <View style={{flexDirection:"row",justifyContent:"center",gap:5,alignItems:'center'}}>
-            <Pressable style={[styles.iconContainer,{backgroundColor:''}]}>
-              <Ionicons name={"play-skip-back"} size={26} color="#fff" />
+          <View style={{ flexDirection: "row", justifyContent: "center", gap: 5, alignItems: 'center' }}>
+            <Pressable onPress={() => playForward({ indexJump: -1 })} style={[styles.iconContainer, { backgroundColor: '' }]}>
+              <Ionicons name={"play-skip-back"} size={26} color={colors.text} />
             </Pressable>
-            <Pressable onPress={isPlaying ? () => stopPlaying({ isForStart: false }) : startPlaying} style={[styles.iconContainer, { backgroundColor: colors.background,width:50,height:50 }]}>
-              <Ionicons name={isPlaying ? "pause" : "play"} size={32} color="#fff" />
+            <Pressable onPress={isPlaying ? () => stopPlaying({ isForStart: false }) : startPlaying} style={[styles.iconContainer, { backgroundColor: '', width: 50, height: 50 }]}>
+              <Ionicons name={isPlaying ? "pause" : "play"} size={32} color={colors.text} />
             </Pressable>
-            <Pressable onPress={playForward} style={[styles.iconContainer,{backgroundColor:''}]}>
-              <Ionicons name={"play-skip-forward"} size={26} color="#fff" />
+            <Pressable onPress={() => playForward({ indexJump: 1 })} style={[styles.iconContainer, { backgroundColor: '' }]}>
+              <Ionicons name={"play-skip-forward"} size={26} color={colors.text} />
             </Pressable>
           </View>
         </View>
@@ -197,12 +277,15 @@ const styles = StyleSheet.create({
   },
   controllerContainer: {
     height: 150,
-    padding: 0
+    paddingTop: 10,
+    borderRadius: 12,
+    overflow: 'hidden'
   },
   infoController: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    alignItems: 'center'
+    alignItems: 'center',
+    marginHorizontal: 15
   },
   iconContainer: {
     width: 40,

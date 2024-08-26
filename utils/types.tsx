@@ -38,7 +38,6 @@ export type Room = {
 export type DrawerCoreType = {
     darkMode: boolean,
     setDarkMode: React.Dispatch<React.SetStateAction<boolean>>,
-    // beCheck: boolean,
     children: React.ReactNode,
     open: boolean,
     setOpen: React.Dispatch<React.SetStateAction<boolean>>
@@ -47,19 +46,11 @@ export type DrawerCoreType = {
 export type CountNewMessageType = {
     count: number;
     id: string;
-    // contactId: string;
 }
-
-// export type LastMessageType = {
-//     count: number;
-//     message: string;
-//     roomId: string;
-// }
 
 export type LastMessageType = {
     message: string;
     roomId: string;
-    // contactId: string;
 }
 
 export type player = {
