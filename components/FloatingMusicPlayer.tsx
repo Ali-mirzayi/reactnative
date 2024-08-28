@@ -1,25 +1,29 @@
 import { View, Text, StyleSheet, TouchableOpacity, TouchableHighlight } from 'react-native';
 import React, { useEffect, useRef } from 'react';
-import { useCurrentContact, useIsOpen, useLastTrack, usePlayer, usePosition } from '../socketContext';
+import { useIsOpen, useLastTrack, usePlayer, usePosition } from '../socketContext';
 import useTheme from '../utils/theme';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { formatMillisecondsToTime } from '../utils/utils';
 import { Audio, AVPlaybackStatusSuccess } from 'expo-av';
 import { useNavigation } from '@react-navigation/native';
 import { useAudioList } from '../hooks/useAudioList';
+import { storage } from '../mmkv';
+import { repeatModeEnum } from '../utils/types';
 
 const FloatingMusicPlayer = () => {
     const { colors } = useTheme();
     const { player, setPlayer } = usePlayer();
     const { navigate } = useNavigation();
     const { lastTrack, setLastTrack } = useLastTrack();
-    const setOpen = useIsOpen(state=>state.setOpen);
+    const setOpen = useIsOpen(state => state.setOpen);
+
 
     const { currentPosition, setCurrentPosition } = usePosition();
 
     const previousPositionRef = useRef<number | null>(null);
 
     const AudioList = useAudioList();
+    const filteredAudioList = AudioList.filter(audio => audio.audioName !== "voice");
 
     const track = AudioList.find(audio => audio.id === player?.id);
 
@@ -66,6 +70,56 @@ const FloatingMusicPlayer = () => {
         });
     };
 
+    const startPlyingList = async ({ indexJump, isShuffle }: { indexJump: number, isShuffle: boolean }) => {
+        const currentTrackIndex = filteredAudioList.findIndex(audio => audio.id === player?.id);
+
+        if (currentTrackIndex === -1) return;
+
+        if (isShuffle) {
+            let randomIndex;
+            do {
+                randomIndex = Math.floor(Math.random() * filteredAudioList.length + 1);
+            } while (randomIndex === currentTrackIndex);
+            const forwardTrack = filteredAudioList[randomIndex];
+            setPlayer((e) => {
+                return { ...e, uri: forwardTrack.uri, id: forwardTrack.id };
+            });
+            await stopPlaying({ isForStart: true });
+            const { sound: newSound, status } = await Audio.Sound.createAsync(
+                { uri: forwardTrack.uri },
+                { isLooping: false, progressUpdateIntervalMillis: 1000, shouldPlay: true }
+            );
+
+            setCurrentPosition(() => ({ id: forwardTrack.id, position: undefined }));
+
+            setPlayer(() => {
+                //@ts-ignore
+                return { track: newSound, name: forwardTrack.audioName, uri: forwardTrack.uri, uuid: forwardTrack.id, duration: status?.durationMillis, id: forwardTrack.id, playing: true }
+            });
+
+        } else {
+            const forwardTrack = filteredAudioList.length === currentTrackIndex + indexJump ? filteredAudioList[0] : filteredAudioList[currentTrackIndex + indexJump];
+            setPlayer((e) => {
+                return { ...e, uri: forwardTrack.uri, id: forwardTrack.id };
+            });
+
+            await stopPlaying({ isForStart: true });
+
+            const { sound: newSound, status } = await Audio.Sound.createAsync(
+                { uri: forwardTrack.uri },
+                { isLooping: false, progressUpdateIntervalMillis: 1000, shouldPlay: true }
+            );
+
+            setCurrentPosition(() => ({ id: forwardTrack.id, position: undefined }));
+
+            setPlayer(() => {
+                //@ts-ignore
+                return { track: newSound, name: forwardTrack.audioName, uri: forwardTrack.uri, uuid: forwardTrack.id, duration: status?.durationMillis, id: forwardTrack.id, playing: true }
+            });
+        }
+
+    };
+
     const onPlaybackStatusUpdate = (status: AVPlaybackStatusSuccess) => {
         const currentPosition = status.positionMillis;
         if (!currentPosition) return;
@@ -77,8 +131,25 @@ const FloatingMusicPlayer = () => {
         }
 
         if (status.didJustFinish) {
-            setCurrentPosition(() => ({ id: player?.uuid, position: undefined }));
-            stopPlaying({ isEnded: true });
+            switch (storage.getNumber('repeatMode')) {
+                case repeatModeEnum.disabledRepeat:
+                    setCurrentPosition(() => ({ id: player?.uuid, position: undefined }));
+                    stopPlaying({ isEnded: true });
+                    break;
+                case repeatModeEnum.repeatTrack:
+                    player?.track?.replayAsync();
+                    break;
+                case repeatModeEnum.repeatList:
+                    startPlyingList({ indexJump: 1, isShuffle: false })
+                    break;
+                case repeatModeEnum.suffleList:
+                    startPlyingList({ indexJump: 1, isShuffle: true })
+                    break;
+                default:
+                    setCurrentPosition(() => ({ id: player?.uuid, position: undefined }));
+                    stopPlaying({ isEnded: true });
+                    break;
+            }
         };
     };
 
@@ -103,22 +174,22 @@ const FloatingMusicPlayer = () => {
     const time = lastTrack.duration ? formatMillisecondsToTime(lastTrack.duration) : 'unknown';
     const currentPositionTime = currentPosition.position ? formatMillisecondsToTime(currentPosition.position) : time;
 
-        return (
-            //@ts-ignore
-            <TouchableOpacity onPress={() => navigate('ModalMusic')} style={[styles.container, { backgroundColor: colors.card, borderColor: colors.primary }]}>
-                <View style={styles.innerContainer}>
-                    <View style={styles.close}>
-                        <Text style={{color:colors.text}}>{currentPositionTime}</Text>
-                        <Ionicons onPress={handleClose} name='close-circle' size={28} color={colors.red} />
-                    </View>
-                    <Text style={{color:colors.text}}>{lastTrack.name}</Text>
-                    <TouchableHighlight onPress={player?.playing ? () => stopPlaying({}) : startPlaying} style={[styles.iconContainer, { backgroundColor: colors.undetlay }]}>
-                        <Ionicons name={player?.playing ? "pause" : "play"} size={20} color="#fff" style={{ marginLeft: player?.playing ? 0 : 2 }} />
-                    </TouchableHighlight>
+    return (
+        //@ts-ignore
+        <TouchableOpacity onPress={() => navigate('ModalMusic')} style={[styles.container, { backgroundColor: colors.card, borderColor: colors.primary }]}>
+            <View style={styles.innerContainer}>
+                <View style={styles.close}>
+                    <Text style={{ color: colors.text }}>{currentPositionTime}</Text>
+                    <Ionicons onPress={handleClose} name='close-circle' size={28} color={colors.red} />
                 </View>
-            </TouchableOpacity>
-        );
-    }
+                <Text style={{ color: colors.text }}>{lastTrack.name}</Text>
+                <TouchableHighlight onPress={player?.playing ? () => stopPlaying({}) : startPlaying} style={[styles.iconContainer, { backgroundColor: colors.undetlay }]}>
+                    <Ionicons name={player?.playing ? "pause" : "play"} size={20} color="#fff" style={{ marginLeft: player?.playing ? 0 : 2 }} />
+                </TouchableHighlight>
+            </View>
+        </TouchableOpacity>
+    );
+}
 
 export default FloatingMusicPlayer;
 

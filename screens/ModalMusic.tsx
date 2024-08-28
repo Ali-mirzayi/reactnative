@@ -8,6 +8,9 @@ import { Audio } from 'expo-av';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import useTheme from '../utils/theme';
 import { useNavigation } from '@react-navigation/native';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { storage } from '../mmkv';
+import { repeatModeEnum } from '../utils/types';
 
 type lastTrack = {
   duration?: number,
@@ -45,6 +48,8 @@ const ModalMusic = () => {
   const navigation = useNavigation();
   const [openSearch, setOpenSearch] = useState(false);
   const [search, setSearch] = useState<audioListType[]>();
+  const [repeatMode, setRepeatMode] = useState<repeatModeEnum | undefined>(storage.getNumber('repeatMode'));
+  const searchInput = useRef<TextInput>(null);
 
   const AudioList = useAudioList();
   const filteredAudioList = AudioList.filter(audio => audio.audioName !== "voice");
@@ -67,8 +72,9 @@ const ModalMusic = () => {
 
   const handleSearch = (e: string) => {
     const res = filteredAudioList.filter(track => track.audioName.toLowerCase().includes(e.toLowerCase()));
-    if(e === "" || e === undefined || res.length===0) {setSearch(undefined)}
+    if (e === "" || e === undefined || res.length === 0) { setSearch(undefined) }
     setSearch(res);
+    searchInput.current?.blur();
   }
 
   const startPlaying = async () => {
@@ -100,7 +106,6 @@ const ModalMusic = () => {
 
   const playForward = async ({ indexJump }: { indexJump: 1 | -1 }) => {
     const currentTrackIndex = filteredAudioList.findIndex(audio => audio.id === player?.id);
-    // console.log(currentTrackIndex,'currentTrackIndex')
     if (currentTrackIndex === -1) return;
     const forwardTrack = filteredAudioList.length === currentTrackIndex + indexJump ? filteredAudioList[0] : filteredAudioList[currentTrackIndex + indexJump];
     setPlayer((e) => {
@@ -128,8 +133,7 @@ const ModalMusic = () => {
   };
 
   const renderTrackItem = ({ item }: { item: audioListType }) => {
-    // console.log(item)
-    const isTrackPlaying = (item?.uri === player?.uri) && isPlaying;
+    const isTrackPlaying = (item?.id === player?.id) ? player.playing : false;
 
     const playTrackItem = async () => {
       if (!item?.uri) return;
@@ -170,6 +174,54 @@ const ModalMusic = () => {
     )
   };
 
+  const time = lastTrack?.duration ? formatMillisecondsToTime(lastTrack?.duration) : 'unknown';
+
+  //@ts-ignore
+  const currentPositionTime = (currentPosition?.position > 1) && (player?.id === currentPosition?.id) ? `${formatMillisecondsToTime(currentPosition.position)}` : 'unknown';
+
+  const sliderValue = (currentPosition?.position && lastTrack?.duration) ? currentPosition?.position / lastTrack?.duration : 0;
+  const onSlidingComplete = async (value: number) => {
+    //@ts-ignore
+    const pos = value * lastTrack.duration;
+    setCurrentPosition(() => ({ position: pos, id: player?.id }));
+    await player?.track?.setPositionAsync(pos);
+  };
+
+  const handleBack = () => {
+    if (openSearch) {
+      setOpenSearch(false);
+      setSearch(undefined);
+    } else {
+      navigation.goBack();
+    }
+  };
+
+  const getRepeatMode = (mode?: repeatModeEnum) => {
+    switch (mode) {
+      case repeatModeEnum.disabledRepeat:
+        return <MaterialCommunityIcons name="repeat-off" size={26} color={colors.text} />;
+      case repeatModeEnum.repeatTrack:
+        return <MaterialCommunityIcons name="repeat-once" size={26} color={colors.text} />;
+      case repeatModeEnum.repeatList:
+        return <MaterialCommunityIcons name="shuffle-disabled" size={30} color={colors.text} />;
+      case repeatModeEnum.suffleList:
+        return <Ionicons name="shuffle" size={27} color={colors.text} />;
+      default:
+        return <MaterialCommunityIcons name="repeat-once" size={26} color={colors.text} />;
+    }
+  };
+
+  const handlePressRepeatMode = () => {
+    setRepeatMode(e => {
+      if (e !== undefined && e !== repeatModeEnum.suffleList) {
+        storage.set('repeatMode', e + 1);
+        return e + 1
+      } else {
+        storage.set('repeatMode', 0);
+        return 0
+      }
+    })
+  };
 
   useEffect(() => {
     if (!player?.playing) return;
@@ -181,39 +233,18 @@ const ModalMusic = () => {
     }
   }, [player?.uuid]);
 
-  const time = lastTrack?.duration ? formatMillisecondsToTime(lastTrack?.duration) : 'unknown';
-
-  //@ts-ignore
-  // const currentPositionTime = (currentPosition?.position > 1) && (player?.id === currentPosition?.id) ? `${formatMillisecondsToTime(currentPosition.position)} / ${time}` : time;
-
-  const sliderValue = (currentPosition?.position && lastTrack?.duration) ? currentPosition?.position / lastTrack?.duration : 0;
-  const onSlidingComplete = async (value: number) => {
-    //@ts-ignore
-    const pos = value * player.duration;
-    setCurrentPosition(() => ({ position: pos, id: player?.id }));
-    await player?.track?.setPositionAsync(pos);
-  };
-
-  const handleBack = () => {
-    if(openSearch){
-      setOpenSearch(false);
-      setSearch(undefined);
-    }else{
-      navigation.goBack();
-    }
-  };
-
-
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={{ flexDirection: 'row', backgroundColor: colors.undetlay, height: 50, alignItems: 'center', justifyContent: "flex-start", paddingHorizontal: 20 }}>
         <Ionicons onPress={handleBack} name="arrow-back-outline" size={29} color={colors.text} />
-        {openSearch ?
-          <TextInput placeholder='Search' cursorColor={colors.boarder} onChangeText={handleSearch} placeholderTextColor={colors.boarder} style={{ width: "87%", marginLeft: 12, fontSize: 20, color: colors.text }} />
-          :
+        <TextInput placeholder='Search' ref={searchInput} cursorColor={colors.boarder} onChangeText={handleSearch} placeholderTextColor={colors.boarder} style={{ width: "87%", marginLeft: 12, fontSize: 20, color: colors.text, display: openSearch ? 'flex' : 'none' }} />
+        {!openSearch &&
           <>
             <Text style={{ color: colors.text, fontSize: 23, fontWeight: '700', marginLeft: 12 }}>{contact?.name}</Text>
-            <Ionicons onPress={() => setOpenSearch(true)} name="search" size={30} style={{ marginLeft: "auto" }} color={colors.text} />
+            <Ionicons onPress={() => {
+              setOpenSearch(true);
+              searchInput.current?.focus();
+            }} name="search" size={30} style={{ marginLeft: "auto" }} color={colors.text} />
           </>
         }
       </View>
@@ -242,17 +273,27 @@ const ModalMusic = () => {
           <View style={{ width: 35, height: 35, backgroundColor: '#000', marginLeft: 'auto' }}>
           </View>
         </View>
-        <View style={{}}>
-          <Slider
-            style={{ width: 'auto', height: 40 }}
-            minimumValue={0}
-            maximumValue={1}
-            minimumTrackTintColor="#FFFFFF"
-            maximumTrackTintColor="#000000"
-            value={sliderValue}
-            onSlidingComplete={onSlidingComplete}
-          />
-          <View style={{ flexDirection: "row", justifyContent: "center", gap: 5, alignItems: 'center' }}>
+        <View>
+          <View>
+            <Slider
+              style={{ height: 40 }}
+              minimumValue={0}
+              maximumValue={1}
+              minimumTrackTintColor="#FFFFFF"
+              maximumTrackTintColor="#000000"
+              value={sliderValue}
+              onSlidingComplete={onSlidingComplete}
+              
+            />
+            <View style={{flexDirection:"row",justifyContent:"space-between",alignItems:"center",marginHorizontal:15}}>
+              <Text style={{color:colors.text}}>{currentPositionTime}</Text>
+              <Text style={{color:colors.text}}>{time}</Text>
+            </View>
+          </View>
+          <View style={{ flexDirection: "row", justifyContent: "center", gap: 5, alignItems: 'center', position: 'relative' }}>
+            <Pressable onPress={handlePressRepeatMode} style={{ width: 50 }}>
+              {getRepeatMode(repeatMode)}
+            </Pressable>
             <Pressable onPress={() => playForward({ indexJump: -1 })} style={[styles.iconContainer, { backgroundColor: '' }]}>
               <Ionicons name={"play-skip-back"} size={26} color={colors.text} />
             </Pressable>
@@ -262,6 +303,7 @@ const ModalMusic = () => {
             <Pressable onPress={() => playForward({ indexJump: 1 })} style={[styles.iconContainer, { backgroundColor: '' }]}>
               <Ionicons name={"play-skip-forward"} size={26} color={colors.text} />
             </Pressable>
+            <View style={{ width: 50 }} />
           </View>
         </View>
       </View>
@@ -276,9 +318,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   controllerContainer: {
-    height: 150,
-    paddingTop: 10,
-    borderRadius: 12,
+    padding: 10,
+    borderTopStartRadius: 12,
+    borderTopEndRadius: 12,
     overflow: 'hidden'
   },
   infoController: {
