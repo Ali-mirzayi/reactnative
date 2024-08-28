@@ -101,11 +101,16 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	};
 
 	useEffect(() => {
+		// console.log('useEffect');
 		if (socket) {
 			socket.emit('checkStatus', { contactId: contact._id, userRoomId: roomId });
+			socket.emit('isUserInRoom', { userId: user._id, contactId: contact._id, userRoomId: roomId });
 			socket.on('checkStatusResponse', (res: { status: boolean, isInRoom: boolean }) => {
 				setStatus(res.status);
 				setIsInRoom(res.isInRoom);
+			});
+			socket.on('isUserInRoomResponse', (res) => {
+				setIsInRoom(res)
 			});
 			socket.on('userConnected', (res: string[]) => {
 				const isContactDisconected = res.find(e => e === contact._id);
@@ -116,8 +121,11 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 				setStatus(!!isContactDisconected);
 			});
 			return () => {
+				// console.log('useEffect off');
 				socket.off('newMessage');
 				socket.off('checkStatusResponse');
+				socket?.emit('isUserInRoom', { userId: user._id, contactId: contact._id, userRoomId: undefined });
+				socket?.off('isUserInRoomResponse');
 			}
 		}
 	}, [socket]);
@@ -152,18 +160,20 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 		setPending(false);
 	}, [lastMessage]);
 
-	useFocusEffect(
-		useCallback(() => {
-			socket?.emit('isUserInRoom', { userId: user._id, contactId: contact._id, userRoomId: roomId });
-			socket?.on('isUserInRoomResponse', (res) => {
-				setIsInRoom(res)
-			});
-			return () => {
-				socket?.emit('isUserInRoom', { userId: user._id, contactId: contact._id, userRoomId: undefined });
-				socket?.off('isUserInRoomResponse');
-			};
-		}, [socket])
-	);
+	// useFocusEffect(
+	// 	useCallback(() => {
+	// 		console.log('useFocusEffect');
+	// 		socket?.emit('isUserInRoom', { userId: user._id, contactId: contact._id, userRoomId: roomId });
+	// 		socket?.on('isUserInRoomResponse', (res) => {
+	// 			setIsInRoom(res)
+	// 		});
+	// 		return () => {
+	// 			console.log('useFocusEffect off');
+	// 			socket?.emit('isUserInRoom', { userId: user._id, contactId: contact._id, userRoomId: undefined });
+	// 			socket?.off('isUserInRoomResponse');
+	// 		};
+	// 	}, [socket])
+	// );
 
 	useEffect(() => {
 		setContact(contact);

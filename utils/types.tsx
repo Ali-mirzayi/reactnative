@@ -81,3 +81,10 @@ export enum RecordingEnum {
     "stop" = 1,
     "cancel" = 2,
 }
+
+export enum repeatModeEnum {
+    disabledRepeat = 0,
+    repeatTrack = 1,
+    repeatList = 2,
+    suffleList = 3,
+  };
