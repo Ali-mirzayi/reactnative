@@ -46,16 +46,14 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 	const isFocused = useIsFocused();
 
 	const pressUserHandler = async ({ contact }: { contact: User | undefined }) => {
-		setPending(true);
 		const roomIfExists = rooms.find(e => e.users[0]._id === contact?._id || e.users[1]._id === contact?._id);
 		if (!!roomIfExists) {
+			console.log('roomIfExists first');
 			setCurrentRoomId(roomIfExists.id);
 			navigation.navigate("Messaging", { contact: contact, roomId: roomIfExists.id });
-			setPending(false);
 		} else {
-			socket?.emit("createRoom", { user, contact: contact });
-			await sleep(5000);
-			setPending(false);
+			setPending(true);
+			socket?.emit("findRoom", { user, contact });
 		}
 	};
 
@@ -96,14 +94,23 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 	};
 
 	const handleCreateRoomResponse = async ({ newRoom, contact }: { newRoom: Room, contact: User }) => {
+		setPending(false);
 		const roomIfExists = rooms.find(e => e.id === newRoom.id);
-		if (roomIfExists !== undefined) {
-			setPending(false);
-		} else {
-			await insertRoom(newRoom);
-			setRooms(e => [...e, newRoom]);
-			setCurrentRoomId(newRoom.id);
-			navigation.navigate("Messaging", { contact: contact, roomId: newRoom.id });
+		if (roomIfExists !== undefined) return;
+		await insertRoom(newRoom);
+		setRooms(e => [...e, newRoom]);
+		setCurrentRoomId(newRoom.id);
+		navigation.navigate("Messaging", { contact: contact, roomId: newRoom.id });
+	}
+
+	const handleFindRoomResponse = async (res: { result: Room | null, contact: User }) => {
+		const { result, contact } = res;
+		if (result?.id) {
+			console.log('findRoomResponse first');
+			await insertRoom(result);
+			setRooms(e => [...e, result]);
+			setCurrentRoomId(result.id);
+			navigation.navigate("Messaging", { contact, roomId: result.id });
 			setPending(false);
 		}
 	}
@@ -192,7 +199,6 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 			};
 		});
 
-
 		if (!isFocused || !user) return;
 		socket.on("connected", (e: any) => {
 			socket.emit('joinInRooms', user._id);
@@ -200,12 +206,13 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 		});
 
 		socket.on("createRoomResponse", handleCreateRoomResponse);
-
 		socket.on("newRoom", setter);
+		socket.on("findRoomResponse", handleFindRoomResponse);
 
 		return () => {
 			socket.off('chatNewMessage');
 			socket.off('connected');
+			socket.off("findRoomResponse", handleFindRoomResponse);
 			socket.off('createRoomResponse', handleCreateRoomResponse);
 			socket.off("newRoom", setter);
 		};

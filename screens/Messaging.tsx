@@ -1,15 +1,14 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { GiftedChat, IMessage } from 'react-native-gifted-chat'
 import { StackScreenProps } from "@react-navigation/stack";
 import { IMessagePro, RecordingEnum, RootStackParamList } from '../utils/types';
-import { useCurrentContact, useIsOpen, useLastTrack, usePlayer, usePosition, useSetDownloading, useSetErrors, useSetLastMessage, useSetUploading, useSocket, useUser } from '../socketContext';
+import { useCurrentContact, useIsOpen, usePlayer, usePosition, useSetDownloading, useSetErrors, useSetLastMessage, useSetUploading, useSocket, useUser } from '../socketContext';
 import { updateMessage, getRoom } from '../utils/DB';
 import { useSharedValue, withTiming } from 'react-native-reanimated';
 import LoadingPage from '../components/LoadingPage';
 import { renderActions, renderBubble, RenderChatFooter, renderInputToolbar, renderMessageAudio, renderMessageFile, RenderMessageImage, renderMessageVideo, renderSend, renderTime } from '../components/Message';
 import useTheme from '../utils/theme';
 import { Animated, Easing, PanResponder, Text, View } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
 import PushNotificationSend from '../components/SendPushNotification';
 import { Audio } from 'expo-av';
 import FloatingMusicPlayer from '../components/FloatingMusicPlayer';
@@ -160,28 +159,12 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 		setPending(false);
 	}, [lastMessage]);
 
-	// useFocusEffect(
-	// 	useCallback(() => {
-	// 		console.log('useFocusEffect');
-	// 		socket?.emit('isUserInRoom', { userId: user._id, contactId: contact._id, userRoomId: roomId });
-	// 		socket?.on('isUserInRoomResponse', (res) => {
-	// 			setIsInRoom(res)
-	// 		});
-	// 		return () => {
-	// 			console.log('useFocusEffect off');
-	// 			socket?.emit('isUserInRoom', { userId: user._id, contactId: contact._id, userRoomId: undefined });
-	// 			socket?.off('isUserInRoomResponse');
-	// 		};
-	// 	}, [socket])
-	// );
-
 	useEffect(() => {
 		setContact(contact);
 	}, []);
 
 	const onSend = (newMessage: IMessage[]) => {
-		// if ((!status || !socket)) return;
-		if ((!socket)) return;
+		if ((!status || !socket)) return;
 		socket.emit('sendMessage', { ...newMessage[0], user, roomId }, setMessages((prevMessages: IMessage[]) => GiftedChat.append(prevMessages, [...newMessage])));
 		handleLastMessages({ roomId, newMessage: newMessage[0].text })
 	};

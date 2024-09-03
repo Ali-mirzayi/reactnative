@@ -27,7 +27,6 @@ export default function DrawerCore({ children, open, setOpen, darkMode, setDarkM
     const DrawerComponent = () => {
         async function onPressHandler() {
             setDarkMode(e => !e);
-            // delay 1 second
             await sleep(1000);
             storage.set("darkMode", !darkMode);
             switchTheme({
@@ -139,44 +138,14 @@ export default function DrawerCore({ children, open, setOpen, darkMode, setDarkM
             storage.set("darkMode", !darkMode);
             Animated.timing(toggleRef, {
                 toValue: darkMode ? 0.4 : 0,
-                duration: 900,
+                duration: 750,
                 easing: Easing.linear,
                 useNativeDriver: true,
             }).start();
         } else {
             hasMounted.current = true;
-        }
-
-        // (async()=>{
-        //     await sleep(500);
-        //     Animated.timing(toggleRef, {  
-        //         toValue: darkMode ? 0.5 : 1,  
-        //         duration: 1000,  
-        //         easing: Easing.linear,  
-        //         useNativeDriver: true,  
-        //     }).start();
-        // })();
-
+        };
     }, [darkMode]);
-
-    // useFocusEffect(
-    //     useCallback(() => {
-    //         if (darkMode === true) {
-    //             Animated.timing(toggleRef, {
-    //                 toValue: 0.5,
-    //                 duration: 1400,
-    //                 easing: Easing.linear,
-    //                 useNativeDriver: true,
-    //             }).start();
-    //         } else {
-    //             Animated.timing(toggleRef, {
-    //                 toValue: 1,
-    //                 duration: 1000,
-    //                 easing: Easing.linear,
-    //                 useNativeDriver: true,
-    //             }).start();
-    //         }
-    //     }, [darkMode]));
 
     useFocusEffect(
         useCallback(() => {
