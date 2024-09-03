@@ -12,32 +12,6 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { storage } from '../mmkv';
 import { repeatModeEnum } from '../utils/types';
 
-type lastTrack = {
-  duration?: number,
-  name?: string,
-  id?: number | string,
-  uri?: string
-};
-
-const initialLastTrack: lastTrack = {
-  duration: undefined,
-  id: undefined,
-  name: undefined,
-  uri: undefined
-};
-
-type progress = {
-  position?: number,
-  duration?: number,
-  id?: number | string,
-};
-
-const initialProgress: progress = {
-  duration: undefined,
-  position: undefined,
-  id: undefined,
-};
-
 const ModalMusic = () => {
   const { player, setPlayer } = usePlayer();
   const { lastTrack, setLastTrack } = useLastTrack();
@@ -55,6 +29,11 @@ const ModalMusic = () => {
   const filteredAudioList = AudioList.filter(audio => audio.audioName !== "voice");
 
   const currentTrack = AudioList.find(audio => audio.id === player?.id);
+
+  const time = lastTrack?.duration ? formatMillisecondsToTime(lastTrack?.duration) : 'unknown';
+
+  //@ts-ignore
+  const currentPositionTime = (currentPosition?.position > 1) && (player?.id === currentPosition?.id) ? `${formatMillisecondsToTime(currentPosition.position)}` : 0;
 
   const stopPlaying = async ({ isForStart }: { isForStart: boolean }) => {
     if (!player?.track) return;
@@ -107,6 +86,10 @@ const ModalMusic = () => {
   const playForward = async ({ indexJump }: { indexJump: 1 | -1 }) => {
     const currentTrackIndex = filteredAudioList.findIndex(audio => audio.id === player?.id);
     if (currentTrackIndex === -1) return;
+    if(indexJump===-1 && Number(currentPosition.position)>=2000 ){
+      player?.track?.playFromPositionAsync(0);
+      return;
+    }
     const forwardTrack = filteredAudioList.length === currentTrackIndex + indexJump ? filteredAudioList[0] : filteredAudioList[currentTrackIndex + indexJump];
     setPlayer((e) => {
       return { ...e, uri: forwardTrack.uri, id: forwardTrack.id };
@@ -173,11 +156,6 @@ const ModalMusic = () => {
       </TouchableHighlight>
     )
   };
-
-  const time = lastTrack?.duration ? formatMillisecondsToTime(lastTrack?.duration) : 'unknown';
-
-  //@ts-ignore
-  const currentPositionTime = (currentPosition?.position > 1) && (player?.id === currentPosition?.id) ? `${formatMillisecondsToTime(currentPosition.position)}` : 'unknown';
 
   const sliderValue = (currentPosition?.position && lastTrack?.duration) ? currentPosition?.position / lastTrack?.duration : 0;
   const onSlidingComplete = async (value: number) => {

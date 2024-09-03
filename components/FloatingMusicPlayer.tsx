@@ -27,7 +27,7 @@ const FloatingMusicPlayer = () => {
 
     const track = AudioList.find(audio => audio.id === player?.id);
 
-    const stopPlaying = async ({ isForStart, isEnded }: { isForStart?: boolean, isEnded?: boolean }) => {
+    const stopPlaying = async ({ isForStart, isEnded }: { isForStart: boolean, isEnded: boolean }) => {
         if (!player?.track) return;
         const status = await player.track.getStatusAsync();
         await player.track.stopAsync();
@@ -49,7 +49,7 @@ const FloatingMusicPlayer = () => {
             return { ...e, uri: track?.uri, id: track?.id };
         });
 
-        await stopPlaying({ isForStart: true });
+        await stopPlaying({ isEnded:false,isForStart: true });
 
         const { sound: newSound, status } = await Audio.Sound.createAsync(
             { uri: track.uri },
@@ -84,7 +84,7 @@ const FloatingMusicPlayer = () => {
             setPlayer((e) => {
                 return { ...e, uri: forwardTrack.uri, id: forwardTrack.id };
             });
-            await stopPlaying({ isForStart: true });
+            await stopPlaying({ isEnded:false,isForStart: true });
             const { sound: newSound, status } = await Audio.Sound.createAsync(
                 { uri: forwardTrack.uri },
                 { isLooping: false, progressUpdateIntervalMillis: 1000, shouldPlay: true }
@@ -103,7 +103,7 @@ const FloatingMusicPlayer = () => {
                 return { ...e, uri: forwardTrack.uri, id: forwardTrack.id };
             });
 
-            await stopPlaying({ isForStart: true });
+            await stopPlaying({ isEnded:false,isForStart: true });
 
             const { sound: newSound, status } = await Audio.Sound.createAsync(
                 { uri: forwardTrack.uri },
@@ -134,7 +134,7 @@ const FloatingMusicPlayer = () => {
             switch (storage.getNumber('repeatMode')) {
                 case repeatModeEnum.disabledRepeat:
                     setCurrentPosition(() => ({ id: player?.uuid, position: undefined }));
-                    stopPlaying({ isEnded: true });
+                    stopPlaying({ isEnded: true,isForStart: false });
                     break;
                 case repeatModeEnum.repeatTrack:
                     player?.track?.replayAsync();
@@ -147,14 +147,14 @@ const FloatingMusicPlayer = () => {
                     break;
                 default:
                     setCurrentPosition(() => ({ id: player?.uuid, position: undefined }));
-                    stopPlaying({ isEnded: true });
+                    stopPlaying({ isEnded: true,isForStart: false });
                     break;
             }
         };
     };
 
     const handleClose = async () => {
-        await stopPlaying({});
+        await stopPlaying({isEnded:false,isForStart:false});
         setOpen(false);
     };
 
@@ -183,7 +183,7 @@ const FloatingMusicPlayer = () => {
                     <Ionicons onPress={handleClose} name='close-circle' size={28} color={colors.red} />
                 </View>
                 <Text style={{ color: colors.text }}>{lastTrack.name}</Text>
-                <TouchableHighlight onPress={player?.playing ? () => stopPlaying({}) : startPlaying} style={[styles.iconContainer, { backgroundColor: colors.undetlay }]}>
+                <TouchableHighlight onPress={player?.playing ? () => stopPlaying({isEnded:false,isForStart:false}) : startPlaying} style={[styles.iconContainer, { backgroundColor: colors.undetlay }]}>
                     <Ionicons name={player?.playing ? "pause" : "play"} size={20} color="#fff" style={{ marginLeft: player?.playing ? 0 : 2 }} />
                 </TouchableHighlight>
             </View>

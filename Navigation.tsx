@@ -153,7 +153,7 @@ export default function Navigation() {
             await deleteDB();
             await createTable();
             setBeCheck(true);
-            FileSystem.deleteAsync(fileDirectory);
+            FileSystem.deleteAsync(fileDirectory,{idempotent: true});
         } catch (err) {
             console.log(err, 'err')
         }

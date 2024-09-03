@@ -1,9 +1,10 @@
-import { ActivityIndicator, Image, ImageProps, Pressable, StyleSheet, Text, TouchableHighlight, View, Animated as NativeAnimated, PanResponder, PanResponderInstance, TouchableOpacity } from "react-native";
+import { ActivityIndicator, Image, ImageProps, Pressable, StyleSheet, Text, TouchableHighlight, View, Animated as NativeAnimated, PanResponder, PanResponderInstance, TouchableOpacity, Alert } from "react-native";
 import Animated from "react-native-reanimated";
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { formatMillisecondsToTime, generateID, isMusicFile } from "../utils/utils";
 import baseURL from "../utils/baseURL";
+import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
 import { Actions, ActionsProps, Bubble, BubbleProps, Composer, GiftedChat, IMessage, InputToolbar, InputToolbarProps, MessageAudioProps, MessageImage, MessageImageProps, MessageProps, MessageVideoProps, Send, SendProps, Time, TimeProps } from "react-native-gifted-chat";
 import { ResizeMode, Video, Audio } from "expo-av";
@@ -16,10 +17,8 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { fileDirectory } from "../utils/directories";
 import Lightbox from 'react-native-lightbox-v2';
 import { startActivityAsync } from 'expo-intent-launcher';
-import { sendMedia, startRecording } from "./SendMedia";
+import { save, sendMedia, startRecording } from "./SendMedia";
 import MovingText from "./MovingText";
-
-const AnimatedTouchable = NativeAnimated.createAnimatedComponent(TouchableOpacity);
 
 type RenderChatFooterProps = {
 	user: User,
@@ -39,10 +38,10 @@ type RenderChatFooterProps = {
 	//@ts-ignore
 	pan: Animated.Value,
 	panResponder: PanResponderInstance,
-	permissionResponse:Audio.PermissionResponse | null
+	permissionResponse: Audio.PermissionResponse | null
 }
 
-export function RenderChatFooter({ user, socket, translateY, roomId, setMessages, recording, setRecording, colors, setErrors, setUploading, handleAudioPermissions, pan, panResponder,permissionResponse }: RenderChatFooterProps) {
+export function RenderChatFooter({ user, socket, translateY, roomId, setMessages, recording, setRecording, colors, setErrors, setUploading, handleAudioPermissions, pan, panResponder, permissionResponse }: RenderChatFooterProps) {
 	const handleCamera = async () => {
 		await ImagePicker.requestCameraPermissionsAsync();
 		let result = await ImagePicker.launchCameraAsync({
@@ -53,8 +52,7 @@ export function RenderChatFooter({ user, socket, translateY, roomId, setMessages
 			preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Current
 		});
 		if (!result.canceled) {
-			// sendMedia({ uri: result.assets[0].uri, type: result.assets[0].type });
-			sendMedia({ uri: result.assets[0].uri, type: result.assets[0].type, setErrors, setMessages, setUploading, roomId, socket, user });
+			sendMedia({ uri: result.assets[0].uri, type: result.assets[0].type, setErrors, setMessages, setUploading, roomId, socket, user, mimeType: result.assets[0].mimeType });
 
 		};
 	};
@@ -68,9 +66,7 @@ export function RenderChatFooter({ user, socket, translateY, roomId, setMessages
 			videoQuality: 1,
 		});
 		if (!result.canceled) {
-			sendMedia({ uri: result.assets[0].uri, type: result.assets[0].type, setErrors, setMessages, setUploading, roomId, socket, user });
-
-			// sendMedia({ uri: result.assets[0].uri, type: result.assets[0].type });
+			sendMedia({ uri: result.assets[0].uri, type: result.assets[0].type, setErrors, setMessages, setUploading, roomId, socket, user, mimeType: result.assets[0].mimeType });
 		}
 	};
 
@@ -80,8 +76,7 @@ export function RenderChatFooter({ user, socket, translateY, roomId, setMessages
 				type: "*/*",
 			});
 			if (!result.canceled) {
-				sendMedia({ uri: result.assets[0].uri, type: "file", name: result.assets[0].name, mimType: result.assets[0].mimeType, setErrors, setMessages, setUploading, roomId, socket, user });
-				// sendMedia({ uri: result.assets[0].uri, type: "file", name: result.assets[0].name, mimType: result.assets[0].mimeType });
+				sendMedia({ uri: result.assets[0].uri, type: "file", name: result.assets[0].name, mimeType: result.assets[0].mimeType, setErrors, setMessages, setUploading, roomId, socket, user });
 			};
 		} catch (error) {
 			console.log(error);
@@ -102,7 +97,7 @@ export function RenderChatFooter({ user, socket, translateY, roomId, setMessages
 				</TouchableHighlight>
 				<NativeAnimated.View {...panResponder.panHandlers} style={{ transform: [{ translateY: pan }] }}>
 					<TouchableHighlight
-						onPressIn={() => startRecording({ handleAudioPermissions, setRecording,permissionResponse })}
+						onPressIn={() => startRecording({ handleAudioPermissions, setRecording, permissionResponse })}
 						style={[styles.iconContainer, { backgroundColor: colors.background }]}
 						underlayColor={colors.undetlay}
 					>
@@ -241,7 +236,7 @@ export const renderMessageFile = (props: MessageProps<IMessagePro>, { setMessage
 			await startActivityAsync('android.intent.action.VIEW', {
 				data: contentURL,
 				flags: 1,
-				type: Message.mimType
+				type: Message.mimeType
 			});
 		} catch (error) {
 			console.log(error)
@@ -278,7 +273,6 @@ export const RenderMessageImage = (props: MessageImageProps<IMessagePro>, { setM
 
 	async function handlePress() {
 		if (Message?.image?.startsWith('file') || !Message?.image || !Message.fileName) return;
-		// console.log(Message.image, 'first')
 		setDownloading(e => [...e, Message._id]);
 		await FileSystem.downloadAsync(Message?.image, fileDirectory + Message.fileName)
 			.then(result => {
@@ -297,6 +291,47 @@ export const RenderMessageImage = (props: MessageImageProps<IMessagePro>, { setM
 				return e;
 			}
 		})));
+	};
+
+	const save = async () => {
+		// console.log(Message?.mimeType,'first');
+		if (!Message || !Message.image || !Message.mimeType) return;
+		// const result = await DocumentPicker.getDocumentAsync({  
+		// 	type: '*/*',  
+		// 	copyToCacheDirectory: false,  
+		// });  
+
+		// if (result. === 'success') {  
+		// 	const myDir = result.uri; // Get the selected directory URI  
+
+		// 	try {  
+		// 		// Create the new directory  
+		// 		await FileSystem.makeDirectoryAsync(`${myDir}/Mirzagram`, { intermediates: true });  
+		// 		console.log('Directory created successfully',`${myDir}/Mirzagram`);  
+		// 	} catch (error) {  
+		// 		console.error('Error creating directory:', error);  
+		// 	}  
+		// } else {  
+		// 	console.log('User cancelled the document picker');  
+		// }  
+		const { granted } = await MediaLibrary.requestPermissionsAsync();
+		if (granted) {
+			try {
+
+				const asset = await MediaLibrary.createAssetAsync(Message.image);
+				MediaLibrary.createAlbumAsync('Mirzagram', asset, false)
+					.then(() => {
+						console.log('File Saved Successfully!');
+					})
+					.catch(() => {
+						console.log('Error In Saving File!');
+					});
+			} catch (error) {
+				console.log(error);
+			}
+		} else {
+			console.log('Need Storage permission to save file');
+		}
 	};
 
 	return (
@@ -324,6 +359,9 @@ export const RenderMessageImage = (props: MessageImageProps<IMessagePro>, { setM
 							<MaterialCommunityIcons style={styles.download} name="download" size={34} color="#fff" />
 						</TouchableHighlight>
 			}
+			<Pressable onPress={save}>
+				<Text>save</Text>
+			</Pressable>
 		</View>
 	)
 };
@@ -407,6 +445,7 @@ export function renderMessageVideo(props: MessageVideoProps<IMessagePro>, { setM
 export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setMessages, downloading, setDownloading, uploading, colors, errors, setPlayer, player, currentPosition, setCurrentPosition, setIsOpen }: renderMessageAudioProps) => {
 	const Message = props.currentMessage;
 	const isPlaying = player?.playing === true && Message?._id === player.id;
+	console.log(Message?._id,'asd');
 
 	const stopPlaying = async ({ isForStart }: { isForStart: boolean }) => {
 		if (!player?.track) return;
@@ -449,7 +488,7 @@ export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setM
 	};
 
 	async function handlePress() {
-		console.log(Message,'message')
+		console.log(Message, 'message')
 		if (Message?.file?.startsWith('file') || !Message?.audio || !Message.fileName) return;
 		setDownloading(e => [...e, Message._id]);
 		await FileSystem.downloadAsync(Message?.audio, fileDirectory + Message.fileName)
@@ -465,18 +504,18 @@ export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setM
 		// console.log('delete this it at last');
 		//delete this it at last
 		if (!Message.duration) {
-			const { sound,status } = await Audio.Sound.createAsync({ uri: newFile }, { shouldPlay: false });
+			const { sound, status } = await Audio.Sound.createAsync({ uri: newFile }, { shouldPlay: false });
 			//@ts-ignore
-			const duration:number = status?.durationMillis;
+			const duration: number = status?.durationMillis;
 			setMessages((prevMessages: IMessagePro[]) => (prevMessages.map(e => {
 				if (e._id === Message._id) {
-					return { ...e, audio: newFile,duration };
+					return { ...e, audio: newFile, duration };
 				} else {
 					return e;
 				}
 			})));
 			await sound.unloadAsync();
-		}else{
+		} else {
 			setMessages((prevMessages: IMessagePro[]) => (prevMessages.map(e => {
 				if (e._id === Message._id) {
 					return { ...e, audio: newFile };
@@ -512,6 +551,9 @@ export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setM
 			<View style={{ marginLeft: 0, marginRight: 'auto', width: 130, overflow: 'hidden' }}>
 				<MovingText disable={isPlaying ? false : true} animationThreshold={15} style={[{ color: color, size: 10 }]}>{Message?.fileName ? Message?.fileName : 'Voice'}</MovingText>
 				<Text style={{ color, margin: 'auto' }}>{currentPositionTime}</Text>
+				<Pressable onPress={()=>save({uri:Message?Message?.audio:undefined})}>
+					<Text style={{ color, margin: 'auto' }}>save</Text>
+				</Pressable>
 			</View>
 		</View>
 	)

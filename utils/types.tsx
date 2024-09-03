@@ -20,7 +20,7 @@ export type RootStackParamList = {
     ModalMusic: undefined;
 };
 
-export type IMessagePro = IMessage & { fileName?: string, file?: string, mimType?: string, preView?: string, thumbnail?: string, duration?: number, playing?: boolean }
+export type IMessagePro = IMessage & { fileName?: string, file?: string, mimeType?: string, preView?: string, thumbnail?: string, duration?: number, playing?: boolean }
 
 export type User = {
     _id: string;
