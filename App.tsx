@@ -20,9 +20,7 @@ function App() {
   I18nManager.forceRTL(false);
   I18nManager.allowRTL(false);
 
-  useCheckConnection(setError);
-  // const isSetup = useSetupPlayer();
-  
+  useCheckConnection(setError);  
   
   useEffect(() => {
     // Connect to the Socket.IO server
