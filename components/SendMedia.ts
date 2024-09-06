@@ -147,38 +147,19 @@ export async function cancelRecording({ setRecording }: cancelRecordingProps) {
 };
 
 export const save = async ({uri}:{uri:string|undefined}) => {
-    // console.log(Message?.mimeType,'first');
     console.log('first')
-    if (!uri) return;
-    // const result = await DocumentPicker.getDocumentAsync({  
-    // 	type: '*/*',  
-    // 	copyToCacheDirectory: false,  
-    // });  
-
-    // if (result. === 'success') {  
-    // 	const myDir = result.uri; // Get the selected directory URI  
-
-    // 	try {  
-    // 		// Create the new directory  
-    // 		await FileSystem.makeDirectoryAsync(`${myDir}/Mirzagram`, { intermediates: true });  
-    // 		console.log('Directory created successfully',`${myDir}/Mirzagram`);  
-    // 	} catch (error) {  
-    // 		console.error('Error creating directory:', error);  
-    // 	}  
-    // } else {  
-    // 	console.log('User cancelled the document picker');  
-    // }  
+    if (!uri) return; 
     const { granted } = await MediaLibrary.requestPermissionsAsync();
     if (granted) {
         try {
-          const asset = await MediaLibrary.createAssetAsync(uri);
-          MediaLibrary.createAlbumAsync('Mirzagram', asset, false)
-            .then(() => {
-              console.log('File Saved Successfully!');
-            })
-            .catch((e) => {
-              console.log(e,'Error In Saving File!');
-            });
+        await MediaLibrary.createAssetAsync(uri);
+        //   MediaLibrary.createAlbumAsync('Mirzagram', asset, false)
+        //     .then(() => {
+        //       console.log('File Saved Successfully!');
+        //     })
+        //     .catch((e) => {
+        //       console.log(e,'Error In Saving File!');
+        //     });
         } catch (error) {
           console.log(error);
         }
