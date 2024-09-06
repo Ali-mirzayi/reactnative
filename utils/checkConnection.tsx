@@ -34,17 +34,17 @@ export default function useCheckConnection(setError: React.Dispatch<React.SetSta
 
                 Promise.race([timeout, request])  
                     .then((res: any) => {  
-                        if (res.status !== 200) {  
+                        if (res.status === 200) { 
+                            setError(false);
+                            Toast.hide(); 
+                        }else{
                             Toast.show({  
                                 type: 'error',  
                                 text1: 'Connection error',  
                                 text2: 'Server can\'t be reached',  
                                 autoHide: false,  
                             });  
-                            setError(true);  
-                        }else{
-                            setError(false);
-                            Toast.hide();
+                            setError(true);
                         }
                     })  
                     .catch((e) => {  

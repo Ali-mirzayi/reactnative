@@ -13,6 +13,7 @@ import PushNotificationSend from '../components/SendPushNotification';
 import { Audio } from 'expo-av';
 import FloatingMusicPlayer from '../components/FloatingMusicPlayer';
 import { cancelRecording, stopRecording } from '../components/SendMedia';
+import useAudioPlayer from '../hooks/useAudioPlayer';
 
 const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>) => {
 	const { contact, roomId }: any = route.params;
@@ -35,6 +36,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	const { currentPosition, setCurrentPosition } = usePosition();
 	const { open: isPlayerOpen, setOpen: setIsOpen } = useIsOpen();
 	const setContact = useCurrentContact(state => state.setContact);
+	// const { startPlayingByItem, stopPlaying } = useAudioPlayer();
 
 	const translateY = useSharedValue(1000);
 	const { colors } = useTheme();
@@ -100,7 +102,6 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	};
 
 	useEffect(() => {
-		// console.log('useEffect');
 		if (socket) {
 			socket.emit('checkStatus', { contactId: contact._id, userRoomId: roomId });
 			socket.emit('isUserInRoom', { userId: user._id, contactId: contact._id, userRoomId: roomId });
@@ -120,7 +121,6 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 				setStatus(!!isContactDisconected);
 			});
 			return () => {
-				// console.log('useEffect off');
 				socket.off('newMessage');
 				socket.off('checkStatusResponse');
 				socket?.emit('isUserInRoom', { userId: user._id, contactId: contact._id, userRoomId: undefined });
@@ -142,6 +142,8 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 			translateY.value = withTiming(700, { duration: 1000 });
 		}
 	}, [open]);
+
+	// console.log(messages.map(e=>e._id));
 
 	useEffect(() => {
 		setPending(true);
@@ -188,9 +190,9 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 					</View>
 				</View>
 			</View>
-			<View style={{ height: 40 }}>
+			{/* <View style={{ height: 40 }}> */}
 				{isPlayerOpen ? <FloatingMusicPlayer /> : null}
-			</View>
+			{/* </View> */}
 			<GiftedChat
 				messages={messages}
 				onSend={messages => onSend(messages)}

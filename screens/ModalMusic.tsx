@@ -11,6 +11,7 @@ import { useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { storage } from '../mmkv';
 import { repeatModeEnum } from '../utils/types';
+import useAudioPlayer from '../hooks/useAudioPlayer';
 
 const ModalMusic = () => {
   const { player, setPlayer } = usePlayer();
@@ -28,125 +29,70 @@ const ModalMusic = () => {
   const AudioList = useAudioList();
   const filteredAudioList = AudioList.filter(audio => audio.audioName !== "voice");
 
-  const currentTrack = AudioList.find(audio => audio.id === player?.id);
+  const { startPlaying, startPlayingByItem, startPlyingList, stopPlaying, shufflePlayList, playForward } = useAudioPlayer();
+
+  // const currentTrack = AudioList.find(audio => audio.id === player?.id);
 
   const time = lastTrack?.duration ? formatMillisecondsToTime(lastTrack?.duration) : 'unknown';
 
   //@ts-ignore
-  const currentPositionTime = (currentPosition?.position > 1) && (player?.id === currentPosition?.id) ? `${formatMillisecondsToTime(currentPosition.position)}` : 0;
-
-  const stopPlaying = async ({ isForStart }: { isForStart: boolean }) => {
-    if (!player?.track) return;
-    const status = await player.track.getStatusAsync();
-    await player.track.stopAsync();
-    await player.track.unloadAsync();
-    // @ts-ignore 
-    const lastPosition = status.positionMillis;
-
-    setPlayer((e) => {
-      return { uri: undefined, track: undefined, name: undefined, id: e?.id, duration: undefined, lastPosition, playing: isForStart ? true : false };
-    });
-    setCurrentPosition((e) => ({ id: e.id, position: lastPosition }));
-  };
+  const currentPositionTime = (currentPosition?.position > 1) && (player?.id === currentPosition?.id) ? `${formatMillisecondsToTime(currentPosition.position)}` : '00:00';
 
   const handleSearch = (e: string) => {
     const res = filteredAudioList.filter(track => track.audioName.toLowerCase().includes(e.toLowerCase()));
     if (e === "" || e === undefined || res.length === 0) { setSearch(undefined) }
     setSearch(res);
     searchInput.current?.blur();
-  }
-
-  const startPlaying = async () => {
-    if (!currentTrack?.uri) return;
-
-    setPlayer((e) => {
-      return { ...e, uri: currentTrack.uri, id: currentTrack?.id };
-    });
-
-    await stopPlaying({ isForStart: true });
-
-    const { sound: newSound, status } = await Audio.Sound.createAsync(
-      { uri: currentTrack.uri },
-      { isLooping: false, progressUpdateIntervalMillis: 1000, shouldPlay: false }
-    );
-
-    if (currentPosition.id === currentTrack.id && currentPosition.position) {
-      await newSound.playFromPositionAsync(currentPosition.position);
-    } else {
-      await newSound.playAsync();
-      setCurrentPosition(() => ({ id: currentTrack.id, position: undefined }));
-    }
-
-    setPlayer(() => {
-      //@ts-ignore
-      return { track: newSound, name: currentTrack.audioName, uri: currentTrack.uri, uuid: currentTrack.id, duration: status?.durationMillis, id: currentTrack.id, playing: true }
-    });
   };
 
-  const playForward = async ({ indexJump }: { indexJump: 1 | -1 }) => {
-    const currentTrackIndex = filteredAudioList.findIndex(audio => audio.id === player?.id);
-    if (currentTrackIndex === -1) return;
-    if(indexJump===-1 && Number(currentPosition.position)>=2000 ){
-      player?.track?.playFromPositionAsync(0);
-      return;
-    }
-    const forwardTrack = filteredAudioList.length === currentTrackIndex + indexJump ? filteredAudioList[0] : filteredAudioList[currentTrackIndex + indexJump];
-    setPlayer((e) => {
-      return { ...e, uri: forwardTrack.uri, id: forwardTrack.id };
-    });
+  // const stopPlaying = async ({ isForStart }: { isForStart: boolean }) => {
+  //   if (!player?.track) return;
+  //   const status = await player.track.getStatusAsync();
+  //   await player.track.stopAsync();
+  //   await player.track.unloadAsync();
+  //   // @ts-ignore 
+  //   const lastPosition = status.positionMillis;
 
-    await stopPlaying({ isForStart: true });
+  //   setPlayer((e) => {
+  //     return { uri: undefined, track: undefined, name: undefined, id: e?.id, duration: undefined, lastPosition, playing: isForStart ? true : false };
+  //   });
+  //   setCurrentPosition((e) => ({ id: e.id, position: lastPosition }));
+  // };
 
-    const { sound: newSound, status } = await Audio.Sound.createAsync(
-      { uri: forwardTrack.uri },
-      { isLooping: false, progressUpdateIntervalMillis: 1000, shouldPlay: false }
-    );
 
-    if (currentPosition.id === forwardTrack.id && currentPosition.position) {
-      await newSound.playFromPositionAsync(currentPosition.position);
-    } else {
-      await newSound.playAsync();
-      setCurrentPosition(() => ({ id: forwardTrack.id, position: undefined }));
-    }
+  // const startPlaying = async () => {
+  //   if (!currentTrack?.uri) return;
 
-    setPlayer(() => {
-      //@ts-ignore
-      return { track: newSound, name: forwardTrack.audioName, uri: forwardTrack.uri, uuid: forwardTrack.id, duration: status?.durationMillis, id: forwardTrack.id, playing: true }
-    });
-  };
+  //   setPlayer((e) => {
+  //     return { ...e, uri: currentTrack.uri, id: currentTrack?.id };
+  //   });
+
+  //   await stopPlaying({ isForStart: true,isEnded: false });
+
+  //   const { sound: newSound, status } = await Audio.Sound.createAsync(
+  //     { uri: currentTrack.uri },
+  //     { isLooping: false, progressUpdateIntervalMillis: 1000, shouldPlay: false }
+  //   );
+
+  //   if (currentPosition.id === currentTrack.id && currentPosition.position) {
+  //     await newSound.playFromPositionAsync(currentPosition.position);
+  //   } else {
+  //     await newSound.playAsync();
+  //     setCurrentPosition(() => ({ id: currentTrack.id, position: undefined }));
+  //   }
+
+  //   setPlayer(() => {
+  //     //@ts-ignore
+  //     return { track: newSound, name: currentTrack.audioName, uri: currentTrack.uri, uuid: currentTrack.id, duration: status?.durationMillis, id: currentTrack.id, playing: true }
+  //   });
+  // };
+
 
   const renderTrackItem = ({ item }: { item: audioListType }) => {
     const isTrackPlaying = (item?.id === player?.id) ? player.playing : false;
 
-    const playTrackItem = async () => {
-      if (!item?.uri) return;
-      setPlayer((e) => {
-        return { ...e, uri: item?.uri, id: item?.id };
-      });
-
-      await stopPlaying({ isForStart: true });
-
-      const { sound: newSound, status } = await Audio.Sound.createAsync(
-        { uri: item.uri },
-        { isLooping: false, progressUpdateIntervalMillis: 1000, shouldPlay: false }
-      );
-
-      if (currentPosition.id === item.id && currentPosition.position) {
-        await newSound.playFromPositionAsync(currentPosition.position);
-      } else {
-        await newSound.playAsync();
-        setCurrentPosition(() => ({ id: item.id, position: undefined }));
-      }
-
-      setPlayer(() => {
-        //@ts-ignore
-        return { track: newSound, name: item.audioName, uri: item.uri, uuid: item.id, duration: status?.durationMillis, id: item.id, playing: true }
-      });
-
-    };
-
     return (
-      <TouchableHighlight underlayColor={colors.undetlay} onPress={isTrackPlaying ? () => stopPlaying({ isForStart: false }) : playTrackItem} style={{ marginBottom: 10 }}>
+      <TouchableHighlight underlayColor={colors.undetlay} onPress={isTrackPlaying ? () => stopPlaying({ isForStart: false, isEnded: false }) : () => startPlayingByItem({ item })} style={{ marginBottom: 10 }}>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           <View style={[styles.iconContainer, { backgroundColor: colors.card, width: 43, height: 43, paddingLeft: isTrackPlaying ? 0 : 2 }]}>
             <Ionicons name={isTrackPlaying ? "pause" : "play"} size={31} color={colors.text} />
@@ -261,11 +207,11 @@ const ModalMusic = () => {
               maximumTrackTintColor="#000000"
               value={sliderValue}
               onSlidingComplete={onSlidingComplete}
-              
+
             />
-            <View style={{flexDirection:"row",justifyContent:"space-between",alignItems:"center",marginHorizontal:15}}>
-              <Text style={{color:colors.text}}>{currentPositionTime}</Text>
-              <Text style={{color:colors.text}}>{time}</Text>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginHorizontal: 15 }}>
+              <Text style={{ color: colors.text }}>{currentPositionTime}</Text>
+              <Text style={{ color: colors.text }}>{time}</Text>
             </View>
           </View>
           <View style={{ flexDirection: "row", justifyContent: "center", gap: 5, alignItems: 'center', position: 'relative' }}>
@@ -275,7 +221,7 @@ const ModalMusic = () => {
             <Pressable onPress={() => playForward({ indexJump: -1 })} style={[styles.iconContainer, { backgroundColor: '' }]}>
               <Ionicons name={"play-skip-back"} size={26} color={colors.text} />
             </Pressable>
-            <Pressable onPress={isPlaying ? () => stopPlaying({ isForStart: false }) : startPlaying} style={[styles.iconContainer, { backgroundColor: '', width: 50, height: 50 }]}>
+            <Pressable onPress={isPlaying ? () => stopPlaying({ isForStart: false, isEnded: false }) : startPlaying} style={[styles.iconContainer, { backgroundColor: '', width: 50, height: 50 }]}>
               <Ionicons name={isPlaying ? "pause" : "play"} size={32} color={colors.text} />
             </Pressable>
             <Pressable onPress={() => playForward({ indexJump: 1 })} style={[styles.iconContainer, { backgroundColor: '' }]}>

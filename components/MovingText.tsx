@@ -33,9 +33,9 @@ const MovingText = ({ children:text, animationThreshold, style,disable }: Moving
         <Animated.Text
             numberOfLines={1}
             style={[
-                style,
                 !disable&&animatedStyle,
-                shouldAnimate && {width:9999,paddingLeft:16}
+                shouldAnimate && {width:9999,paddingLeft:16,margin:0},
+                style,
             ]}
         >
             {text}

@@ -19,6 +19,7 @@ import Lightbox from 'react-native-lightbox-v2';
 import { startActivityAsync } from 'expo-intent-launcher';
 import { save, sendMedia, startRecording } from "./SendMedia";
 import MovingText from "./MovingText";
+import { audioListType } from "../hooks/useAudioList";
 
 type RenderChatFooterProps = {
 	user: User,
@@ -198,7 +199,15 @@ export function renderTime(props: TimeProps<IMessage>, { colors }: { colors: typ
 type renderMessageImageProps = { setMessages: React.Dispatch<React.SetStateAction<IMessage[]>>, downloading: (string | number)[], setDownloading: (callback: (prev: (string | number)[]) => (string | number)[]) => void, uploading: (string | number)[], errors: (string | number)[] };
 type renderMessageVideoProps = { setMessages: React.Dispatch<React.SetStateAction<IMessage[]>>, downloading: (string | number)[], setDownloading: (callback: (prev: (string | number)[]) => (string | number)[]) => void, videoRef: React.MutableRefObject<Video>, uploading: (string | number)[], errors: (string | number)[] };
 type renderMessageFileProps = { setMessages: React.Dispatch<React.SetStateAction<IMessage[]>>, downloading: (string | number)[], setDownloading: (callback: (prev: (string | number)[]) => (string | number)[]) => void, colors: typeof darkTheme.colors, uploading: (string | number)[], errors: (string | number)[], player: player, setPlayer: (callback: (prev: player) => (player)) => void };
-type renderMessageAudioProps = { setMessages: React.Dispatch<React.SetStateAction<IMessagePro[]>>, downloading: (string | number)[], setDownloading: (callback: (prev: (string | number)[]) => (string | number)[]) => void, colors: typeof darkTheme.colors, uploading: (string | number)[], errors: (string | number)[], player: player, setPlayer: (callback: (prev: player) => (player)) => void, currentPosition: currentPosition, setCurrentPosition: (callback: (prev: currentPosition) => (currentPosition)) => void, setIsOpen: (e: boolean) => void };
+type renderMessageAudioProps = { setMessages: React.Dispatch<React.SetStateAction<IMessagePro[]>>, downloading: (string | number)[], setDownloading: (callback: (prev: (string | number)[]) => (string | number)[]) => void, colors: typeof darkTheme.colors, uploading: (string | number)[], errors: (string | number)[], player: player, setPlayer: (callback: (prev: player) => (player)) => void, currentPosition: currentPosition, setCurrentPosition: (callback: (prev: currentPosition) => (currentPosition)) => void, setIsOpen: (e: boolean) => void,
+// 	startPlayingByItem: ({ item, isMessage }: {
+//     item: audioListType;
+//     isMessage?: boolean;
+// }) => Promise<void>,stopPlaying: ({ isForStart, isEnded }: {
+//     isForStart: boolean;
+//     isEnded: boolean;
+// }) => Promise<void>
+ };
 
 export const renderMessageFile = (props: MessageProps<IMessagePro>, { setMessages, downloading, setDownloading, colors, uploading, setPlayer }: renderMessageFileProps) => {
 	const Message = props.currentMessage;
@@ -445,9 +454,8 @@ export function renderMessageVideo(props: MessageVideoProps<IMessagePro>, { setM
 export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setMessages, downloading, setDownloading, uploading, colors, errors, setPlayer, player, currentPosition, setCurrentPosition, setIsOpen }: renderMessageAudioProps) => {
 	const Message = props.currentMessage;
 	const isPlaying = player?.playing === true && Message?._id === player.id;
-	console.log(Message?._id,'asd');
-
-	const stopPlaying = async ({ isForStart }: { isForStart: boolean }) => {
+	console.log(Message._id)
+	const stopPlaying = async ({ isForStart }: { isForStart: boolean,isEnded:boolean }) => {
 		if (!player?.track) return;
 		const status = await player.track.getStatusAsync();
 		await player.track.stopAsync();
@@ -468,7 +476,7 @@ export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setM
 		});
 
 		setIsOpen(true);
-		await stopPlaying({ isForStart: true });
+		await stopPlaying({ isForStart: true,isEnded: false });
 
 		const { sound: newSound, status } = await Audio.Sound.createAsync(
 			{ uri: Message.audio },
@@ -488,7 +496,6 @@ export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setM
 	};
 
 	async function handlePress() {
-		console.log(Message, 'message')
 		if (Message?.file?.startsWith('file') || !Message?.audio || !Message.fileName) return;
 		setDownloading(e => [...e, Message._id]);
 		await FileSystem.downloadAsync(Message?.audio, fileDirectory + Message.fileName)
@@ -501,7 +508,6 @@ export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setM
 				setDownloading(e => e.filter(r => r !== Message._id));
 			});
 		const newFile = fileDirectory + Message.fileName;
-		// console.log('delete this it at last');
 		//delete this it at last
 		if (!Message.duration) {
 			const { sound, status } = await Audio.Sound.createAsync({ uri: newFile }, { shouldPlay: false });
@@ -538,7 +544,8 @@ export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setM
 			<View style={{ width: 50, height: 50, borderRadius: 50, marginHorizontal: 10, justifyContent: 'center', alignItems: 'center' }}>
 				{
 					!!uploading.find(e => e === Message?._id) ? <ActivityIndicator style={[styles.iconContainer, { backgroundColor: colors.background }]} size="large" color={colors.mirza} /> : Message?.audio?.startsWith('file') ?
-						<TouchableHighlight onPress={isPlaying ? () => stopPlaying({ isForStart: false }) : startPlaying} style={[styles.iconContainer, { backgroundColor: colors.undetlay }]}>
+						<TouchableHighlight onPress={isPlaying ? () => stopPlaying({ isForStart: false,isEnded:false }) : ()=>startPlaying()} style={[styles.iconContainer, { backgroundColor: colors.undetlay }]}>
+						{/* <TouchableHighlight onPress={isPlaying ? () => stopPlaying({ isForStart: false,isEnded:false }) : ()=>startPlayingByItem({item:{audioName:Message.fileName??"",id:Message._id,uri:Message.audio??''},isMessage:true})} style={[styles.iconContainer, { backgroundColor: colors.undetlay }]}> */}
 							<Ionicons name={isPlaying ? "pause" : "play"} size={30} color="#fff" style={{ marginRight: isPlaying ? 0 : -4 }} />
 						</TouchableHighlight> :
 						!!downloading.find(e => e === Message?._id) ?
