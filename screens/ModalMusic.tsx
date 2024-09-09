@@ -94,8 +94,8 @@ const ModalMusic = () => {
     return (
       <TouchableHighlight underlayColor={colors.undetlay} onPress={isTrackPlaying ? () => stopPlaying({ isForStart: false, isEnded: false }) : () => startPlayingByItem({ item })} style={{ marginBottom: 10 }}>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <View style={[styles.iconContainer, { backgroundColor: colors.card, width: 43, height: 43, paddingLeft: isTrackPlaying ? 0 : 2 }]}>
-            <Ionicons name={isTrackPlaying ? "pause" : "play"} size={31} color={colors.text} />
+          <View style={[styles.iconContainer, { backgroundColor: "#415266", width: 43, height: 43, paddingLeft: isTrackPlaying ? 0 : 2 }]}>
+            <Ionicons name={isTrackPlaying ? "pause" : "play"} size={31} color={"#F1F6F9"} />
           </View>
           <Text style={{ color: colors.text }}>{item.audioName}</Text>
         </View>
@@ -207,7 +207,6 @@ const ModalMusic = () => {
               maximumTrackTintColor="#000000"
               value={sliderValue}
               onSlidingComplete={onSlidingComplete}
-
             />
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginHorizontal: 15 }}>
               <Text style={{ color: colors.text }}>{currentPositionTime}</Text>

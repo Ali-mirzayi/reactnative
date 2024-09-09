@@ -17,7 +17,8 @@ type sendMediaProps = {
     name?: string,
     mimeType?: string,
     duration?: number,
-    setMessages: React.Dispatch<React.SetStateAction<IMessagePro[]>>,
+    setMessages: (callback: (prev: IMessagePro[] | []) => (IMessagePro[] | [])) => void,
+    // setMessages: React.Dispatch<React.SetStateAction<IMessagePro[]>>,
     setUploading: (callback: (prev: (string | number)[]) => (string | number)[]) => void,
     setErrors: (callback: (prev: (string | number)[]) => (string | number)[]) => void,
 };
@@ -115,7 +116,8 @@ type stopRecordingProps = {
     user: User,
     roomId: any,
     socket: any,
-    setMessages: React.Dispatch<React.SetStateAction<IMessagePro[]>>,
+    setMessages: (callback: (prev: IMessagePro[] | []) => (IMessagePro[] | [])) => void,
+    // setMessages: React.Dispatch<React.SetStateAction<IMessagePro[]>>,
     setUploading: (callback: (prev: (string | number)[]) => (string | number)[]) => void,
     setErrors: (callback: (prev: (string | number)[]) => (string | number)[]) => void,
 };
@@ -127,7 +129,6 @@ export async function stopRecording({ setRecording, roomId, setErrors, setMessag
     const duration = recordingObg?._finalDurationMillis
     const uri = recordingObg?.getURI();
     sendMedia({ uri, type: "audio", duration, setErrors, setMessages, setUploading, roomId, socket, user, name: "voice"});
-    // sendMedia({ uri, type: "audio", duration, setErrors, setMessages, setUploading, roomId, socket, user, name: generateID() });
     recordingObg = undefined;
 };
 

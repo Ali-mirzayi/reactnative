@@ -2,6 +2,13 @@ import { IMessage } from "react-native-gifted-chat";
 import * as Notifications from "expo-notifications";
 import { Audio } from "expo-av";
 
+export enum availableStatus {
+    "available" = 0,
+    "download" = 1,
+    "uploading" = 2,
+    "error" = 3,
+};
+
 export type LoginNavigationProps = {
     LoginPrev: undefined;
     Login: { beCheck: boolean };
@@ -20,7 +27,16 @@ export type RootStackParamList = {
     ModalMusic: undefined;
 };
 
-export type IMessagePro = IMessage & { fileName?: string, file?: string, mimeType?: string, preView?: string, thumbnail?: string, duration?: number, playing?: boolean }
+export type IMessagePro = IMessage & {
+    fileName?: string,
+    file?: string,
+    mimeType?: string,
+    preView?: string,
+    thumbnail?: string,
+    duration?: number,
+    playing?: boolean,
+    availableStatus?: availableStatus
+}
 
 export type User = {
     _id: string;
@@ -87,4 +103,6 @@ export enum repeatModeEnum {
     repeatTrack = 1,
     repeatList = 2,
     suffleList = 3,
-  };
+};
+
+export type playerStatus = { isPlaying: boolean, id?: string | number }

@@ -1,5 +1,5 @@
 import React, { useRef } from 'react'
-import { useIsOpen, useLastTrack, usePlayer, usePosition } from '../socketContext';
+import { useIsOpen, useIsPlaying, useLastTrack, usePlayer, usePosition } from '../socketContext';
 import { audioListType, useAudioList } from './useAudioList';
 import { Audio } from 'expo-av';
 
@@ -14,9 +14,7 @@ function useAudioPlayer() {
     const track = AudioList.find(audio => audio.id === player?.id);
 
     const { open: isPlayerOpen, setOpen: setIsOpen } = useIsOpen();
-
-
-    // const setCurrentPosition = usePosition(state => state.setCurrentPosition);
+    const setPlayerStatus = useIsPlaying(state=> state.setPlayerStatus);
 
     const stopPlaying = async ({ isForStart, isEnded }: { isForStart: boolean, isEnded: boolean }) => {
         if (!player?.track) return;
@@ -30,13 +28,18 @@ function useAudioPlayer() {
         setPlayer((e) => {
             return { uri: undefined, track: undefined, name: undefined, id: e?.id, uuid: undefined, duration: undefined, lastPosition, playing: isForStart ? true : false };
         });
+
         setCurrentPosition((e) => ({ position: lastPosition, id: e?.id }));
+
+        setPlayerStatus(()=>{
+            return {isPlaying:false,id:player.id}
+        });
     };
 
     const startPlaying = async () => {
         if (!track?.uri) return;
 
-        setLastTrack((e) => {
+        setPlayer((e) => {
             return { ...e, uri: track?.uri, id: track?.id };
         });
 
@@ -54,15 +57,17 @@ function useAudioPlayer() {
             await newSound.playAsync();
         };
 
-
         setPlayer((e) => {
             //@ts-ignore
             return { ...e, track: newSound, name: track.audioName, uuid: track.id, duration: status?.durationMillis, playing: true }
         });
+
+        setPlayerStatus(()=>{
+            return {isPlaying:true,id:track.id}
+        });
     };
 
     const startPlayingByItem = async ({ item, isMessage }: { item: audioListType, isMessage?: boolean }) => {
-        console.log(item)
         if (!item?.uri) return;
         setPlayer((e) => {
             return { ...e, uri: item?.uri, id: item?.id };
@@ -89,6 +94,10 @@ function useAudioPlayer() {
             //@ts-ignore
             return { track: newSound, name: item.audioName, uri: item.uri, uuid: item.id, duration: status?.durationMillis, id: item.id, playing: true }
         });
+
+        setPlayerStatus(()=>{
+            return {isPlaying:true,id:item.id}
+        });
     };
 
     const startPlyingList = async ({ indexJump }: { indexJump: number }) => {
@@ -112,6 +121,10 @@ function useAudioPlayer() {
         setPlayer(() => {
             //@ts-ignore
             return { track: newSound, name: forwardTrack.audioName, uri: forwardTrack.uri, uuid: forwardTrack.id, duration: status?.durationMillis, id: forwardTrack.id, playing: true }
+        });
+
+        setPlayerStatus(()=>{
+            return {isPlaying:true,id:forwardTrack.id}
         });
     };
 
@@ -137,6 +150,10 @@ function useAudioPlayer() {
         setPlayer(() => {
             //@ts-ignore
             return { track: newSound, name: forwardTrack.audioName, uri: forwardTrack.uri, uuid: forwardTrack.id, duration: status?.durationMillis, id: forwardTrack.id, playing: true }
+        });
+
+        setPlayerStatus(()=>{
+            return {isPlaying:true,id:forwardTrack.id}
         });
     };
 
@@ -169,6 +186,10 @@ function useAudioPlayer() {
         setPlayer(() => {
             //@ts-ignore
             return { track: newSound, name: forwardTrack.audioName, uri: forwardTrack.uri, uuid: forwardTrack.id, duration: status?.durationMillis, id: forwardTrack.id, playing: true }
+        });
+
+        setPlayerStatus(()=>{
+            return {isPlaying:true,id:forwardTrack.id}
         });
     };
 
