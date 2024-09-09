@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, TouchableOpacity, TouchableHighlight } from 'react-native';
 import React, { useEffect, useRef } from 'react';
-import { useIsOpen, useLastTrack, usePlayer, usePosition } from '../socketContext';
+import { useIsOpen, useIsPlaying, useLastTrack, usePlayer, usePosition } from '../socketContext';
 import useTheme from '../utils/theme';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { formatMillisecondsToTime } from '../utils/utils';
@@ -18,17 +18,18 @@ const FloatingMusicPlayer = () => {
     const { navigate } = useNavigation();
     const { lastTrack, setLastTrack } = useLastTrack();
     const setOpen = useIsOpen(state => state.setOpen);
-
+    
     const { currentPosition, setCurrentPosition } = usePosition();
     const { startPlaying , startPlyingList, stopPlaying, shufflePlayList } = useAudioPlayer();
-
+    
     const previousPositionRef = useRef<number | null>(null);
-
+    
     const AudioList = useAudioList();
     const filteredAudioList = AudioList.filter(audio => audio.audioName !== "voice");
-
+    
     const track = AudioList.find(audio => audio.id === player?.id);
-
+    
+    const setPlayerStatus = useIsPlaying(state=> state.setPlayerStatus);
     // const stopPlaying = async ({ isForStart, isEnded }: { isForStart: boolean, isEnded: boolean }) => {
     //     if (!player?.track) return;
     //     const status = await player.track.getStatusAsync();
@@ -172,8 +173,7 @@ const FloatingMusicPlayer = () => {
         });
     }, [player?.uuid]);
 
-    const time = lastTrack.duration ? formatMillisecondsToTime(lastTrack.duration) : 'unknown';
-    const currentPositionTime = currentPosition.position ? formatMillisecondsToTime(currentPosition.position) : time;
+    const currentPositionTime = currentPosition.position ? formatMillisecondsToTime(currentPosition.position) : '00:00';
 
     return (
         //@ts-ignore
@@ -198,10 +198,8 @@ export default FloatingMusicPlayer;
 
 const styles = StyleSheet.create({
     container: {
-        marginTop: -2,
         height: 40,
         borderRadius: 4,
-        marginBottom: 8,
     },
     innerContainer: {
         flexDirection: 'row',

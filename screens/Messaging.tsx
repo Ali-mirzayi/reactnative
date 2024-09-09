@@ -2,9 +2,9 @@ import React, { useState, useEffect, useRef } from 'react'
 import { GiftedChat, IMessage } from 'react-native-gifted-chat'
 import { StackScreenProps } from "@react-navigation/stack";
 import { IMessagePro, RecordingEnum, RootStackParamList } from '../utils/types';
-import { useCurrentContact, useIsOpen, usePlayer, usePosition, useSetDownloading, useSetErrors, useSetLastMessage, useSetUploading, useSocket, useUser } from '../socketContext';
+import { useCurrentContact, useIsOpen, useIsPlaying, useMessage, usePlayer, usePosition, useSetDownloading, useSetErrors, useSetLastMessage, useSetUploading, useSocket, useUser } from '../socketContext';
 import { updateMessage, getRoom } from '../utils/DB';
-import { useSharedValue, withTiming } from 'react-native-reanimated';
+import { useSharedValue, withTiming, } from 'react-native-reanimated';
 import LoadingPage from '../components/LoadingPage';
 import { renderActions, renderBubble, RenderChatFooter, renderInputToolbar, renderMessageAudio, renderMessageFile, RenderMessageImage, renderMessageVideo, renderSend, renderTime } from '../components/Message';
 import useTheme from '../utils/theme';
@@ -18,7 +18,8 @@ import useAudioPlayer from '../hooks/useAudioPlayer';
 const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>) => {
 	const { contact, roomId }: any = route.params;
 
-	const [messages, setMessages] = useState<IMessage[]>([]);
+	// const [messages, setMessages] = useState<IMessagePro[]>([]);
+	const {messages,setMessages} = useMessage();
 	const [open, setOpen] = useState<boolean>(false); // renderChatFooter
 	const [status, setStatus] = useState<boolean | undefined>(undefined); // connection
 	const [recording, setRecording] = useState<undefined | { playing: boolean, status: RecordingEnum }>();
@@ -36,7 +37,8 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	const { currentPosition, setCurrentPosition } = usePosition();
 	const { open: isPlayerOpen, setOpen: setIsOpen } = useIsOpen();
 	const setContact = useCurrentContact(state => state.setContact);
-	// const { startPlayingByItem, stopPlaying } = useAudioPlayer();
+	const { startPlayingByItem, stopPlaying } = useAudioPlayer();
+	const playerStatus = useIsPlaying(state => state.playerStatus);
 
 	const translateY = useSharedValue(1000);
 	const { colors } = useTheme();
@@ -135,15 +137,22 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 		}
 	}, [messages]);
 
-	useEffect(() => {
+	// useEffect(() => {
 		if (open === true) {
 			translateY.value = withTiming(300, { duration: 400 });
 		} else {
 			translateY.value = withTiming(700, { duration: 1000 });
 		}
-	}, [open]);
+	// }, [open]);
 
-	// console.log(messages.map(e=>e._id));
+	useEffect(() => {
+		setMessages(e =>
+			e.map((item) =>
+				item._id === playerStatus.id ? { ...item, playing: playerStatus.isPlaying } : item
+			)
+		);
+
+	}, [playerStatus.isPlaying]);
 
 	useEffect(() => {
 		setPending(true);
@@ -151,7 +160,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 			.then((result) => {
 				if (result.length > 0) {
 					const roomMessage: IMessagePro[] = result.map((e: any) => JSON.parse(e.data))[0]?.messages;
-					setMessages(roomMessage.map(e => ({ ...e, playing: false })));
+					setMessages(()=>roomMessage.map(e => ({ ...e, playing: false })));
 					setPending(false);
 				}
 			}).catch(error => {
@@ -161,12 +170,21 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 		setPending(false);
 	}, [lastMessage]);
 
+	// const shouldUpdateMessage = useCallback((currentProps, nextProps) => {
+	// 	if (currentProps.previousMessage !== nextProps.nextMessage) {
+	// 		return true
+	// 	}
+	// 	return false
+	// }, []);
+
 	useEffect(() => {
 		setContact(contact);
 	}, []);
 
-	const onSend = (newMessage: IMessage[]) => {
-		if ((!status || !socket)) return;
+	const onSend = (newMessage: IMessagePro[]) => {
+		console.log('first');
+		if ((!socket)) return;
+		// if ((!status || !socket)) return;
 		socket.emit('sendMessage', { ...newMessage[0], user, roomId }, setMessages((prevMessages: IMessage[]) => GiftedChat.append(prevMessages, [...newMessage])));
 		handleLastMessages({ roomId, newMessage: newMessage[0].text })
 	};
@@ -179,7 +197,6 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 					<PushNotificationSend user={user} contactToken={contact?.token} roomId={roomId} />
 					: null
 			}
-			{/* <PushNotificationSend active={contact?.token && status === false} user={user} contactToken={contact?.token} roomId={roomId} /> */}
 			<View style={{ flexDirection: 'row', padding: 15, alignItems: "center", backgroundColor: colors.undetlay }}>
 				<View style={{ width: 47, height: 47, borderRadius: 25, backgroundColor: colors.border, marginRight: 10 }} />
 				<View style={{ alignItems: "flex-start", flexDirection: "column" }}>
@@ -190,21 +207,20 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 					</View>
 				</View>
 			</View>
-			{/* <View style={{ height: 40 }}> */}
-				{isPlayerOpen ? <FloatingMusicPlayer /> : null}
-			{/* </View> */}
+			{isPlayerOpen ?
+				<FloatingMusicPlayer />
+				: null}
 			<GiftedChat
 				messages={messages}
 				onSend={messages => onSend(messages)}
 				user={user}
 				renderMessageImage={(e: any) => RenderMessageImage(e, { setMessages, downloading, uploading, errors, setDownloading })}
 				renderMessageVideo={(e: any) => renderMessageVideo(e, { setMessages, downloading, uploading, errors, setDownloading, videoRef })}
-				renderMessageAudio={(e: any) => renderMessageAudio(e, { setMessages, downloading, setDownloading, uploading, errors, colors, player, setPlayer, currentPosition, setCurrentPosition, setIsOpen })}
+				renderMessageAudio={(e: any) => renderMessageAudio(e, { setMessages, colors, currentPosition, downloading, errors, setDownloading, player, setCurrentPosition, setIsOpen, setPlayer, uploading, startPlayingByItem, stopPlaying, playerStatus })}
 				renderCustomView={(e: any) => renderMessageFile(e, { setMessages, downloading, setDownloading, uploading, errors, colors, player, setPlayer })}
 				alwaysShowSend
 				scrollToBottom
 				loadEarlier
-				renderUsernameOnMessage
 				infiniteScroll
 				inverted={true}
 				renderActions={(e) => renderActions(e, { setOpen, open, colors })}

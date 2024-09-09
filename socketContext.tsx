@@ -1,21 +1,23 @@
 import { Socket } from 'socket.io-client';
-import { CountNewMessageType, currentPosition, LastMessageType, lastTrack, player, User } from './utils/types';
+import { currentPosition, IMessagePro, LastMessageType, lastTrack, player, playerStatus, User } from './utils/types';
 import { create } from 'zustand';
-import * as Notifications from "expo-notifications";
-import { Audio } from 'expo-av';
 
 const initialCurrentPosition: currentPosition = {
-    position:undefined,
-	id:undefined
+	position: undefined,
+	id: undefined
 };
 
 const initialLastTrack: lastTrack = {
-    duration: undefined,
-    id: undefined,
-    name: undefined,
-    uri: undefined
+	duration: undefined,
+	id: undefined,
+	name: undefined,
+	uri: undefined
 };
 
+interface useMessage {
+	messages: IMessagePro[] | [],
+	setMessages: (callback: (prev: IMessagePro[] | []) => (IMessagePro[] | [])) => void
+}
 interface useSocket {
 	socket: Socket | null
 	setSocket: (e: Socket) => void
@@ -77,6 +79,15 @@ interface useIsOpen {
 	open: boolean
 	setOpen: (e: boolean) => void
 }
+interface useIsPlaying {
+	playerStatus: playerStatus
+	setPlayerStatus: (callback: (prev: playerStatus) => (playerStatus)) => void
+}
+
+export const useMessage = create<useMessage>()((set) => ({
+	messages: [],
+	setMessages: (callback) => set((state) => ({ messages: callback(state.messages) }))
+}));
 
 export const useSocket = create<useSocket>()((set) => ({
 	socket: null,
@@ -100,7 +111,7 @@ export const useCurrentContact = create<useCurrentContact>()((set) => ({
 
 export const useForceRerender = create<useForceRerender>()((set) => ({
 	forceRerender: false,
-	setForceRerender: () => set((state)=>({ forceRerender: !state.forceRerender }))
+	setForceRerender: () => set((state) => ({ forceRerender: !state.forceRerender }))
 }));
 
 export const useSetDownloading = create<useSetDownloading>()((set) => ({
@@ -129,12 +140,12 @@ export const usePlayer = create<usePlayer>()((set) => ({
 }));
 
 export const useBeCheck = create<useBeCheck>()((set) => ({
-	beCheck : false,
+	beCheck: false,
 	setBeCheck: (e) => set({ beCheck: e })
 }));
 
 export const usePosition = create<usePosition>()((set) => ({
-	currentPosition : initialCurrentPosition,
+	currentPosition: initialCurrentPosition,
 	setCurrentPosition: (callback) => set((state) => ({ currentPosition: callback(state.currentPosition) }))
 }));
 
@@ -144,8 +155,12 @@ export const useLastTrack = create<useLastTrack>()((set) => ({
 }));
 
 //for open or close FloatingMusicPlayer  useIsOpen
-
 export const useIsOpen = create<useIsOpen>()((set) => ({
 	open: false,
 	setOpen: (e) => set({ open: e })
+}));
+
+export const useIsPlaying = create<useIsPlaying>()((set) => ({
+	playerStatus: { isPlaying: false, id: undefined },
+	setPlayerStatus: (callback) => set((state) => ({ playerStatus: callback(state.playerStatus) })),
 }));

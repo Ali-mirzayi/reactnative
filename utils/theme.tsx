@@ -1,14 +1,14 @@
 import { DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { storage } from '../mmkv';
-import switchTheme from 'react-native-theme-switch-animation';
 import { useMMKV, useMMKVListener } from 'react-native-mmkv';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 const lightTheme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    background: "#EEF1FF",
+    container: "#EEF1FF",
+    background: "#dadef0",
     text: "#212A3E",
     card: "#F9F7F7",
     mirza: "#3F72AF",
@@ -24,6 +24,7 @@ const darkTheme = {
   ...DarkTheme,
   colors: {
     ...DefaultTheme.colors,
+    container: "#00051c",
     background: "#212A3E",
     text: "#F1F6F9",
     card: "#415266",

@@ -15,7 +15,6 @@ import { useIsFocused } from "@react-navigation/native";
 import { usePushNotifications } from "../utils/usePushNotifications";
 import { ensureDirExists, fileDirectory } from "../utils/directories";
 import * as FileSystem from 'expo-file-system';
-import sleep from "../utils/wait";
 import DrawerCore from "../components/Drawer";
 import { storage } from "../mmkv";
 import FloatingMusicPlayer from "../components/FloatingMusicPlayer";
@@ -336,7 +335,8 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 15,
 		paddingVertical: 12,
 		justifyContent: "center",
-		marginVertical: 15,
+		marginTop: 15,
+		marginBottom:10,
 		elevation: 4,
 	},
 	chatheading: {
@@ -358,6 +358,7 @@ const styles = StyleSheet.create({
 		borderRadius: 6
 	},
 	chatlistContainer: {
+		paddingTop: 10,
 		paddingHorizontal: 10,
 	},
 	chatemptyContainer: {
