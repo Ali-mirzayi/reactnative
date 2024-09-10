@@ -5,7 +5,7 @@ import SearchBar from "../components/SearchBar";
 import { Room, User, ChatNavigationProps, IMessagePro, CountNewMessageType } from "../utils/types";
 import { DrawerScreenProps } from '@react-navigation/drawer';
 import { Ionicons } from "@expo/vector-icons";
-import { useIsOpen, useSetLastMessage, useSocket, useUser } from "../socketContext";
+import { useIsOpen, useMessage, useSetLastMessage, useSocket, useUser } from "../socketContext";
 import { getAllRooms, getRoom, insertRoom, updateMessage } from "../utils/DB";
 import Toast from "react-native-toast-message";
 import LoadingPage from "../components/LoadingPage";
@@ -18,12 +18,14 @@ import * as FileSystem from 'expo-file-system';
 import DrawerCore from "../components/Drawer";
 import { storage } from "../mmkv";
 import FloatingMusicPlayer from "../components/FloatingMusicPlayer";
+import { GiftedChat, IMessage } from "react-native-gifted-chat";
 
 const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) => {
 	const setUser = useUser(state => state.setUser);
 	const user = useUser(state => state.user);
 	const socket = useSocket(state => state.socket);
 	const { lastMessage, setLastMessage } = useSetLastMessage();
+	const setMessages = useMessage(state => state.setMessages);
 
 	const { colors } = useTheme();
 	const { expoPushToken, notification } = usePushNotifications();
@@ -47,7 +49,6 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 	const pressUserHandler = async ({ contact }: { contact: User | undefined }) => {
 		const roomIfExists = rooms.find(e => e.users[0]._id === contact?._id || e.users[1]._id === contact?._id);
 		if (!!roomIfExists) {
-			console.log('roomIfExists first');
 			setCurrentRoomId(roomIfExists.id);
 			navigation.navigate("Messaging", { contact: contact, roomId: roomIfExists.id });
 		} else {
@@ -105,7 +106,6 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 	const handleFindRoomResponse = async (res: { result: Room | null, contact: User }) => {
 		const { result, contact } = res;
 		if (result?.id) {
-			console.log('findRoomResponse first');
 			await insertRoom(result);
 			setRooms(e => [...e, result]);
 			setCurrentRoomId(result.id);
