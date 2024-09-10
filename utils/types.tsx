@@ -4,9 +4,10 @@ import { Audio } from "expo-av";
 
 export enum availableStatus {
     "available" = 0,
-    "download" = 1,
-    "uploading" = 2,
-    "error" = 3,
+    "downloading" = 1,
+    "download" = 2,
+    "uploading" = 3,
+    "error" = 4,
 };
 
 export type LoginNavigationProps = {

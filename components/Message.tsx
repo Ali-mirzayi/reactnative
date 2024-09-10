@@ -8,7 +8,7 @@ import * as FileSystem from 'expo-file-system';
 import { Actions, ActionsProps, Bubble, BubbleProps, Composer, GiftedChat, IMessage, InputToolbar, InputToolbarProps, MessageAudioProps, MessageImage, MessageImageProps, MessageProps, MessageVideoProps, Send, SendProps, Time, TimeProps } from "react-native-gifted-chat";
 import { ResizeMode, Video, Audio } from "expo-av";
 import { darkTheme } from "../utils/theme";
-import { currentPosition, IMessagePro, player, playerStatus, RecordingEnum, User } from "../utils/types";
+import { availableStatus, currentPosition, IMessagePro, player, playerStatus, RecordingEnum, User } from "../utils/types";
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Entypo from '@expo/vector-icons/Entypo';
 import Feather from '@expo/vector-icons/Feather';
@@ -212,7 +212,7 @@ type renderMessageAudioProps = {
 		isForStart: boolean;
 		isEnded: boolean;
 	}) => Promise<void>,
-	playerStatus:playerStatus
+	playerStatus: playerStatus
 };
 
 export const renderMessageFile = (props: MessageProps<IMessagePro>, { setMessages, downloading, setDownloading, colors, uploading, setPlayer }: renderMessageFileProps) => {
@@ -466,22 +466,37 @@ export function renderMessageVideo(props: MessageVideoProps<IMessagePro>, { setM
 // 	)
 // };
 
-export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setMessages, downloading, setDownloading, uploading, colors, errors, setPlayer, player, currentPosition, setCurrentPosition, setIsOpen, startPlayingByItem, stopPlaying,playerStatus }: renderMessageAudioProps) => {
+export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setMessages, downloading, setDownloading, uploading, colors, errors, setPlayer, player, currentPosition, setCurrentPosition, setIsOpen, startPlayingByItem, stopPlaying, playerStatus }: renderMessageAudioProps) => {
 	const Message = props.currentMessage;
 	// const isPlaying = playerStatus.isPlaying&&playerStatus.id===Message._id;
 	const isPlaying = Message.playing;
+	const Modes = Message.availableStatus;
 
 	async function handlePress() {
 		if (Message?.file?.startsWith('file') || !Message?.audio || !Message.fileName) return;
-		setDownloading(e => [...e, Message._id]);
+		// setDownloading(e => [...e, Message._id]);
+		setMessages(e => e.map(message => {
+			if (message._id === Message._id) {
+				return { ...message, availableStatus: availableStatus.downloading }
+			} else {
+				return message
+			}
+		}));
 		await FileSystem.downloadAsync(Message?.audio, fileDirectory + Message.fileName)
-			.then(result => {
+			.then(() => {
 				console.log('Finished downloading to ', 'result');
+				setMessages(e => e.map(message => {
+					if (message._id === Message._id) {
+						return { ...message, availableStatus: availableStatus.available }
+					} else {
+						return message
+					}
+				}));
 			})
 			.catch(error => {
 				console.error(error, 'errrrrrrrr');
 			}).finally(() => {
-				setDownloading(e => e.filter(r => r !== Message._id));
+				// setDownloading(e => e.filter(r => r !== Message._id));
 			});
 		const newFile = fileDirectory + Message.fileName;
 		//delete this it at last
@@ -512,11 +527,43 @@ export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setM
 	const color = props.position === 'right' ? '#fff' : colors.text === "#F1F6F9" ? '#fff' : '#000';
 	const time = formatMillisecondsToTime(Message?.duration);
 
+	let finalMode = undefined;
+
+	const TransferMode = (<ActivityIndicator style={[styles.iconContainer, { backgroundColor: colors.undetlay }]} size="large" color="#fff" />);
+
+	const AvailableMode = (<TouchableHighlight onPress={isPlaying ? () => stopPlaying({ isForStart: false, isEnded: false }) : () => startPlayingByItem({ item: { audioName: Message.fileName ?? "", id: Message._id, uri: Message.audio ?? '' }, isMessage: true })} style={[styles.iconContainer, { backgroundColor: colors.undetlay }]}>
+		<Ionicons name={isPlaying ? "pause" : "play"} size={30} color="#fff" style={{ marginRight: isPlaying ? 0 : -4 }} />
+	</TouchableHighlight>);
+
+	const DownloadMode = (<TouchableHighlight onPress={handlePress} style={[styles.iconContainer, { backgroundColor: colors.undetlay }]}>
+		<MaterialCommunityIcons name="download" size={34} color="#fff" />
+	</TouchableHighlight>);
+
+	switch (Modes) {
+		case availableStatus.available:
+			finalMode = AvailableMode;
+			break;
+		case availableStatus.download:
+			finalMode = DownloadMode;
+			break;
+		case availableStatus.downloading:
+			finalMode = TransferMode;
+			break;
+		case availableStatus.uploading:
+			finalMode = TransferMode;
+			break;
+		default:
+			finalMode = AvailableMode;
+			break;
+	};
+
+	console.log(Modes === availableStatus.available,'asd');
+
 	return (
 		<>
-			<View style={[{ zIndex: 10, position: 'relative', width: 200, height: 60, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', overflow: 'hidden',paddingTop:10 }]}>
+			<View style={[{ zIndex: 10, position: 'relative', width: 200, height: 60, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', overflow: 'hidden', paddingTop: 10 }]}>
 				<View style={{ width: 50, height: 50, borderRadius: 50, marginHorizontal: 10, justifyContent: 'center', alignItems: 'center' }}>
-					{
+					{/* {
 						!!uploading.find(e => e === Message?._id) ? <ActivityIndicator style={[styles.iconContainer, { backgroundColor: colors.background }]} size="large" color={colors.mirza} /> : Message?.audio?.startsWith('file') ?
 							<TouchableHighlight onPress={isPlaying ? () => stopPlaying({ isForStart: false, isEnded: false }) : () => startPlayingByItem({ item: { audioName: Message.fileName ?? "", id: Message._id, uri: Message.audio ?? '' }, isMessage: true })} style={[styles.iconContainer, { backgroundColor: colors.undetlay }]}>
 								<Ionicons name={isPlaying ? "pause" : "play"} size={30} color="#fff" style={{ marginRight: isPlaying ? 0 : -4 }} />
@@ -526,17 +573,18 @@ export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setM
 								<TouchableHighlight onPress={handlePress} style={[styles.iconContainer, { backgroundColor: colors.background }]}>
 									<MaterialCommunityIcons name="download" size={34} color={colors.mirza} />
 								</TouchableHighlight>
-					}
+					} */}
+					{finalMode}
 				</View>
 				<View style={{ marginLeft: 0, marginRight: 'auto', width: 130, overflow: 'hidden' }}>
 					<MovingText disable={isPlaying ? false : true} animationThreshold={15} style={[{ color: color, size: 10 }]}>{Message?.fileName ? Message?.fileName : 'Voice'}</MovingText>
 				</View>
 			</View>
-			<View style={{ flexDirection: 'row', justifyContent: 'flex-end',alignItems:'flex-end',gap:10,paddingRight:10,marginBottom:5 }}>
-				<Text style={{ color,fontWeight: '500',fontSize:14  }}>{time}</Text>
-				<Pressable onPress={() => save({ uri: Message ? Message?.audio : undefined })}>
-					<Text style={{ color, fontWeight: '600',fontSize:16 }}>Save</Text>
-				</Pressable>
+			<View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'flex-end', gap: 10, paddingRight: 10, marginBottom: 5 }}>
+				<Text style={{ color, fontWeight: '500', fontSize: 14 }}>{time}</Text>
+				{Modes === availableStatus.available ? <Pressable onPress={() => save({ uri: Message ? Message?.audio : undefined })}>
+					<Text style={{ color, fontWeight: '600', fontSize: 16 }}>Save</Text>
+				</Pressable> : null}
 			</View>
 		</>
 	)
