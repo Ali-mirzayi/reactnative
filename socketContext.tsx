@@ -1,5 +1,5 @@
 import { Socket } from 'socket.io-client';
-import { currentPosition, IMessagePro, LastMessageType, lastTrack, player, playerStatus, User } from './utils/types';
+import { currentPosition, IMessagePro, LastMessageType, lastTrack, player, playerStatus, User, videoDuration } from './utils/types';
 import { create } from 'zustand';
 
 const initialCurrentPosition: currentPosition = {
@@ -38,20 +38,6 @@ interface useForceRerender {
 	forceRerender: boolean
 	setForceRerender: () => void
 }
-
-interface useSetDownloading {
-	downloading: (string | number)[]
-	setDownloading: (callback: (prev: (string | number)[]) => (string | number)[]) => void;
-}
-interface useSetUploading {
-	uploading: (string | number)[]
-	setUploading: (callback: (prev: (string | number)[]) => (string | number)[]) => void
-}
-interface useSetErrors {
-	errors: (string | number)[]
-	setErrors: (callback: (prev: (string | number)[]) => (string | number)[]) => void
-}
-
 interface useSetLastMessage {
 	lastMessage: LastMessageType[] | []
 	setLastMessage: (callback: (prev: LastMessageType[] | []) => (LastMessageType[] | [])) => void
@@ -84,6 +70,11 @@ interface useIsPlaying {
 	setPlayerStatus: (callback: (prev: playerStatus) => (playerStatus)) => void
 }
 
+interface useVideosDuration {
+	videosDuration: videoDuration[] | []
+	setVideosDuration: (callback: (prev: (videoDuration)[]) => (videoDuration)[]) => void;
+}
+
 export const useMessage = create<useMessage>()((set) => ({
 	messages: [],
 	setMessages: (callback) => set((state) => ({ messages: callback(state.messages) }))
@@ -112,21 +103,6 @@ export const useCurrentContact = create<useCurrentContact>()((set) => ({
 export const useForceRerender = create<useForceRerender>()((set) => ({
 	forceRerender: false,
 	setForceRerender: () => set((state) => ({ forceRerender: !state.forceRerender }))
-}));
-
-export const useSetDownloading = create<useSetDownloading>()((set) => ({
-	downloading: [],
-	setDownloading: (callback) => set((state) => ({ downloading: callback(state.downloading) })),
-}));
-
-export const useSetUploading = create<useSetUploading>()((set) => ({
-	uploading: [],
-	setUploading: (callback) => set((state) => ({ uploading: callback(state.uploading) })),
-}));
-
-export const useSetErrors = create<useSetErrors>()((set) => ({
-	errors: [],
-	setErrors: (callback) => set((state) => ({ errors: callback(state.errors) })),
 }));
 
 export const useSetLastMessage = create<useSetLastMessage>()((set) => ({
@@ -163,4 +139,9 @@ export const useIsOpen = create<useIsOpen>()((set) => ({
 export const useIsPlaying = create<useIsPlaying>()((set) => ({
 	playerStatus: { isPlaying: false, id: undefined },
 	setPlayerStatus: (callback) => set((state) => ({ playerStatus: callback(state.playerStatus) })),
+}));
+
+export const useVideosDuration = create<useVideosDuration>()((set) => ({
+	videosDuration: [],
+	setVideosDuration: (callback) => set((state) => ({ videosDuration: callback(state.videosDuration) })),
 }));

@@ -1,6 +1,6 @@
 import { GiftedChat } from "react-native-gifted-chat";
 import baseURL from "../utils/baseURL";
-import { availableStatus, IMessagePro, RecordingEnum, User, videoDuration } from "../utils/types";
+import { availableStatus, IMessagePro, RecordingEnum, User } from "../utils/types";
 import { generateID, isMusicFile } from "../utils/utils";
 import * as FileSystem from "expo-file-system";
 import { Audio } from "expo-av";
@@ -18,42 +18,34 @@ type sendMediaProps = {
     mimeType?: string,
     duration?: number,
     setMessages: (callback: (prev: IMessagePro[] | []) => (IMessagePro[] | [])) => void,
-    videosDuration?: [] | videoDuration[]
+    // setMessages: React.Dispatch<React.SetStateAction<IMessagePro[]>>,
+    setUploading: (callback: (prev: (string | number)[]) => (string | number)[]) => void,
+    setErrors: (callback: (prev: (string | number)[]) => (string | number)[]) => void,
 };
 
 
-export async function sendMedia({ uri, type, name, mimeType, duration, roomId, setMessages, user, socket,videosDuration }: sendMediaProps) {
+export async function sendMedia({ uri, type, name, mimeType, duration, roomId, setErrors, setMessages, user, socket, setUploading }: sendMediaProps) {
     const id = generateID();
     if (type === 'image' && uri) {
+        // setUploading(e => [...e, id]);
         setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, image: uri, mimeType, availableStatus: availableStatus.uploading }]));
         const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file', mimeType });
         if (response.body === "ok") {
-            socket?.emit('sendImage', { _id: id, text: "", createdAt: new Date(), user, roomId, mimeType, availableStatus: availableStatus.download }, setMessages(e => e.map(message => {
-                if (message._id === id) {
-                    return { ...message, availableStatus: availableStatus.available }
-                } else {
-                    return message
-                }
-            })));
+            socket?.emit('sendImage', { _id: id, text: "", createdAt: new Date(), user, roomId, mimeType }, setUploading(e => e.filter(r => r !== id)));
         } else {
-            console.log('error uploading image')
+            setErrors(e => [...e, id]);
         }
     } else if (type === 'video' && uri) {
+        // setUploading(e => [...e, id]);
         setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, video: uri, mimeType, availableStatus: availableStatus.uploading }]));
         const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file', mimeType })
         if (response.body === "ok") {
-            // console.log(videosDuration,'first',videosDuration?.find(e=>e.id===id),id)
-            socket?.emit('sendVideo', { _id: id, text: "", createdAt: new Date(), user, roomId, mimeType, availableStatus: availableStatus.download }, setMessages(e => e.map(message => {
-                if (message._id === id) {
-                    return { ...message, availableStatus: availableStatus.available }
-                } else {
-                    return message
-                }
-            })));
+            socket?.emit('sendVideo', { _id: id, text: "", createdAt: new Date(), user, roomId, mimeType }, setUploading(e => e.filter(r => r !== id)));
         } else {
-            console.log('error uploading video');
+            setErrors(e => [...e, id]);
         }
     } else if (type === 'file' && uri) {
+        setUploading(e => [...e, id]);
         const isMusic = isMusicFile(name);
         if (isMusic) {
             const { sound, status } = await Audio.Sound.createAsync({ uri }, { shouldPlay: false });
@@ -63,44 +55,34 @@ export async function sendMedia({ uri, type, name, mimeType, duration, roomId, s
             const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file' })
             if (response.body === "ok") {
                 // @ts-ignore
-                socket?.emit('sendAudio', { _id: id, text: "", createdAt: new Date(), user, roomId, fileName: name, duration: status?.durationMillis, mimeType, availableStatus: availableStatus.download }, setMessages(e => e.map(message => {
-                    if (message._id === id) {
-                        return { ...message, availableStatus: availableStatus.available }
+                socket?.emit('sendAudio', { _id: id, text: "", createdAt: new Date(), user, roomId, fileName: name, duration: status?.durationMillis, mimeType,availableStatus:availableStatus.download }, setMessages(e => e.map(message => {
+                    if (message._id === id){
+                        return {...message, availableStatus:availableStatus.available}
                     } else {
                         return message
                     }
                 })));
+                // socket?.emit('sendAudio', { _id: id, text: "", createdAt: new Date(), user, roomId, fileName: name, duration: status?.durationMillis, mimeType }, setUploading(e => e.filter(r => r !== id)));
             } else {
-                console.log('error uploading music');
+                setErrors(e => [...e, id]);
             }
         } else {
             setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, file: uri, fileName: name, mimeType, availableStatus: availableStatus.uploading }]));
             const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file' })
             if (response.body === "ok") {
-                socket?.emit('sendFile', { _id: id, text: "", createdAt: new Date(), user, roomId, fileName: name, mimeType, availableStatus: availableStatus.download }, setMessages(e => e.map(message => {
-                    if (message._id === id) {
-                        return { ...message, availableStatus: availableStatus.available }
-                    } else {
-                        return message
-                    }
-                })));
+                socket?.emit('sendFile', { _id: id, text: "", createdAt: new Date(), user, roomId, fileName: name, mimeType }, setUploading(e => e.filter(r => r !== id)));
             } else {
-                console.log('error uploading file');
+                setErrors(e => [...e, id]);
             }
         }
     } else if (type === 'audio' && uri) {
+        setUploading(e => [...e, id]);
         setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, audio: uri, fileName: name, duration, playing: false, availableStatus: availableStatus.uploading }]));
         const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file' })
         if (response.body === "ok") {
-            socket?.emit('sendAudio', { _id: id, text: "", createdAt: new Date(), user, roomId, fileName: name, duration, mimeType }, setMessages(e => e.map(message => {
-                if (message._id === id) {
-                    return { ...message, availableStatus: availableStatus.available }
-                } else {
-                    return message
-                }
-            })));
+            socket?.emit('sendAudio', { _id: id, text: "", createdAt: new Date(), user, roomId, fileName: name, duration, mimeType }, setUploading(e => e.filter(r => r !== id)));
         } else {
-            console.log('error uploading audio');
+            setErrors(e => [...e, id]);
         }
     }
 };
@@ -142,15 +124,18 @@ type stopRecordingProps = {
     roomId: any,
     socket: any,
     setMessages: (callback: (prev: IMessagePro[] | []) => (IMessagePro[] | [])) => void,
+    // setMessages: React.Dispatch<React.SetStateAction<IMessagePro[]>>,
+    setUploading: (callback: (prev: (string | number)[]) => (string | number)[]) => void,
+    setErrors: (callback: (prev: (string | number)[]) => (string | number)[]) => void,
 };
 
 
-export async function stopRecording({ setRecording, roomId, setMessages, socket, user }: stopRecordingProps) {
+export async function stopRecording({ setRecording, roomId, setErrors, setMessages, setUploading, socket, user }: stopRecordingProps) {
     setRecording({ playing: false, status: RecordingEnum.stop });
     await recordingObg?.stopAndUnloadAsync();
     const duration = recordingObg?._finalDurationMillis
     const uri = recordingObg?.getURI();
-    sendMedia({ uri, type: "audio", duration, setMessages, roomId, socket, user, name: "voice" });
+    sendMedia({ uri, type: "audio", duration, setErrors, setMessages, setUploading, roomId, socket, user, name: "voice" });
     recordingObg = undefined;
 };
 
@@ -170,11 +155,19 @@ export async function cancelRecording({ setRecording }: cancelRecordingProps) {
 };
 
 export const save = async ({ uri }: { uri: string | undefined }) => {
+    console.log('first')
     if (!uri) return;
     const { granted } = await MediaLibrary.requestPermissionsAsync();
     if (granted) {
         try {
             await MediaLibrary.createAssetAsync(uri);
+            //   MediaLibrary.createAlbumAsync('Mirzagram', asset, false)
+            //     .then(() => {
+            //       console.log('File Saved Successfully!');
+            //     })
+            //     .catch((e) => {
+            //       console.log(e,'Error In Saving File!');
+            //     });
         } catch (error) {
             console.log(error);
         }

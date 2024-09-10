@@ -8,7 +8,7 @@ import * as FileSystem from 'expo-file-system';
 import { Actions, ActionsProps, Bubble, BubbleProps, Composer, GiftedChat, IMessage, InputToolbar, InputToolbarProps, MessageAudioProps, MessageImage, MessageImageProps, MessageProps, MessageVideoProps, Send, SendProps, Time, TimeProps } from "react-native-gifted-chat";
 import { ResizeMode, Video, Audio } from "expo-av";
 import { darkTheme } from "../utils/theme";
-import { availableStatus, currentPosition, IMessagePro, player, playerStatus, RecordingEnum, User } from "../utils/types";
+import { availableStatus, currentPosition, IMessagePro, player, playerStatus, RecordingEnum, User, videoDuration } from "../utils/types";
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Entypo from '@expo/vector-icons/Entypo';
 import Feather from '@expo/vector-icons/Feather';
@@ -26,23 +26,21 @@ type RenderChatFooterProps = {
 	translateY: any,
 	roomId: any,
 	setMessages: (callback: (prev: IMessagePro[] | []) => (IMessagePro[] | [])) => void,
-	// setMessages: React.Dispatch<React.SetStateAction<IMessage[]>>,
 	recording: undefined | { playing: boolean, status: RecordingEnum },
 	setRecording: React.Dispatch<React.SetStateAction<{
 		playing: boolean;
 		status: RecordingEnum;
 	} | undefined>>,
 	colors: typeof darkTheme.colors,
-	setUploading: (callback: (prev: (string | number)[]) => (string | number)[]) => void,
-	setErrors: (callback: (prev: (string | number)[]) => (string | number)[]) => void,
 	handleAudioPermissions: () => Promise<boolean>,
 	//@ts-ignore
 	pan: Animated.Value,
 	panResponder: PanResponderInstance,
-	permissionResponse: Audio.PermissionResponse | null
+	permissionResponse: Audio.PermissionResponse | null,
+	videosDuration: [] | videoDuration[]
 }
 
-export function RenderChatFooter({ user, socket, translateY, roomId, setMessages, recording, setRecording, colors, setErrors, setUploading, handleAudioPermissions, pan, panResponder, permissionResponse }: RenderChatFooterProps) {
+export function RenderChatFooter({ user, socket, translateY, roomId, setMessages, recording, setRecording, colors, handleAudioPermissions, pan, panResponder, permissionResponse, videosDuration }: RenderChatFooterProps) {
 	const handleCamera = async () => {
 		await ImagePicker.requestCameraPermissionsAsync();
 		let result = await ImagePicker.launchCameraAsync({
@@ -53,7 +51,7 @@ export function RenderChatFooter({ user, socket, translateY, roomId, setMessages
 			preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Current
 		});
 		if (!result.canceled) {
-			sendMedia({ uri: result.assets[0].uri, type: result.assets[0].type, setErrors, setMessages, setUploading, roomId, socket, user, mimeType: result.assets[0].mimeType });
+			sendMedia({ uri: result.assets[0].uri, type: result.assets[0].type, setMessages, roomId, socket, user, mimeType: result.assets[0].mimeType });
 
 		};
 	};
@@ -67,7 +65,7 @@ export function RenderChatFooter({ user, socket, translateY, roomId, setMessages
 			videoQuality: 1,
 		});
 		if (!result.canceled) {
-			sendMedia({ uri: result.assets[0].uri, type: result.assets[0].type, setErrors, setMessages, setUploading, roomId, socket, user, mimeType: result.assets[0].mimeType });
+			sendMedia({ uri: result.assets[0].uri, type: result.assets[0].type, setMessages, roomId, socket, user, mimeType: result.assets[0].mimeType, videosDuration });
 		}
 	};
 
@@ -77,7 +75,7 @@ export function RenderChatFooter({ user, socket, translateY, roomId, setMessages
 				type: "*/*",
 			});
 			if (!result.canceled) {
-				sendMedia({ uri: result.assets[0].uri, type: "file", name: result.assets[0].name, mimeType: result.assets[0].mimeType, setErrors, setMessages, setUploading, roomId, socket, user });
+				sendMedia({ uri: result.assets[0].uri, type: "file", name: result.assets[0].name, mimeType: result.assets[0].mimeType, setMessages, roomId, socket, user });
 			};
 		} catch (error) {
 			console.log(error);
@@ -196,15 +194,11 @@ export function renderTime(props: TimeProps<IMessage>, { colors }: { colors: typ
 		/>)
 };
 
-type renderMessageImageProps = { setMessages: (callback: (prev: IMessagePro[] | []) => (IMessagePro[] | [])) => void, downloading: (string | number)[], setDownloading: (callback: (prev: (string | number)[]) => (string | number)[]) => void, uploading: (string | number)[], errors: (string | number)[] };
-// type renderMessageImageProps = { setMessages: React.Dispatch<React.SetStateAction<IMessage[]>>, downloading: (string | number)[], setDownloading: (callback: (prev: (string | number)[]) => (string | number)[]) => void, uploading: (string | number)[], errors: (string | number)[] };
-type renderMessageVideoProps = { setMessages: (callback: (prev: IMessagePro[] | []) => (IMessagePro[] | [])) => void, downloading: (string | number)[], setDownloading: (callback: (prev: (string | number)[]) => (string | number)[]) => void, videoRef: React.MutableRefObject<Video>, uploading: (string | number)[], errors: (string | number)[] };
-// type renderMessageVideoProps = { setMessages: React.Dispatch<React.SetStateAction<IMessage[]>>, downloading: (string | number)[], setDownloading: (callback: (prev: (string | number)[]) => (string | number)[]) => void, videoRef: React.MutableRefObject<Video>, uploading: (string | number)[], errors: (string | number)[] };
-type renderMessageFileProps = { setMessages: (callback: (prev: IMessagePro[] | []) => (IMessagePro[] | [])) => void, downloading: (string | number)[], setDownloading: (callback: (prev: (string | number)[]) => (string | number)[]) => void, colors: typeof darkTheme.colors, uploading: (string | number)[], errors: (string | number)[], player: player, setPlayer: (callback: (prev: player) => (player)) => void };
-// type renderMessageFileProps = { setMessages: React.Dispatch<React.SetStateAction<IMessage[]>>, downloading: (string | number)[], setDownloading: (callback: (prev: (string | number)[]) => (string | number)[]) => void, colors: typeof darkTheme.colors, uploading: (string | number)[], errors: (string | number)[], player: player, setPlayer: (callback: (prev: player) => (player)) => void };
+type renderMessageImageProps = { setMessages: (callback: (prev: IMessagePro[] | []) => (IMessagePro[] | [])) => void, colors: typeof darkTheme.colors };
+type renderMessageVideoProps = { setMessages: (callback: (prev: IMessagePro[] | []) => (IMessagePro[] | [])) => void, colors: typeof darkTheme.colors, videoRef: React.MutableRefObject<Video>, videosDuration: [] | videoDuration[], setVideosDuration: (callback: (prev: (videoDuration)[]) => (videoDuration)[]) => void };
+type renderMessageFileProps = { setMessages: (callback: (prev: IMessagePro[] | []) => (IMessagePro[] | [])) => void, colors: typeof darkTheme.colors };
 type renderMessageAudioProps = {
-	setMessages: (callback: (prev: IMessagePro[] | []) => (IMessagePro[] | [])) => void, downloading: (string | number)[], setDownloading: (callback: (prev: (string | number)[]) => (string | number)[]) => void, colors: typeof darkTheme.colors, uploading: (string | number)[], errors: (string | number)[], player: player, setPlayer: (callback: (prev: player) => (player)) => void, currentPosition: currentPosition, setCurrentPosition: (callback: (prev: currentPosition) => (currentPosition)) => void, setIsOpen: (e: boolean) => void,
-	// setMessages: React.Dispatch<React.SetStateAction<IMessagePro[]>>, downloading: (string | number)[], setDownloading: (callback: (prev: (string | number)[]) => (string | number)[]) => void, colors: typeof darkTheme.colors, uploading: (string | number)[], errors: (string | number)[], player: player, setPlayer: (callback: (prev: player) => (player)) => void, currentPosition: currentPosition, setCurrentPosition: (callback: (prev: currentPosition) => (currentPosition)) => void, setIsOpen: (e: boolean) => void,
+	setMessages: (callback: (prev: IMessagePro[] | []) => (IMessagePro[] | [])) => void, colors: typeof darkTheme.colors, player: player, setPlayer: (callback: (prev: player) => (player)) => void, currentPosition: currentPosition, setCurrentPosition: (callback: (prev: currentPosition) => (currentPosition)) => void, setIsOpen: (e: boolean) => void,
 	startPlayingByItem: ({ item, isMessage }: {
 		item: audioListType;
 		isMessage?: boolean;
@@ -215,23 +209,35 @@ type renderMessageAudioProps = {
 	playerStatus: playerStatus
 };
 
-export const renderMessageFile = (props: MessageProps<IMessagePro>, { setMessages, downloading, setDownloading, colors, uploading, setPlayer }: renderMessageFileProps) => {
+export const renderMessageFile = (props: MessageProps<IMessagePro>, { setMessages, colors }: renderMessageFileProps) => {
 	const Message = props.currentMessage;
 	//@ts-ignore
-	const color = props.position === 'right' ? '#fff' : colors.text === "#F1F6F9" ? '#fff' : '#000'
+	const color = props.position === 'right' ? '#fff' : colors.text === "#F1F6F9" ? '#fff' : '#000';
+	const messageStatus = Message.availableStatus;
+
 
 	async function handlePress() {
 		if (Message?.file?.startsWith('file') || !Message?.file || !Message.fileName) return;
-		setDownloading(e => [...e, Message._id]);
+		setMessages(e => e.map(message => {
+			if (message._id === Message._id) {
+				return { ...message, availableStatus: availableStatus.downloading }
+			} else {
+				return message
+			}
+		}));
 		await FileSystem.downloadAsync(Message?.file, fileDirectory + Message.fileName)
 			.then(result => {
-				console.log('Finished downloading to ', result);
+				setMessages(e => e.map(message => {
+					if (message._id === Message._id) {
+						return { ...message, availableStatus: availableStatus.available }
+					} else {
+						return message
+					}
+				}));
 			})
 			.catch(error => {
 				console.error(error, 'errrrrrrrr');
-			}).finally(() => {
-				setDownloading(e => e.filter(r => r !== Message._id));
-			});
+			})
 		const newFile = fileDirectory + Message.fileName;
 		setMessages((prevMessages: IMessagePro[]) => (prevMessages.map(e => {
 			if (e._id === Message._id) {
@@ -243,10 +249,8 @@ export const renderMessageFile = (props: MessageProps<IMessagePro>, { setMessage
 	};
 
 	const openFile = async () => {
-		console.log(Message?.fileName, 'Message?.file')
-		if (!Message?.file?.startsWith('file') || !Message?.file || !Message.fileName) return;
+		if (!Message?.file?.startsWith('file') || !Message?.file) return;
 		const contentURL = await FileSystem.getContentUriAsync(Message.file);
-
 		try {
 			await startActivityAsync('android.intent.action.VIEW', {
 				data: contentURL,
@@ -258,46 +262,82 @@ export const renderMessageFile = (props: MessageProps<IMessagePro>, { setMessage
 		}
 	};
 
+	let finalMode = undefined;
+
+	const TransferMode = (<ActivityIndicator style={[styles.iconContainer, { backgroundColor: colors.undetlay }]} size="large" color="#fff" />);
+
+	const AvailableMode = (<TouchableHighlight onPress={openFile} style={[styles.iconContainer, { backgroundColor: colors.undetlay }]}>
+		<Feather name="file" size={28} color={colors.mirza} />
+	</TouchableHighlight>);
+
+	const DownloadMode = (<TouchableHighlight onPress={handlePress} style={[styles.iconContainer, { backgroundColor: colors.undetlay }]}>
+		<MaterialCommunityIcons name="download" size={34} color="#fff" />
+	</TouchableHighlight>);
+
+	switch (messageStatus) {
+		case availableStatus.available:
+			finalMode = AvailableMode;
+			break;
+		case availableStatus.download:
+			finalMode = DownloadMode;
+			break;
+		case availableStatus.downloading:
+			finalMode = TransferMode;
+			break;
+		case availableStatus.uploading:
+			finalMode = TransferMode;
+			break;
+		default:
+			finalMode = AvailableMode;
+			break;
+	};
+
+
 	if (Message?.file) {
 		return (
-			<View style={[{ zIndex: 10, position: 'relative', width: 200, height: 80, flexDirection: 'row', alignItems: 'center' }]}>
-				<View style={{ width: 50, height: 50, borderRadius: 50, marginHorizontal: 10, justifyContent: 'center', alignItems: 'center' }}>
-					{
-						!!uploading.find(e => e === Message?._id) ? <ActivityIndicator style={[styles.iconContainer, { backgroundColor: colors.background }]} size="large" color={colors.mirza} /> : Message?.file?.startsWith('file') ?
-							<TouchableHighlight onPress={openFile} style={[styles.iconContainer, { backgroundColor: colors.background }]}>
-								<Feather name="file" size={28} color={colors.mirza} />
-							</TouchableHighlight> :
-							!!downloading.find(e => e === Message?._id) ?
-								<ActivityIndicator style={[styles.iconContainer, { backgroundColor: colors.background }]} size="large" color={colors.mirza} /> :
-								<TouchableHighlight onPress={handlePress} style={[styles.iconContainer, { backgroundColor: colors.background }]}>
-									<MaterialCommunityIcons name="download" size={34} color={colors.mirza} />
-								</TouchableHighlight>
-					}
+			<>
+				<View style={[{ zIndex: 10, position: 'relative', width: 200, height: 60, flexDirection: 'row', alignItems: 'center', paddingTop: 10 }]}>
+					<View style={{ marginHorizontal: 10 }}>
+						{finalMode}
+					</View>
+					<View style={{ marginLeft: 0, marginRight: 'auto', width: 130, overflow: 'hidden' }}>
+						<MovingText disable={false} animationThreshold={15} style={[{ color: color, size: 10 }]}>{Message?.fileName ? Message?.fileName : 'Voice'}</MovingText>
+					</View>
 				</View>
-				<View style={{ marginLeft: 0, marginRight: 'auto', width: 130, overflow: 'hidden' }}>
-					<MovingText disable={false} animationThreshold={15} style={[{ color: color, size: 10 }]}>{Message?.fileName ? Message?.fileName : 'Voice'}</MovingText>
-				</View>
-			</View>
+				{messageStatus === availableStatus.available ? <Pressable style={{ marginLeft: "auto", paddingRight: 10, paddingBottom: 5 }} onPress={() => save({ uri: Message ? Message?.file : undefined })}>
+					<Text style={{ color: colors.text, fontWeight: '600', fontSize: 16 }}>Save</Text>
+				</Pressable> : null}
+			</>
 		)
-		// }
 	}
 };
 
-export const RenderMessageImage = (props: MessageImageProps<IMessagePro>, { setMessages, downloading, setDownloading, uploading }: renderMessageImageProps) => {
+export const RenderMessageImage = (props: MessageImageProps<IMessagePro>, { setMessages, colors }: renderMessageImageProps) => {
 	const Message = props.currentMessage;
+	const messageStatus = Message.availableStatus;
 
 	async function handlePress() {
 		if (Message?.image?.startsWith('file') || !Message?.image || !Message.fileName) return;
-		setDownloading(e => [...e, Message._id]);
+		setMessages(e => e.map(message => {
+			if (message._id === Message._id) {
+				return { ...message, availableStatus: availableStatus.downloading }
+			} else {
+				return message
+			}
+		}));
 		await FileSystem.downloadAsync(Message?.image, fileDirectory + Message.fileName)
 			.then(result => {
-				console.log('Finished downloading to ', 'result');
+				setMessages(e => e.map(message => {
+					if (message._id === Message._id) {
+						return { ...message, availableStatus: availableStatus.available }
+					} else {
+						return message
+					}
+				}));
 			})
 			.catch(error => {
 				console.error(error, 'errrrrrrrr');
-			}).finally(() => {
-				setDownloading(e => e.filter(r => r !== Message._id));
-			});
+			})
 		const newImage = fileDirectory + Message.fileName;
 		setMessages((prevMessages: IMessage[]) => (prevMessages.map(e => {
 			if (e._id === Message._id) {
@@ -308,45 +348,26 @@ export const RenderMessageImage = (props: MessageImageProps<IMessagePro>, { setM
 		})));
 	};
 
-	const save = async () => {
-		// console.log(Message?.mimeType,'first');
-		if (!Message || !Message.image || !Message.mimeType) return;
-		// const result = await DocumentPicker.getDocumentAsync({  
-		// 	type: '*/*',  
-		// 	copyToCacheDirectory: false,  
-		// });  
+	let finalMode = undefined;
 
-		// if (result. === 'success') {  
-		// 	const myDir = result.uri; // Get the selected directory URI  
+	const TransferMode = (<ActivityIndicator style={[styles.iconContainer, styles.download, { backgroundColor: colors.undetlay }]} size="large" color="#fff" />);
 
-		// 	try {  
-		// 		// Create the new directory  
-		// 		await FileSystem.makeDirectoryAsync(`${myDir}/Mirzagram`, { intermediates: true });  
-		// 		console.log('Directory created successfully',`${myDir}/Mirzagram`);  
-		// 	} catch (error) {  
-		// 		console.error('Error creating directory:', error);  
-		// 	}  
-		// } else {  
-		// 	console.log('User cancelled the document picker');  
-		// }  
-		const { granted } = await MediaLibrary.requestPermissionsAsync();
-		if (granted) {
-			try {
+	const DownloadMode = (<TouchableOpacity onPress={handlePress} style={[styles.iconContainer, styles.download, { backgroundColor: colors.undetlay }]}>
+		<MaterialCommunityIcons name="download" size={34} color="#fff" />
+	</TouchableOpacity>);
 
-				const asset = await MediaLibrary.createAssetAsync(Message.image);
-				MediaLibrary.createAlbumAsync('Mirzagram', asset, false)
-					.then(() => {
-						console.log('File Saved Successfully!');
-					})
-					.catch(() => {
-						console.log('Error In Saving File!');
-					});
-			} catch (error) {
-				console.log(error);
-			}
-		} else {
-			console.log('Need Storage permission to save file');
-		}
+	switch (messageStatus) {
+		case availableStatus.download:
+			finalMode = DownloadMode;
+			break;
+		case availableStatus.downloading:
+			finalMode = TransferMode;
+			break;
+		case availableStatus.uploading:
+			finalMode = TransferMode;
+			break;
+		default:
+			break;
 	};
 
 	return (
@@ -366,40 +387,48 @@ export const RenderMessageImage = (props: MessageImageProps<IMessagePro>, { setM
 					source={{ uri: Message?.image?.startsWith('file') ? Message?.image : Message?.preView }}
 				/>
 			</Lightbox>
-			{
-				!!uploading.find(e => e === Message?._id) ? <ActivityIndicator style={styles.download} size="large" color="#fff" /> : Message?.image?.startsWith('file') ? null :
-					!!downloading.find(e => e === Message?._id) || !!uploading.find(e => e === Message?._id) ?
-						<ActivityIndicator style={styles.download} size="large" color="#fff" /> :
-						<TouchableHighlight onPress={handlePress} style={[styles.image, { position: 'absolute' }]}>
-							<MaterialCommunityIcons style={styles.download} name="download" size={34} color="#fff" />
-						</TouchableHighlight>
-			}
-			<Pressable onPress={save}>
-				<Text>save</Text>
-			</Pressable>
+			{finalMode}
+			{messageStatus === availableStatus.available ? <Pressable style={{ marginRight: 4, padding: 5 }} onPress={() => save({ uri: Message ? Message?.image : undefined })}>
+				<Text style={{ color: colors.text, fontWeight: '600', fontSize: 16 }}>Save</Text>
+			</Pressable> : null}
 		</View>
 	)
 };
 
-export function renderMessageVideo(props: MessageVideoProps<IMessagePro>, { setMessages, videoRef, downloading, setDownloading, uploading, errors }: renderMessageVideoProps) {
+export function renderMessageVideo(props: MessageVideoProps<IMessagePro>, { setMessages, videoRef, colors, videosDuration, setVideosDuration }: renderMessageVideoProps) {
 	const Message = props.currentMessage;
+	const messageStatus = Message.availableStatus;
+
+	const duration = Message.duration;
+	// const vidDuration = videosDuration.find(v => v.id === Message._id);
+	// const 
 
 	async function handlePress() {
 		if (Message?.video?.startsWith('file') || !Message?.video || !Message.fileName) return;
-		setDownloading(e => [...e, Message._id]);
+		setMessages(e => e.map(message => {
+			if (message._id === Message._id) {
+				return { ...message, availableStatus: availableStatus.downloading }
+			} else {
+				return message
+			}
+		}));
 		await FileSystem.downloadAsync(Message?.video, fileDirectory + Message.fileName)
-			.then(result => {
-				console.log('Finished downloading to ', 'result');
+			.then(() => {
+				setMessages(e => e.map(message => {
+					if (message._id === Message._id) {
+						return { ...message, availableStatus: availableStatus.available }
+					} else {
+						return message
+					}
+				}));
 			})
 			.catch(error => {
 				console.error(error, 'errrrrrrrr');
-			}).finally(() => {
-				setDownloading(e => e.filter(r => r !== Message._id));
-			});
+			})
 		const newVideo = fileDirectory + Message.fileName;
 		setMessages((prevMessages: IMessage[]) => (prevMessages.map(e => {
 			if (e._id === Message._id) {
-				return { ...e, video: newVideo, thumbnail: Message?.thumbnail };
+				return { ...e, video: newVideo };
 			} else {
 				return e;
 			}
@@ -407,6 +436,21 @@ export function renderMessageVideo(props: MessageVideoProps<IMessagePro>, { setM
 		videoRef?.current?.presentFullscreenPlayer();
 		videoRef.current.playAsync();
 	};
+
+	const onPlayVideo = () => {
+		videoRef.current.presentFullscreenPlayer();
+		videoRef.current.playAsync();
+	}
+
+	const TransferMode = (<ActivityIndicator style={[styles.iconContainer, styles.download, { backgroundColor: colors.undetlay }]} size="large" color="#fff" />);
+
+	const DownloadMode = (<TouchableHighlight onPress={handlePress} style={[styles.iconContainer, styles.download, { backgroundColor: colors.undetlay }]}>
+		<MaterialCommunityIcons name="download" size={34} color="#fff" />
+	</TouchableHighlight>);
+
+	const AvailableMode = (<TouchableHighlight onPress={onPlayVideo} style={[styles.iconContainer, styles.download, { backgroundColor: colors.undetlay, zIndex: 0 }]}>
+		<Ionicons name={"play"} size={30} color="#fff" style={{ marginRight: -4 }} />
+	</TouchableHighlight>);
 
 	const CustomPosterComponent = ({ source, style }: { source: ImageProps["source"], style: ImageProps["style"] }) => {
 		return (
@@ -419,62 +463,88 @@ export function renderMessageVideo(props: MessageVideoProps<IMessagePro>, { setM
 						resizeMode={ResizeMode.COVER}
 					/>
 					{
-						!!downloading.find(e => e === Message?._id) ?
-							<ActivityIndicator style={styles.download} size="large" color="#fff" /> :
-							<MaterialCommunityIcons style={styles.download} name="download" size={34} color="#fff" />
+						messageStatus === availableStatus.downloading ? TransferMode : messageStatus === availableStatus.download && DownloadMode
 					}
 				</View>
 			</TouchableHighlight>
 		);
 	};
 
-	return (<Pressable style={{ zIndex: 5 }} onPress={() => { videoRef.current.presentFullscreenPlayer(); videoRef.current.playAsync(); }}>
-		<Video
-			// @ts-ignore
-			source={{ uri: Message?.video?.startsWith('file') ? Message?.video : undefined }}
-			resizeMode={ResizeMode.COVER}
-			useNativeControls={false}
-			ref={videoRef}
-			shouldPlay={false}
-			style={{
-				width: 150,
-				height: 100,
-				borderRadius: 13,
-				margin: 3,
-				zIndex: -10
-			}}
-			videoStyle={{
-				zIndex: -10,
-				backgroundColor: '#000'
-			}}
-			posterSource={{ uri: Message?.thumbnail ? Message?.thumbnail : undefined }}
-			usePoster={Message?.video?.startsWith('file') ? false : true}
-			PosterComponent={Message?.video?.startsWith('file') ? undefined : CustomPosterComponent}
-		/>
-		{
-			!!uploading.find(e => e === Message?._id) && <ActivityIndicator style={styles.download} size="large" color="#fff" />
+	const setDuration = (e: any) => {
+		const newDuration = e?.durationMillis;
+		// if (!vidDuration?.duration) {
+		// 	setVideosDuration(v => [...v, { duration: newDuration, id: Message._id }]);
+		// };
+		if (!duration) {
+			setMessages(m => m.map(e => {
+				if (e._id === Message._id) {
+					return { ...e, duration: newDuration }
+				} else {
+					return e
+				}
+			}))
 		}
-	</Pressable>)
+		// if (duration) {
+		// 	setVideosDuration(v => v.map(n => {
+		// 		if (n.id === duration.id) {
+		// 			return { duration: newDuration, id: n.id }
+		// 		} else {
+		// 			return n
+		// 		}
+		// 	}))
+		// } else {
+		// 	setVideosDuration(v => [...v, { duration: newDuration, id: Message._id }]);
+		// }
+	};
+
+	return (
+		<>
+			<Pressable style={{ zIndex: 5 }} onPress={onPlayVideo}>
+				<Video
+					// @ts-ignore
+					source={{ uri: Message?.video?.startsWith('file') ? Message?.video : undefined }}
+					resizeMode={ResizeMode.COVER}
+					useNativeControls={false}
+					ref={videoRef}
+					shouldPlay={false}
+					onPlaybackStatusUpdate={setDuration}
+					progressUpdateIntervalMillis={100000}
+					style={{
+						width: 150,
+						height: 100,
+						borderRadius: 13,
+						margin: 3,
+						zIndex: -10
+					}}
+					videoStyle={{
+						zIndex: -10,
+						backgroundColor: '#000'
+					}}
+					posterSource={{ uri: Message?.thumbnail ? Message?.thumbnail : undefined }}
+					usePoster={Message?.video?.startsWith('file') ? false : true}
+					PosterComponent={Message?.video?.startsWith('file') ? undefined : CustomPosterComponent}
+				/>
+				{
+					messageStatus === availableStatus.uploading ? TransferMode : messageStatus === availableStatus.available && AvailableMode
+				}
+				<View style={{ backgroundColor: 'rgba(52, 52, 52, 0.5)', position: "absolute", top: 10, left: 10, paddingVertical: 3, paddingHorizontal: 7, borderRadius: 7 }}>
+					<Text style={{ color: '#fff' }}>{formatMillisecondsToTime(duration) ?? "Video"}</Text>
+				</View>
+			</Pressable>
+			{messageStatus === availableStatus.available ? <Pressable style={{ marginRight: 4, padding: 5 }} onPress={() => save({ uri: Message ? Message?.video : undefined })}>
+				<Text style={{ color: colors.text, fontWeight: '600', fontSize: 16 }}>Save</Text>
+			</Pressable> : null}
+		</>
+	)
 };
 
-// export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>) => {
-// 	const Message = props.currentMessage;
-// 	console.log(Message?.fileName);
-
-// 	return (
-// 		<View />
-// 	)
-// };
-
-export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setMessages, downloading, setDownloading, uploading, colors, errors, setPlayer, player, currentPosition, setCurrentPosition, setIsOpen, startPlayingByItem, stopPlaying, playerStatus }: renderMessageAudioProps) => {
+export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setMessages, colors, setPlayer, player, currentPosition, setCurrentPosition, setIsOpen, startPlayingByItem, stopPlaying, playerStatus }: renderMessageAudioProps) => {
 	const Message = props.currentMessage;
-	// const isPlaying = playerStatus.isPlaying&&playerStatus.id===Message._id;
 	const isPlaying = Message.playing;
-	const Modes = Message.availableStatus;
+	const messageStatus = Message.availableStatus;
 
 	async function handlePress() {
 		if (Message?.file?.startsWith('file') || !Message?.audio || !Message.fileName) return;
-		// setDownloading(e => [...e, Message._id]);
 		setMessages(e => e.map(message => {
 			if (message._id === Message._id) {
 				return { ...message, availableStatus: availableStatus.downloading }
@@ -495,9 +565,7 @@ export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setM
 			})
 			.catch(error => {
 				console.error(error, 'errrrrrrrr');
-			}).finally(() => {
-				// setDownloading(e => e.filter(r => r !== Message._id));
-			});
+			})
 		const newFile = fileDirectory + Message.fileName;
 		//delete this it at last
 		if (!Message.duration) {
@@ -539,7 +607,7 @@ export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setM
 		<MaterialCommunityIcons name="download" size={34} color="#fff" />
 	</TouchableHighlight>);
 
-	switch (Modes) {
+	switch (messageStatus) {
 		case availableStatus.available:
 			finalMode = AvailableMode;
 			break;
@@ -557,23 +625,10 @@ export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setM
 			break;
 	};
 
-	console.log(Modes === availableStatus.available,'asd');
-
 	return (
 		<>
 			<View style={[{ zIndex: 10, position: 'relative', width: 200, height: 60, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', overflow: 'hidden', paddingTop: 10 }]}>
 				<View style={{ width: 50, height: 50, borderRadius: 50, marginHorizontal: 10, justifyContent: 'center', alignItems: 'center' }}>
-					{/* {
-						!!uploading.find(e => e === Message?._id) ? <ActivityIndicator style={[styles.iconContainer, { backgroundColor: colors.background }]} size="large" color={colors.mirza} /> : Message?.audio?.startsWith('file') ?
-							<TouchableHighlight onPress={isPlaying ? () => stopPlaying({ isForStart: false, isEnded: false }) : () => startPlayingByItem({ item: { audioName: Message.fileName ?? "", id: Message._id, uri: Message.audio ?? '' }, isMessage: true })} style={[styles.iconContainer, { backgroundColor: colors.undetlay }]}>
-								<Ionicons name={isPlaying ? "pause" : "play"} size={30} color="#fff" style={{ marginRight: isPlaying ? 0 : -4 }} />
-							</TouchableHighlight> :
-							!!downloading.find(e => e === Message?._id) ?
-								<ActivityIndicator style={[styles.iconContainer, { backgroundColor: colors.background }]} size="large" color={colors.mirza} /> :
-								<TouchableHighlight onPress={handlePress} style={[styles.iconContainer, { backgroundColor: colors.background }]}>
-									<MaterialCommunityIcons name="download" size={34} color={colors.mirza} />
-								</TouchableHighlight>
-					} */}
 					{finalMode}
 				</View>
 				<View style={{ marginLeft: 0, marginRight: 'auto', width: 130, overflow: 'hidden' }}>
@@ -582,7 +637,7 @@ export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setM
 			</View>
 			<View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'flex-end', gap: 10, paddingRight: 10, marginBottom: 5 }}>
 				<Text style={{ color, fontWeight: '500', fontSize: 14 }}>{time}</Text>
-				{Modes === availableStatus.available ? <Pressable onPress={() => save({ uri: Message ? Message?.audio : undefined })}>
+				{messageStatus === availableStatus.available ? <Pressable onPress={() => save({ uri: Message ? Message?.audio : undefined })}>
 					<Text style={{ color, fontWeight: '600', fontSize: 16 }}>Save</Text>
 				</Pressable> : null}
 			</View>
