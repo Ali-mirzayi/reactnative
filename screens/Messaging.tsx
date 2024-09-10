@@ -75,6 +75,12 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 		})
 	).current;
 
+	if (open === true) {
+		translateY.value = withTiming(300, { duration: 400 });
+	} else {
+		translateY.value = withTiming(700, { duration: 1000 });
+	}
+
 	const handleAudioPermissions = async () => {
 		try {
 			if (permissionResponse?.status !== 'granted') {
@@ -136,14 +142,6 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 			updateMessage({ id: roomId, users: [user, contact], messages });
 		}
 	}, [messages]);
-
-	// useEffect(() => {
-		if (open === true) {
-			translateY.value = withTiming(300, { duration: 400 });
-		} else {
-			translateY.value = withTiming(700, { duration: 1000 });
-		}
-	// }, [open]);
 
 	useEffect(() => {
 		setMessages(e =>
