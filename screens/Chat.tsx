@@ -142,7 +142,7 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 			if (result.length > 0) {
 				setRooms(freshRooms);
 			}
-		}).catch((_) => Toast.show({
+		}).catch(() => Toast.show({
 			type: 'error',
 			text1: 'some thing went wrong with db',
 			autoHide: false
