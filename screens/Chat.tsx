@@ -18,14 +18,12 @@ import * as FileSystem from 'expo-file-system';
 import DrawerCore from "../components/Drawer";
 import { storage } from "../mmkv";
 import FloatingMusicPlayer from "../components/FloatingMusicPlayer";
-import { GiftedChat, IMessage } from "react-native-gifted-chat";
 
 const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) => {
 	const setUser = useUser(state => state.setUser);
 	const user = useUser(state => state.user);
 	const socket = useSocket(state => state.socket);
 	const { lastMessage, setLastMessage } = useSetLastMessage();
-	const setMessages = useMessage(state => state.setMessages);
 
 	const { colors } = useTheme();
 	const { expoPushToken, notification } = usePushNotifications();
@@ -116,15 +114,40 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 
 	useEffect(() => {
 		getAllRooms().then((result: Room[] | any) => {
+			const freshRooms:Room[] = result.map((e: any) => JSON.parse(e.data));
+			if (expoPushToken && user) {
+				//@ts-ignor
+				user['token'] = expoPushToken
+				setUser(user)
+			};
+
+			const cleanRoom = freshRooms.map(room => ({
+				...room,
+				messages: []
+			}));
+
+			try {
+				fetch(`${baseURL()}/updateUser`, {
+					method: 'POST',
+					headers: {
+						Accept: 'application/json',
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({ user, cleanRoom })
+				});
+			} catch (err) {
+				console.log(`error in updateUser ${err}`);
+			}
+
 			if (result.length > 0) {
-				setRooms(result.map((e: any) => JSON.parse(e.data)));
+				setRooms(freshRooms);
 			}
 		}).catch((_) => Toast.show({
 			type: 'error',
 			text1: 'some thing went wrong with db',
 			autoHide: false
 		}));
-	}, []);
+	}, [expoPushToken]);
 
 	useEffect(() => {
 		if (!socket) return;
@@ -243,23 +266,6 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 			});
 			setLoading(false);
 		};
-		if (expoPushToken && user) {
-			//@ts-ignore
-			user['token'] = expoPushToken
-			setUser(user)
-			try {
-				fetch(`${baseURL()}/updateUser`, {
-					method: 'POST',
-					headers: {
-						Accept: 'application/json',
-						'Content-Type': 'application/json'
-					},
-					body: JSON.stringify({ user })
-				});
-			} catch (err) {
-				console.log(`error in updateUser ${err}`);
-			}
-		}
 	}, [expoPushToken?.data, notifData]);
 
 	if (notifData && loading) { return (<LoadingPage active={true} />) }
@@ -336,7 +342,7 @@ const styles = StyleSheet.create({
 		paddingVertical: 12,
 		justifyContent: "center",
 		marginTop: 15,
-		marginBottom:10,
+		marginBottom: 10,
 		elevation: 4,
 	},
 	chatheading: {

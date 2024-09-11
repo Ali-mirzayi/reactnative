@@ -1,20 +1,15 @@
-import React, { useRef } from 'react'
-import { useIsOpen, useIsPlaying, useLastTrack, usePlayer, usePosition } from '../socketContext';
+import { useIsOpen, useMessage, usePlayer, usePosition } from '../socketContext';
 import { audioListType, useAudioList } from './useAudioList';
 import { Audio } from 'expo-av';
 
 function useAudioPlayer() {
     const { player, setPlayer } = usePlayer();
     const { currentPosition, setCurrentPosition } = usePosition();
-    const { lastTrack, setLastTrack } = useLastTrack();
-    const previousPositionRef = useRef<number | null>(null);
     const AudioList = useAudioList();
     const filteredAudioList = AudioList.filter(audio => audio.audioName !== "voice");
-
+    const setMessages = useMessage(state => state.setMessages);
     const track = AudioList.find(audio => audio.id === player?.id);
-
-    const { open: isPlayerOpen, setOpen: setIsOpen } = useIsOpen();
-    const setPlayerStatus = useIsPlaying(state=> state.setPlayerStatus);
+    const setIsOpen = useIsOpen(state => state.setOpen);
 
     const stopPlaying = async ({ isForStart, isEnded }: { isForStart: boolean, isEnded: boolean }) => {
         if (!player?.track) return;
@@ -31,9 +26,11 @@ function useAudioPlayer() {
 
         setCurrentPosition((e) => ({ position: lastPosition, id: e?.id }));
 
-        setPlayerStatus(()=>{
-            return {isPlaying:false,id:player.id}
-        });
+        setMessages(e =>
+        	e.map((item) =>
+        		item._id === player.id ? { ...item, playing: false } : item
+        	)
+        );
     };
 
     const startPlaying = async () => {
@@ -62,17 +59,19 @@ function useAudioPlayer() {
             return { ...e, track: newSound, name: track.audioName, uuid: track.id, duration: status?.durationMillis, playing: true }
         });
 
-        setPlayerStatus(()=>{
-            return {isPlaying:true,id:track.id}
-        });
+        setMessages(e =>
+        	e.map((item) =>
+        		item._id === track.id ? { ...item, playing: false } : item
+        	)
+        );
+
+        // setPlayerStatus(() => {
+        //     return { isPlaying: true, id: track.id }
+        // });
     };
 
     const startPlayingByItem = async ({ item, isMessage }: { item: audioListType, isMessage?: boolean }) => {
         if (!item?.uri) return;
-        setPlayer((e) => {
-            return { ...e, uri: item?.uri, id: item?.id };
-        });
-
         // this is for if startPlayingByItem called from messaging open floatingMusicPlayer
         if (isMessage) setIsOpen(true);
 
@@ -88,16 +87,18 @@ function useAudioPlayer() {
         } else {
             await newSound.playAsync();
             setCurrentPosition(() => ({ id: item.id, position: undefined }));
-        }
+        };
 
         setPlayer(() => {
             //@ts-ignore
             return { track: newSound, name: item.audioName, uri: item.uri, uuid: item.id, duration: status?.durationMillis, id: item.id, playing: true }
         });
 
-        setPlayerStatus(()=>{
-            return {isPlaying:true,id:item.id}
-        });
+        setMessages(e =>
+        	e.map((m) =>
+        		m._id === item.id ? { ...m, playing: true } : m
+        	)
+        );
     };
 
     const startPlyingList = async ({ indexJump }: { indexJump: number }) => {
@@ -123,9 +124,14 @@ function useAudioPlayer() {
             return { track: newSound, name: forwardTrack.audioName, uri: forwardTrack.uri, uuid: forwardTrack.id, duration: status?.durationMillis, id: forwardTrack.id, playing: true }
         });
 
-        setPlayerStatus(()=>{
-            return {isPlaying:true,id:forwardTrack.id}
-        });
+        setMessages(e =>
+            e.map((item) =>
+                item._id === forwardTrack.id ? { ...item, playing: true } : item
+            )
+        );
+        // setPlayerStatus(()=>{
+        //     return {isPlaying:true,id:forwardTrack.id}
+        // });
     };
 
     const shufflePlayList = async () => {
@@ -152,9 +158,14 @@ function useAudioPlayer() {
             return { track: newSound, name: forwardTrack.audioName, uri: forwardTrack.uri, uuid: forwardTrack.id, duration: status?.durationMillis, id: forwardTrack.id, playing: true }
         });
 
-        setPlayerStatus(()=>{
-            return {isPlaying:true,id:forwardTrack.id}
-        });
+        setMessages(e =>
+            e.map((item) =>
+                item._id === forwardTrack.id ? { ...item, playing: true } : item
+            )
+        );
+        // setPlayerStatus(()=>{
+        //     return {isPlaying:true,id:forwardTrack.id}
+        // });
     };
 
     const playForward = async ({ indexJump }: { indexJump: 1 | -1 }) => {
@@ -188,9 +199,14 @@ function useAudioPlayer() {
             return { track: newSound, name: forwardTrack.audioName, uri: forwardTrack.uri, uuid: forwardTrack.id, duration: status?.durationMillis, id: forwardTrack.id, playing: true }
         });
 
-        setPlayerStatus(()=>{
-            return {isPlaying:true,id:forwardTrack.id}
-        });
+        setMessages(e =>
+            e.map((item) =>
+                item._id === forwardTrack.id ? { ...item, playing: true } : item
+            )
+        );
+        // setPlayerStatus(()=>{
+        //     return {isPlaying:true,id:forwardTrack.id}
+        // });
     };
 
     return { startPlaying, startPlayingByItem, startPlyingList, stopPlaying, shufflePlayList, playForward }

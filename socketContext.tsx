@@ -65,11 +65,11 @@ interface useIsOpen {
 	open: boolean
 	setOpen: (e: boolean) => void
 }
+
 interface useIsPlaying {
 	playerStatus: playerStatus
 	setPlayerStatus: (callback: (prev: playerStatus) => (playerStatus)) => void
 }
-
 interface useVideosDuration {
 	videosDuration: videoDuration[] | []
 	setVideosDuration: (callback: (prev: (videoDuration)[]) => (videoDuration)[]) => void;
