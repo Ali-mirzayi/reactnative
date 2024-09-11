@@ -5,23 +5,23 @@ type MovingTextureTypes = {
     children: string
     animationThreshold: number
     style?: StyleProps
-    disable?:boolean
+    disable?: boolean
 };
 
-const MovingText = ({ children:text, animationThreshold, style,disable }: MovingTextureTypes) => {
+const MovingText = ({ children: text, animationThreshold, style, disable }: MovingTextureTypes) => {
     const translateX = useSharedValue(0);
-    const shouldAnimate = !disable && text.length >= animationThreshold;
+    const shouldAnimate = text.length >= animationThreshold;
     const textWidth = text.length * 3;
     const animatedStyle = useAnimatedStyle(() => {
         return {
-            transform: [{ translateX: translateX.value }],
+            transform: [{ translateX: disable ? 0 : translateX.value }],
         }
     });
 
     useEffect(() => {
         if (!shouldAnimate) return;
 
-        translateX.value = withDelay(1000, withRepeat(withTiming(-textWidth, { duration:3000, easing: Easing.linear }), -1, true));
+        translateX.value = withDelay(1000, withRepeat(withTiming(-textWidth, { duration: 3000, easing: Easing.linear }), -1, true));
 
         return () => {
             cancelAnimation(translateX);
@@ -33,8 +33,8 @@ const MovingText = ({ children:text, animationThreshold, style,disable }: Moving
         <Animated.Text
             numberOfLines={1}
             style={[
-                !disable&&animatedStyle,
-                shouldAnimate && {width:9999,paddingLeft:16,margin:0},
+                animatedStyle,
+                shouldAnimate && { width: 9999, paddingLeft: 16, margin: 0 },
                 style,
             ]}
         >

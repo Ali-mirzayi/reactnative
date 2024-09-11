@@ -1,14 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { GiftedChat, IMessage } from 'react-native-gifted-chat'
 import { StackScreenProps } from "@react-navigation/stack";
 import { IMessagePro, RecordingEnum, RootStackParamList } from '../utils/types';
-import { useCurrentContact, useIsOpen, useIsPlaying, useMessage, usePlayer, usePosition, useSetLastMessage, useSocket, useUser, useVideosDuration } from '../socketContext';
+import { useCurrentContact, useIsOpen, useMessage, usePlayer, usePosition, useSetLastMessage, useSocket, useUser, useVideosDuration } from '../socketContext';
 import { updateMessage, getRoom } from '../utils/DB';
 import { useSharedValue, withTiming, } from 'react-native-reanimated';
 import LoadingPage from '../components/LoadingPage';
 import { renderActions, renderBubble, RenderChatFooter, renderInputToolbar, renderMessageAudio, renderMessageFile, RenderMessageImage, renderMessageVideo, renderSend, renderTime } from '../components/Message';
 import useTheme from '../utils/theme';
-import { Animated, Easing, PanResponder, Text, View } from 'react-native';
+import { Animated, PanResponder, Text, View } from 'react-native';
 import PushNotificationSend from '../components/SendPushNotification';
 import { Audio } from 'expo-av';
 import FloatingMusicPlayer from '../components/FloatingMusicPlayer';
@@ -18,7 +18,6 @@ import useAudioPlayer from '../hooks/useAudioPlayer';
 const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>) => {
 	const { contact, roomId }: any = route.params;
 
-	// const [messages, setMessages] = useState<IMessagePro[]>([]);
 	const { messages, setMessages } = useMessage();
 	const [open, setOpen] = useState<boolean>(false); // renderChatFooter
 	const [status, setStatus] = useState<boolean | undefined>(undefined); // connection
@@ -30,12 +29,9 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	const user: any = useUser(state => state.user);
 
 	const { lastMessage, setLastMessage } = useSetLastMessage();
-	const { player, setPlayer } = usePlayer();
-	const { currentPosition, setCurrentPosition } = usePosition();
 	const { open: isPlayerOpen, setOpen: setIsOpen } = useIsOpen();
 	const setContact = useCurrentContact(state => state.setContact);
 	const { startPlayingByItem, stopPlaying } = useAudioPlayer();
-	const playerStatus = useIsPlaying(state => state.playerStatus);
 	const { videosDuration, setVideosDuration } = useVideosDuration();
 
 	const translateY = useSharedValue(1000);
@@ -47,11 +43,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	const panResponder = useRef(
 		PanResponder.create({
 			onMoveShouldSetPanResponder: () => true,
-			onPanResponderMove: (evt, gestureState) => {
-				if (gestureState.dy < 0) {
-					pan.setValue(gestureState.dy);
-				}
-			},
+			onPanResponderMove: Animated.event([null, { dy: pan }], { useNativeDriver: false }),
 			onPanResponderRelease: (evt, gestureState) => {
 				if (gestureState.dy <= -50 && gestureState.dy >= -110) {
 					(async () => {
@@ -62,13 +54,17 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 						await stopRecording({ recording, setRecording, roomId, setMessages, socket, user });
 					})();
 				}
-				Animated.timing(pan, {
-					toValue: 0,
-					duration: 700,
-					easing: Easing.bounce,
-					useNativeDriver: true,
-				}).start();
+				Animated.spring(
+					pan,
+					{ toValue: 0, useNativeDriver: true },
+				).start();
 			},
+			// onPanResponderTerminate: (evt, gestureState) => {
+			// 	pan.flattenOffset();
+			// 	pan.extractOffset();
+			// 	pan.removeAllListeners();
+			// 	pan.resetAnimation();
+			// },
 		})
 	).current;
 
@@ -141,15 +137,6 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	}, [messages]);
 
 	useEffect(() => {
-		setMessages(e =>
-			e.map((item) =>
-				item._id === playerStatus.id ? { ...item, playing: playerStatus.isPlaying } : item
-			)
-		);
-
-	}, [playerStatus.isPlaying]);
-
-	useEffect(() => {
 		setPending(true);
 		getRoom(roomId)
 			.then((result) => {
@@ -168,6 +155,16 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	useEffect(() => {
 		setContact(contact);
 	}, []);
+
+	const all = "asd"
+
+	const shouldUpdateMessage = useCallback((currentProps: any, nextProps: any) => {
+		console.log('shouldUpdateMessage')
+		if (currentProps.previousMessage !== nextProps.nextMessage) {
+			return true
+		}
+		return false
+	}, [all]);
 
 	const onSend = (newMessage: IMessagePro[]) => {
 		if ((!socket)) return;
@@ -203,7 +200,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 				user={user}
 				renderMessageImage={(e: any) => RenderMessageImage(e, { setMessages, colors })}
 				renderMessageVideo={(e: any) => renderMessageVideo(e, { setMessages, colors, videoRef, videosDuration, setVideosDuration })}
-				renderMessageAudio={(e: any) => renderMessageAudio(e, { setMessages, colors, currentPosition, player, setCurrentPosition, setIsOpen, setPlayer, startPlayingByItem, stopPlaying, playerStatus })}
+				renderMessageAudio={(e: any) => renderMessageAudio(e, { setMessages, colors, setIsOpen, startPlayingByItem, stopPlaying })}
 				renderCustomView={(e: any) => renderMessageFile(e, { setMessages, colors })}
 				alwaysShowSend
 				scrollToBottom
@@ -217,6 +214,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 				renderInputToolbar={(e) => renderInputToolbar(e, { colors })}
 				renderTime={(e) => renderTime(e, { colors })}
 				optionTintColor='#fff'
+				// shouldUpdateMessage={shouldUpdateMessage}
 			/>
 		</View>
 	);

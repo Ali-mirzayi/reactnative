@@ -8,7 +8,7 @@ import * as FileSystem from 'expo-file-system';
 import { Actions, ActionsProps, Bubble, BubbleProps, Composer, GiftedChat, IMessage, InputToolbar, InputToolbarProps, MessageAudioProps, MessageImage, MessageImageProps, MessageProps, MessageVideoProps, Send, SendProps, Time, TimeProps } from "react-native-gifted-chat";
 import { ResizeMode, Video, Audio } from "expo-av";
 import { darkTheme } from "../utils/theme";
-import { availableStatus, currentPosition, IMessagePro, player, playerStatus, RecordingEnum, User, videoDuration } from "../utils/types";
+import { availableStatus, currentPosition, IMessagePro, player, RecordingEnum, User, videoDuration } from "../utils/types";
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Entypo from '@expo/vector-icons/Entypo';
 import Feather from '@expo/vector-icons/Feather';
@@ -198,7 +198,7 @@ type renderMessageImageProps = { setMessages: (callback: (prev: IMessagePro[] | 
 type renderMessageVideoProps = { setMessages: (callback: (prev: IMessagePro[] | []) => (IMessagePro[] | [])) => void, colors: typeof darkTheme.colors, videoRef: React.MutableRefObject<Video>, videosDuration: [] | videoDuration[], setVideosDuration: (callback: (prev: (videoDuration)[]) => (videoDuration)[]) => void };
 type renderMessageFileProps = { setMessages: (callback: (prev: IMessagePro[] | []) => (IMessagePro[] | [])) => void, colors: typeof darkTheme.colors };
 type renderMessageAudioProps = {
-	setMessages: (callback: (prev: IMessagePro[] | []) => (IMessagePro[] | [])) => void, colors: typeof darkTheme.colors, player: player, setPlayer: (callback: (prev: player) => (player)) => void, currentPosition: currentPosition, setCurrentPosition: (callback: (prev: currentPosition) => (currentPosition)) => void, setIsOpen: (e: boolean) => void,
+	setMessages: (callback: (prev: IMessagePro[] | []) => (IMessagePro[] | [])) => void, colors: typeof darkTheme.colors, setIsOpen: (e: boolean) => void,
 	startPlayingByItem: ({ item, isMessage }: {
 		item: audioListType;
 		isMessage?: boolean;
@@ -206,7 +206,6 @@ type renderMessageAudioProps = {
 		isForStart: boolean;
 		isEnded: boolean;
 	}) => Promise<void>,
-	playerStatus: playerStatus
 };
 
 export const renderMessageFile = (props: MessageProps<IMessagePro>, { setMessages, colors }: renderMessageFileProps) => {
@@ -395,7 +394,7 @@ export const RenderMessageImage = (props: MessageImageProps<IMessagePro>, { setM
 	)
 };
 
-export function renderMessageVideo(props: MessageVideoProps<IMessagePro>, { setMessages, videoRef, colors, videosDuration, setVideosDuration }: renderMessageVideoProps) {
+export function renderMessageVideo(props: MessageVideoProps<IMessagePro>, { setMessages, videoRef, colors }: renderMessageVideoProps) {
 	const Message = props.currentMessage;
 	const messageStatus = Message.availableStatus;
 
@@ -538,7 +537,7 @@ export function renderMessageVideo(props: MessageVideoProps<IMessagePro>, { setM
 	)
 };
 
-export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setMessages, colors, setPlayer, player, currentPosition, setCurrentPosition, setIsOpen, startPlayingByItem, stopPlaying, playerStatus }: renderMessageAudioProps) => {
+export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setMessages, colors, startPlayingByItem, stopPlaying }: renderMessageAudioProps) => {
 	const Message = props.currentMessage;
 	const isPlaying = Message.playing;
 	const messageStatus = Message.availableStatus;
