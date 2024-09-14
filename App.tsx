@@ -11,7 +11,7 @@ import baseURL from "./utils/baseURL";
 import useCheckConnection from "./utils/checkConnection";
 import LoadingPage from "./components/LoadingPage";
 import io from 'socket.io-client';
-import * as Updates from 'expo-updates';
+// import * as Updates from 'expo-updates';
 
 function App() {
   const [error, setError] = useState(false);
@@ -22,26 +22,32 @@ function App() {
 
   useCheckConnection(setError);
 
-  async function onFetchUpdateAsync() {
-    try {
-      const update = await Updates.checkForUpdateAsync();
-      if (update.isAvailable) {
-        Toast.show({
-          type: 'info',
-          text1: 'Download New Version Mirzagram ;)',
-          autoHide: false
-        });
-        await Updates.fetchUpdateAsync();
-      }
-    } catch (error) {
-      console.log(`Error fetching latest Expo update: ${error}`);
-    }
-  }
+  // async function onFetchUpdateAsync() {
+  //   try {
+  //     const update = await Updates.checkForUpdateAsync();
+  //     if (update.isAvailable) {
+  //       Toast.show({
+  //         type: 'info',
+  //         text1: 'Download New Version Mirzagram ;)',
+  //         autoHide: false
+  //       });
+  //       await Updates.fetchUpdateAsync();
+  //     }
+  //   } catch (error) {
+  //     Toast.show({
+  //       type: 'error',
+  //       text1: 'Error fetching latest Expo update',
+  //       autoHide: false
+  //     });
+  //     console.log(`Error fetching latest Expo update: ${error}`);
+  //   }
+  // }
 
   useEffect(() => {
     // Connect to the Socket.IO server
     const newSocket = io(baseURL());
     setSocket(newSocket);
+    // onFetchUpdateAsync();
 
     return () => {
       newSocket.disconnect();

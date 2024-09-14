@@ -6,10 +6,12 @@ export type audioListType = {
   uri: string;
   audioName: string;
   id: string | number;
+  artwork?: string;
+  artist?: string;
 };
 
 export const useAudioList = () => {
-  const [audioList,setAudioList] = useState<audioListType[]>([]); 
+  const [audioList, setAudioList] = useState<audioListType[]>([]);
   useEffect(() => {
     getAllRooms().then((result: Room[] | any) => {
       if (result.length > 0) {
@@ -18,7 +20,13 @@ export const useAudioList = () => {
         rooms.forEach(room => {
           room.messages.forEach(message => {
             if (message.audio) {
-              messages.push({ uri: message.audio, audioName: message.fileName ?? "unknown", id: message._id });
+              messages.push({
+                uri: message.audio,
+                audioName: message.musicName ?? "unknown",
+                id: message._id,
+                artist: message.musicArtist,
+                artwork: message.artwork
+              });
             }
           })
         });
@@ -29,21 +37,3 @@ export const useAudioList = () => {
   }, []);
   return audioList;
 };
-
-
-// export const useSetupPlayer = ():boolean => {
-//   const [playerReady, setPlayerReady] = useState<boolean>(false);
-
-//   useEffect(() => {
-//     let unmounted = false;
-//     (async () => {
-//       await SetupService();
-//       if (unmounted) return;
-//       setPlayerReady(true);
-//     })();
-//     return () => {
-//       unmounted = true;
-//     };
-//   }, []);
-//   return playerReady;
-// }
