@@ -598,7 +598,7 @@ export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setM
 
 	const TransferMode = (<ActivityIndicator style={[styles.iconContainer, { backgroundColor: colors.undetlay }]} size="large" color="#fff" />);
 
-	const AvailableMode = (<TouchableHighlight onPress={isPlaying ? () => stopPlaying({ isForStart: false, isEnded: false }) : () => startPlayingByItem({ item: { audioName: Message.fileName ?? "", id: Message._id, uri: Message.audio ?? '' }, isMessage: true })} style={[styles.iconContainer, { backgroundColor: colors.undetlay }]}>
+	const AvailableMode = (<TouchableHighlight onPress={isPlaying ? () => stopPlaying({ isForStart: false, isEnded: false }) : () => startPlayingByItem({ item: { audioName: Message.musicName ?? "", id: Message._id, uri: Message.audio ?? '',artist:Message.musicArtist,artwork:Message.artwork }, isMessage: true })} style={[styles.iconContainer, { backgroundColor: colors.undetlay }]}>
 		<Ionicons name={isPlaying ? "pause" : "play"} size={30} color="#fff" style={{ marginRight: isPlaying ? 0 : -4 }} />
 	</TouchableHighlight>);
 
@@ -631,7 +631,8 @@ export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setM
 					{finalMode}
 				</View>
 				<View style={{ marginLeft: 0, marginRight: 'auto', width: 130, overflow: 'hidden' }}>
-					<MovingText disable={isPlaying ? false : true} animationThreshold={15} style={[{ color: color, size: 10 }]}>{Message?.fileName ? Message?.fileName : 'Voice'}</MovingText>
+					<MovingText disable={isPlaying ? false : true} animationThreshold={15} style={[{ color: color, size: 10 }]}>{Message?.musicName ? Message?.musicName : 'Voice'}</MovingText>
+					<Text numberOfLines={1} style={[{ color: color, fontSize: 7 }]}>{Message?.musicArtist ? Message?.musicArtist : ''}</Text>
 				</View>
 			</View>
 			<View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'flex-end', gap: 10, paddingRight: 10, marginBottom: 5 }}>

@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableHighlight, FlatList, Pressable, TextInput } from 'react-native'
+import { View, Text, StyleSheet, TouchableHighlight, FlatList, Pressable, TextInput, Image } from 'react-native'
 import React, { useEffect, useRef, useState } from 'react'
 import { useCurrentContact, useLastTrack, usePlayer, usePosition } from '../socketContext';
 import Slider from '@react-native-community/slider';
@@ -12,9 +12,10 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { storage } from '../mmkv';
 import { repeatModeEnum } from '../utils/types';
 import useAudioPlayer from '../hooks/useAudioPlayer';
+import { BlurView } from 'expo-blur';
 
 const ModalMusic = () => {
-  const { player, setPlayer } = usePlayer();
+  const player = usePlayer(state => state.player);
   const { lastTrack, setLastTrack } = useLastTrack();
   const { currentPosition, setCurrentPosition } = usePosition();
   const isPlaying = player?.playing;
@@ -25,13 +26,12 @@ const ModalMusic = () => {
   const [search, setSearch] = useState<audioListType[]>();
   const [repeatMode, setRepeatMode] = useState<repeatModeEnum | undefined>(storage.getNumber('repeatMode'));
   const searchInput = useRef<TextInput>(null);
+  const [showArtwork, setShowArtwork] = useState(false);
 
   const AudioList = useAudioList();
   const filteredAudioList = AudioList.filter(audio => audio.audioName !== "voice");
 
-  const { startPlaying, startPlayingByItem, startPlyingList, stopPlaying, shufflePlayList, playForward } = useAudioPlayer();
-
-  // const currentTrack = AudioList.find(audio => audio.id === player?.id);
+  const { startPlaying, startPlayingByItem, stopPlaying, playForward } = useAudioPlayer();
 
   const time = lastTrack?.duration ? formatMillisecondsToTime(lastTrack?.duration) : 'unknown';
 
@@ -45,49 +45,6 @@ const ModalMusic = () => {
     searchInput.current?.blur();
   };
 
-  // const stopPlaying = async ({ isForStart }: { isForStart: boolean }) => {
-  //   if (!player?.track) return;
-  //   const status = await player.track.getStatusAsync();
-  //   await player.track.stopAsync();
-  //   await player.track.unloadAsync();
-  //   // @ts-ignore 
-  //   const lastPosition = status.positionMillis;
-
-  //   setPlayer((e) => {
-  //     return { uri: undefined, track: undefined, name: undefined, id: e?.id, duration: undefined, lastPosition, playing: isForStart ? true : false };
-  //   });
-  //   setCurrentPosition((e) => ({ id: e.id, position: lastPosition }));
-  // };
-
-
-  // const startPlaying = async () => {
-  //   if (!currentTrack?.uri) return;
-
-  //   setPlayer((e) => {
-  //     return { ...e, uri: currentTrack.uri, id: currentTrack?.id };
-  //   });
-
-  //   await stopPlaying({ isForStart: true,isEnded: false });
-
-  //   const { sound: newSound, status } = await Audio.Sound.createAsync(
-  //     { uri: currentTrack.uri },
-  //     { isLooping: false, progressUpdateIntervalMillis: 1000, shouldPlay: false }
-  //   );
-
-  //   if (currentPosition.id === currentTrack.id && currentPosition.position) {
-  //     await newSound.playFromPositionAsync(currentPosition.position);
-  //   } else {
-  //     await newSound.playAsync();
-  //     setCurrentPosition(() => ({ id: currentTrack.id, position: undefined }));
-  //   }
-
-  //   setPlayer(() => {
-  //     //@ts-ignore
-  //     return { track: newSound, name: currentTrack.audioName, uri: currentTrack.uri, uuid: currentTrack.id, duration: status?.durationMillis, id: currentTrack.id, playing: true }
-  //   });
-  // };
-
-
   const renderTrackItem = ({ item }: { item: audioListType }) => {
     const isTrackPlaying = (item?.id === player?.id) ? player.playing : false;
 
@@ -97,7 +54,10 @@ const ModalMusic = () => {
           <View style={[styles.iconContainer, { backgroundColor: "#415266", width: 43, height: 43, paddingLeft: isTrackPlaying ? 0 : 2 }]}>
             <Ionicons name={isTrackPlaying ? "pause" : "play"} size={31} color={"#F1F6F9"} />
           </View>
-          <Text style={{ color: colors.text }}>{item.audioName}</Text>
+          <View>
+            <Text style={{ color: colors.text }}>{item.audioName}</Text>
+            <Text style={{ color: colors.lightText,fontSize:12 }}>{item.artist}</Text>
+          </View>
         </View>
       </TouchableHighlight>
     )
@@ -147,18 +107,27 @@ const ModalMusic = () => {
     })
   };
 
+  const Artwork = () => {
+    return (
+      <Pressable onPress={() => setShowArtwork(false)} style={[styles.containerArtwork, StyleSheet.absoluteFill]}>
+        <BlurView intensity={15} tint='dark' experimentalBlurMethod={'dimezisBlurView'} style={[styles.containerArtwork, StyleSheet.absoluteFill]}>
+          <Image source={{ uri: lastTrack.artwork }} width={250} height={250} />
+        </BlurView>
+      </Pressable>
+    )
+  };
+
   useEffect(() => {
     if (!player?.playing) return;
     setLastTrack((e) => {
       //@ts-ignore
-      return { ...e, name: player?.name, id: player?.id, duration: player?.duration };
+      return { ...e, name: player?.name, id: player?.id, duration: player?.duration, artist: player.artist, artwork: player.artwork };
     });
-    if (player?.track) {
-    }
   }, [player?.uuid]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {showArtwork && lastTrack.artwork ? <Artwork /> : false}
       <View style={{ flexDirection: 'row', backgroundColor: colors.undetlay, height: 50, alignItems: 'center', justifyContent: "flex-start", paddingHorizontal: 20 }}>
         <Ionicons onPress={handleBack} name="arrow-back-outline" size={29} color={colors.text} />
         <TextInput placeholder='Search' ref={searchInput} cursorColor={colors.boarder} onChangeText={handleSearch} placeholderTextColor={colors.boarder} style={{ width: "87%", marginLeft: 12, fontSize: 20, color: colors.text, display: openSearch ? 'flex' : 'none' }} />
@@ -192,9 +161,13 @@ const ModalMusic = () => {
         <View style={styles.infoController}>
           <View style={{ marginRight: 'auto' }}>
             <Text style={{ color: colors.text }}>{lastTrack?.name}</Text>
-            <Text style={{ color: colors.text }}>Artist</Text>
+            <Text style={{ color: colors.lightText,fontSize:12}}>{lastTrack?.artist}</Text>
           </View>
-          <View style={{ width: 35, height: 35, backgroundColor: '#000', marginLeft: 'auto' }}>
+          <View style={{ width: 55, height: 55, marginLeft: 'auto', borderRadius: 9, overflow: 'hidden' }}>
+            {lastTrack.artwork ? <Pressable onPress={() => setShowArtwork(true)}>
+              <Image source={{ uri: lastTrack.artwork }} width={55} height={55} />
+            </Pressable>
+              : <View style={{ backgroundColor: 'black' }} />}
           </View>
         </View>
         <View>
@@ -239,6 +212,12 @@ export default ModalMusic;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    position: 'relative'
+  },
+  containerArtwork: {
+    zIndex: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   controllerContainer: {
     padding: 10,

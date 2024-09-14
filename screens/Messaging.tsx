@@ -14,6 +14,7 @@ import { Audio } from 'expo-av';
 import FloatingMusicPlayer from '../components/FloatingMusicPlayer';
 import { cancelRecording, stopRecording } from '../components/SendMedia';
 import useAudioPlayer from '../hooks/useAudioPlayer';
+// import { getAudioMetadata } from '@missingcore/audio-metadata';
 
 const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>) => {
 	const { contact, roomId }: any = route.params;
@@ -39,6 +40,17 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	const videoRef: any = useRef(null);
 	const [permissionResponse, requestPermission] = Audio.usePermissions();
 	const pan = useRef(new Animated.Value(0)).current;
+	// const lll = 'file:///data/user/0/com.Mirzagram.PushNotifications/cache/DocumentPicker/7aa0a6da-e67f-47c0-a36d-ceaa9b299d19.mp3';
+	// const wantedTags = ['artist', 'name', 'artwork'] as const;
+
+	// const aaa = async () => {
+	// 	const data = await getAudioMetadata(lll, wantedTags);
+	// 	console.log(data)
+	// }
+
+	// useEffect(() => {
+	// 	aaa();
+	// }, []);
 
 	const panResponder = useRef(
 		PanResponder.create({
@@ -156,15 +168,13 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 		setContact(contact);
 	}, []);
 
-	const all = "asd"
 
 	const shouldUpdateMessage = useCallback((currentProps: any, nextProps: any) => {
-		console.log('shouldUpdateMessage')
 		if (currentProps.previousMessage !== nextProps.nextMessage) {
 			return true
 		}
 		return false
-	}, [all]);
+	}, []);
 
 	const onSend = (newMessage: IMessagePro[]) => {
 		if ((!socket)) return;
@@ -214,7 +224,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 				renderInputToolbar={(e) => renderInputToolbar(e, { colors })}
 				renderTime={(e) => renderTime(e, { colors })}
 				optionTintColor='#fff'
-				// shouldUpdateMessage={shouldUpdateMessage}
+			// shouldUpdateMessage={shouldUpdateMessage}
 			/>
 		</View>
 	);

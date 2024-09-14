@@ -36,7 +36,10 @@ export type IMessagePro = IMessage & {
     thumbnail?: string,
     duration?: number,
     playing?: boolean,
-    availableStatus?: availableStatus
+    availableStatus?: availableStatus,
+    musicName?: string,
+    artwork?: string,
+    musicArtist?: string
 }
 
 export type User = {
@@ -78,7 +81,9 @@ export type player = {
     duration?: number,
     track?: Audio.Sound,
     lastPosition?: number,
-    uuid?: string | number
+    uuid?: string | number,
+    artist?: string,
+    artwork?: string
 } | undefined;
 
 export type currentPosition = {
@@ -90,7 +95,9 @@ export type lastTrack = {
     duration?: number,
     name?: string,
     id?: number | string,
-    uri?: string
+    uri?: string,
+    artist?: string,
+    artwork?: string
 };
 
 export enum RecordingEnum {

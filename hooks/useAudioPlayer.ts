@@ -21,15 +21,15 @@ function useAudioPlayer() {
         const lastPosition = isEnded ? undefined : status.positionMillis;
 
         setPlayer((e) => {
-            return { uri: undefined, track: undefined, name: undefined, id: e?.id, uuid: undefined, duration: undefined, lastPosition, playing: isForStart ? true : false };
+            return { uri: undefined, track: undefined, name: undefined, id: e?.id, uuid: undefined, duration: undefined, lastPosition, playing: isForStart ? true : false, artist: undefined, artwork: undefined };
         });
 
         setCurrentPosition((e) => ({ position: lastPosition, id: e?.id }));
 
         setMessages(e =>
-        	e.map((item) =>
-        		item._id === player.id ? { ...item, playing: false } : item
-        	)
+            e.map((item) =>
+                item._id === player.id ? { ...item, playing: false } : item
+            )
         );
     };
 
@@ -56,13 +56,13 @@ function useAudioPlayer() {
 
         setPlayer((e) => {
             //@ts-ignore
-            return { ...e, track: newSound, name: track.audioName, uuid: track.id, duration: status?.durationMillis, playing: true }
+            return { ...e, track: newSound, name: track.audioName, uuid: track.id, duration: status?.durationMillis, playing: true, artist: track.artist, artwork: track.artwork }
         });
 
         setMessages(e =>
-        	e.map((item) =>
-        		item._id === track.id ? { ...item, playing: false } : item
-        	)
+            e.map((item) =>
+                item._id === track.id ? { ...item, playing: false } : item
+            )
         );
 
         // setPlayerStatus(() => {
@@ -91,13 +91,13 @@ function useAudioPlayer() {
 
         setPlayer(() => {
             //@ts-ignore
-            return { track: newSound, name: item.audioName, uri: item.uri, uuid: item.id, duration: status?.durationMillis, id: item.id, playing: true }
+            return { track: newSound, name: item.audioName, uri: item.uri, uuid: item.id, duration: status?.durationMillis, id: item.id, artist: item.artist, artwork: item.artwork, playing: true }
         });
 
         setMessages(e =>
-        	e.map((m) =>
-        		m._id === item.id ? { ...m, playing: true } : m
-        	)
+            e.map((m) =>
+                m._id === item.id ? { ...m, playing: true } : m
+            )
         );
     };
 
@@ -121,7 +121,7 @@ function useAudioPlayer() {
 
         setPlayer(() => {
             //@ts-ignore
-            return { track: newSound, name: forwardTrack.audioName, uri: forwardTrack.uri, uuid: forwardTrack.id, duration: status?.durationMillis, id: forwardTrack.id, playing: true }
+            return { track: newSound, name: forwardTrack.audioName, uri: forwardTrack.uri, uuid: forwardTrack.id, duration: status?.durationMillis, id: forwardTrack.id, artist: forwardTrack.artist, artwork: forwardTrack.artwork, playing: true }
         });
 
         setMessages(e =>
@@ -129,9 +129,6 @@ function useAudioPlayer() {
                 item._id === forwardTrack.id ? { ...item, playing: true } : item
             )
         );
-        // setPlayerStatus(()=>{
-        //     return {isPlaying:true,id:forwardTrack.id}
-        // });
     };
 
     const shufflePlayList = async () => {
@@ -155,7 +152,7 @@ function useAudioPlayer() {
 
         setPlayer(() => {
             //@ts-ignore
-            return { track: newSound, name: forwardTrack.audioName, uri: forwardTrack.uri, uuid: forwardTrack.id, duration: status?.durationMillis, id: forwardTrack.id, playing: true }
+            return { track: newSound, name: forwardTrack.audioName, uri: forwardTrack.uri, uuid: forwardTrack.id, duration: status?.durationMillis, id: forwardTrack.id, artist: forwardTrack.artist, artwork: forwardTrack.artwork, playing: true }
         });
 
         setMessages(e =>
@@ -196,7 +193,7 @@ function useAudioPlayer() {
 
         setPlayer(() => {
             //@ts-ignore
-            return { track: newSound, name: forwardTrack.audioName, uri: forwardTrack.uri, uuid: forwardTrack.id, duration: status?.durationMillis, id: forwardTrack.id, playing: true }
+            return { track: newSound, name: forwardTrack.audioName, uri: forwardTrack.uri, uuid: forwardTrack.id, duration: status?.durationMillis, id: forwardTrack.id, artist: forwardTrack.artist, artwork: forwardTrack.artwork, playing: true }
         });
 
         setMessages(e =>
