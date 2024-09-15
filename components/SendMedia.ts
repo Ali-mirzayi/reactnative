@@ -7,6 +7,7 @@ import { Audio } from "expo-av";
 import * as MediaLibrary from 'expo-media-library';
 import { getAudioMetadata } from '@missingcore/audio-metadata';
 import { ensureDirExists, fileDirectory } from "../utils/directories";
+import Toast from "react-native-toast-message";
 
 const wantedTags = ['artist', 'name', 'artwork'] as const;
 
@@ -39,7 +40,7 @@ type sendMusicProps = {
     mimeType?: string,
 }
 
-const sendMusic = async ({ uri, id, user, name, setMessages, artwork, musicArtist, musicName,roomId,socket,mimeType }: sendMusicProps) => {
+const sendMusic = async ({ uri, id, user, name, setMessages, artwork, musicArtist, musicName, roomId, socket, mimeType }: sendMusicProps) => {
     const { sound, status } = await Audio.Sound.createAsync({ uri }, { shouldPlay: false });
     await sound.unloadAsync();
     setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages,
@@ -71,7 +72,17 @@ const sendMusic = async ({ uri, id, user, name, setMessages, artwork, musicArtis
     } else {
         console.log('error uploading music');
     }
-}
+};
+
+// if (artwork) {
+//     await ensureDirExists();
+//     await FileSystem.writeAsStringAsync(fileDirectory + `${name}-artwork.jpeg`, artwork, { encoding: "base64" }).then(() => {
+//         artwork = fileDirectory + `${name}-artwork.jpeg`
+//     }).catch((e) => {
+//         console.log(e, 'eeeeeeeeeeeeeeee')
+//     })
+// }
+// console.log(artwork)
 
 export async function sendMedia({ uri, type, name, mimeType, duration, roomId, setMessages, user, socket, videosDuration }: sendMediaProps) {
     const id = generateID();
@@ -107,39 +118,43 @@ export async function sendMedia({ uri, type, name, mimeType, duration, roomId, s
     } else if (type === 'file' && uri) {
         const isMusic = isMusicFile(name);
         if (isMusic) {
-            const data = await getAudioMetadata(uri, wantedTags);
-            const artwork = data.metadata.artwork?.replace(/^data:image\/[^;]+;base64,/, '');;
-            // console.log(artwork)
+            const data = await getAudioMetadata(uri, wantedTags).catch(e => console.log(e));
+            let artwork = data?.metadata.artwork?.replace(/^data:image\/[^;]+;base64,/, '');
+            // if (artwork) {
+            //     await ensureDirExists();
+            //     await FileSystem.writeAsStringAsync(fileDirectory + `${name}-artwork.jpeg`,artwork, { encoding: "base64" }).then(() => {
+            //         sendMusic({ uri, id, user, name, setMessages, artwork: fileDirectory + `${name}-artwork.jpeg`, musicArtist: data?.metadata.artist, musicName: data?.metadata.name,roomId,socket,mimeType })
+            //     }).catch((e) => {
+            //         sendMusic({ uri, id, user, name, setMessages, musicArtist: data?.metadata.artist, musicName: data?.metadata.name,roomId,socket,mimeType })
+            //     })
+            // } else {
+            //     sendMusic({ uri, id, user, name, setMessages, musicArtist: data?.metadata.artist, musicName: data?.metadata.name,roomId,socket,mimeType })
+            // }
             if (artwork) {
                 await ensureDirExists();
-                await FileSystem.writeAsStringAsync(fileDirectory + `${name}-artwork.jpeg`,artwork, { encoding: "base64" }).then(() => {
-                    console.log('first');
-                    sendMusic({ uri, id, user, name, setMessages, artwork: fileDirectory + `${name}-artwork.jpeg`, musicArtist: data.metadata.artist, musicName: data.metadata.name,roomId,socket,mimeType })
+                await FileSystem.writeAsStringAsync(fileDirectory + `${name}-artwork.jpeg`, artwork, { encoding: "base64" }).then(() => {
+                    artwork = fileDirectory + `${name}-artwork.jpeg`
                 }).catch((e) => {
-                    console.log(e,'second');
-                    sendMusic({ uri, id, user, name, setMessages, musicArtist: data.metadata.artist, musicName: data.metadata.name,roomId,socket,mimeType })
+                    console.log(e, 'eeeeeeeeeeeeeeee')
                 })
-            } else {
-                console.log('third');
-                sendMusic({ uri, id, user, name, setMessages, musicArtist: data.metadata.artist, musicName: data.metadata.name,roomId,socket,mimeType })
             }
-            // const { sound, status } = await Audio.Sound.createAsync({ uri }, { shouldPlay: false });
-            // // @ts-ignore
-            // setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, audio: uri, fileName: name, duration: status?.durationMillis, playing: false, availableStatus: availableStatus.uploading, artwork, musicArtist: data.metadata.artist ?? 'Artist', musicName: data.metadata.name ?? name }]));
-            // await sound.unloadAsync();
-            // const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file' })
-            // if (response.body === "ok") {
-            //     // @ts-ignore
-            //     socket?.emit('sendAudio', { _id: id, text: "", createdAt: new Date(), user, roomId, fileName: name, duration: status?.durationMillis, mimeType, availableStatus: availableStatus.download }, setMessages(e => e.map(message => {
-            //         if (message._id === id) {
-            //             return { ...message, availableStatus: availableStatus.available }
-            //         } else {
-            //             return message
-            //         }
-            //     })));
-            // } else {
-            //     console.log('error uploading music');
-            // }
+            const { sound, status } = await Audio.Sound.createAsync({ uri }, { shouldPlay: false });
+            // @ts-ignore
+            setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, audio: uri, fileName: name, duration: status?.durationMillis, playing: false, availableStatus: availableStatus.uploading, artwork: artwork?.startsWith('file') ? artwork : undefined, musicArtist: data?.metadata.artist ?? 'Artist', musicName: data?.metadata.name ?? name }]));
+            await sound.unloadAsync();
+            const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file' })
+            if (response.body === "ok") {
+                // @ts-ignore
+                socket?.emit('sendAudio', { _id: id, text: "", createdAt: new Date(), user, roomId, fileName: name, duration: status?.durationMillis, mimeType, availableStatus: availableStatus.download }, setMessages(e => e.map(message => {
+                    if (message._id === id) {
+                        return { ...message, availableStatus: availableStatus.available }
+                    } else {
+                        return message
+                    }
+                })));
+            } else {
+                console.log('error uploading music');
+            }
         } else {
             setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, file: uri, fileName: name, mimeType, availableStatus: availableStatus.uploading }]));
             const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file' })
@@ -241,11 +256,31 @@ export const save = async ({ uri }: { uri: string | undefined }) => {
     const { granted } = await MediaLibrary.requestPermissionsAsync();
     if (granted) {
         try {
-            await MediaLibrary.createAssetAsync(uri);
+            await MediaLibrary.createAssetAsync(uri).then(() => {
+                Toast.show({
+                    type: 'success',
+                    text1: 'file saved.',
+                    autoHide: true,
+                    visibilityTime: 2500
+                });
+            });
         } catch (error) {
             console.log(error);
+            Toast.show({
+                type: 'error',
+                text2: 'error cant save.',
+
+                autoHide: true,
+                visibilityTime: 3000,
+            });
         }
     } else {
         console.log('Need Storage permission to save file');
+        Toast.show({
+            type: 'error',
+            text1: 'error cant save.',
+            autoHide: true,
+            visibilityTime: 3000
+        });
     }
 }

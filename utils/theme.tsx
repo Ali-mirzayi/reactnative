@@ -10,7 +10,7 @@ const lightTheme = {
     container: "#EEF1FF",
     background: "#dadef0",
     text: "#212A3E",
-    lightText: "#767676",
+    lightText: "#565656",
     card: "#F9F7F7",
     mirza: "#3F72AF",
     undetlay: "#b2c6df",

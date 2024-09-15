@@ -37,7 +37,7 @@ function App() {
   //     Toast.show({
   //       type: 'error',
   //       text1: 'Error fetching latest Expo update',
-  //       autoHide: false
+  //       autoHide: false,
   //     });
   //     console.log(`Error fetching latest Expo update: ${error}`);
   //   }
