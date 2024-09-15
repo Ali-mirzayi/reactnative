@@ -26,64 +26,6 @@ type sendMediaProps = {
     videosDuration?: [] | videoDuration[]
 };
 
-type sendMusicProps = {
-    uri: string,
-    id: string,
-    user: User,
-    name?: string,
-    setMessages: (callback: (prev: IMessagePro[] | []) => (IMessagePro[] | [])) => void,
-    artwork?: string,
-    musicArtist?: string,
-    musicName?: string,
-    roomId: any,
-    socket: any,
-    mimeType?: string,
-}
-
-const sendMusic = async ({ uri, id, user, name, setMessages, artwork, musicArtist, musicName, roomId, socket, mimeType }: sendMusicProps) => {
-    const { sound, status } = await Audio.Sound.createAsync({ uri }, { shouldPlay: false });
-    await sound.unloadAsync();
-    setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages,
-        [{
-            _id: id,
-            text: "",
-            createdAt: new Date(),
-            user,
-            audio: uri,
-            fileName: name,
-            // @ts-ignore
-            duration: status?.durationMillis,
-            playing: false,
-            availableStatus: availableStatus.uploading,
-            artwork,
-            musicArtist: musicArtist ?? 'Artist',
-            musicName: musicName ?? name
-        }]));
-    const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file' })
-    if (response.body === "ok") {
-        // @ts-ignore
-        socket?.emit('sendAudio', { _id: id, text: "", createdAt: new Date(), user, roomId, fileName: name, duration: status?.durationMillis, mimeType, availableStatus: availableStatus.download }, setMessages(e => e.map(message => {
-            if (message._id === id) {
-                return { ...message, availableStatus: availableStatus.available }
-            } else {
-                return message
-            }
-        })));
-    } else {
-        console.log('error uploading music');
-    }
-};
-
-// if (artwork) {
-//     await ensureDirExists();
-//     await FileSystem.writeAsStringAsync(fileDirectory + `${name}-artwork.jpeg`, artwork, { encoding: "base64" }).then(() => {
-//         artwork = fileDirectory + `${name}-artwork.jpeg`
-//     }).catch((e) => {
-//         console.log(e, 'eeeeeeeeeeeeeeee')
-//     })
-// }
-// console.log(artwork)
-
 export async function sendMedia({ uri, type, name, mimeType, duration, roomId, setMessages, user, socket, videosDuration }: sendMediaProps) {
     const id = generateID();
     if (type === 'image' && uri) {
@@ -120,16 +62,6 @@ export async function sendMedia({ uri, type, name, mimeType, duration, roomId, s
         if (isMusic) {
             const data = await getAudioMetadata(uri, wantedTags).catch(e => console.log(e));
             let artwork = data?.metadata.artwork?.replace(/^data:image\/[^;]+;base64,/, '');
-            // if (artwork) {
-            //     await ensureDirExists();
-            //     await FileSystem.writeAsStringAsync(fileDirectory + `${name}-artwork.jpeg`,artwork, { encoding: "base64" }).then(() => {
-            //         sendMusic({ uri, id, user, name, setMessages, artwork: fileDirectory + `${name}-artwork.jpeg`, musicArtist: data?.metadata.artist, musicName: data?.metadata.name,roomId,socket,mimeType })
-            //     }).catch((e) => {
-            //         sendMusic({ uri, id, user, name, setMessages, musicArtist: data?.metadata.artist, musicName: data?.metadata.name,roomId,socket,mimeType })
-            //     })
-            // } else {
-            //     sendMusic({ uri, id, user, name, setMessages, musicArtist: data?.metadata.artist, musicName: data?.metadata.name,roomId,socket,mimeType })
-            // }
             if (artwork) {
                 await ensureDirExists();
                 await FileSystem.writeAsStringAsync(fileDirectory + `${name}-artwork.jpeg`, artwork, { encoding: "base64" }).then(() => {
