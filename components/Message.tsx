@@ -19,6 +19,8 @@ import { startActivityAsync } from 'expo-intent-launcher';
 import { save, sendMedia, startRecording } from "./SendMedia";
 import MovingText from "./MovingText";
 import { audioListType } from "../hooks/useAudioList";
+import { getAudioMetadata } from "@missingcore/audio-metadata";
+const wantedTags = ['artist', 'name', 'artwork'] as const;
 
 type RenderChatFooterProps = {
 	user: User,
@@ -314,6 +316,8 @@ export const renderMessageFile = (props: MessageProps<IMessagePro>, { setMessage
 export const RenderMessageImage = (props: MessageImageProps<IMessagePro>, { setMessages, colors }: renderMessageImageProps) => {
 	const Message = props.currentMessage;
 	const messageStatus = Message.availableStatus;
+	//@ts-ignore
+	const color = props.position === 'right' ? '#fff' : colors.text === "#F1F6F9" ? '#fff' : '#000';
 
 	async function handlePress() {
 		if (Message?.image?.startsWith('file') || !Message?.image || !Message.fileName) return;
@@ -388,7 +392,7 @@ export const RenderMessageImage = (props: MessageImageProps<IMessagePro>, { setM
 			</Lightbox>
 			{finalMode}
 			{messageStatus === availableStatus.available ? <Pressable style={{ marginRight: 4, padding: 5 }} onPress={() => save({ uri: Message ? Message?.image : undefined })}>
-				<Text style={{ color: colors.text, fontWeight: '600', fontSize: 16 }}>Save</Text>
+				<Text style={{ color: color, fontWeight: '600', fontSize: 16 }}>Save</Text>
 			</Pressable> : null}
 		</View>
 	)
@@ -399,8 +403,8 @@ export function renderMessageVideo(props: MessageVideoProps<IMessagePro>, { setM
 	const messageStatus = Message.availableStatus;
 
 	const duration = Message.duration;
-	// const vidDuration = videosDuration.find(v => v.id === Message._id);
-	// const 
+	//@ts-ignore
+	const color = props.position === 'right' ? '#fff' : colors.text === "#F1F6F9" ? '#fff' : '#000';
 
 	async function handlePress() {
 		if (Message?.video?.startsWith('file') || !Message?.video || !Message.fileName) return;
@@ -531,7 +535,7 @@ export function renderMessageVideo(props: MessageVideoProps<IMessagePro>, { setM
 				</View>
 			</Pressable>
 			{messageStatus === availableStatus.available ? <Pressable style={{ marginRight: 4, padding: 5 }} onPress={() => save({ uri: Message ? Message?.video : undefined })}>
-				<Text style={{ color: colors.text, fontWeight: '600', fontSize: 16 }}>Save</Text>
+				<Text style={{ color: color, fontWeight: '600', fontSize: 16 }}>Save</Text>
 			</Pressable> : null}
 		</>
 	)
@@ -551,44 +555,46 @@ export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setM
 				return message
 			}
 		}));
-		await FileSystem.downloadAsync(Message?.audio, fileDirectory + Message.fileName)
-			.then(() => {
-				console.log('Finished downloading to ', 'result');
+		const newFile = fileDirectory + Message.fileName;
+		try {
+			await FileSystem.downloadAsync(Message?.audio, fileDirectory + Message.fileName);
+			console.log('Finished downloading to ', 'result');
+			const data = await getAudioMetadata(newFile, wantedTags).catch(e => console.log(e));
+			let artwork = data?.metadata.artwork?.replace(/^data:image\/[^;]+;base64,/, '');
+			if (artwork) {
+				await FileSystem.writeAsStringAsync(fileDirectory + `${Message.fileName}-artwork.jpeg`, artwork, { encoding: "base64" }).then(() => {
+					artwork = fileDirectory + `${Message.fileName}-artwork.jpeg`
+				}).catch((e) => {
+					console.log(e, 'eeeeeeeeeeeeeeee')
+				})
+			}
+
+			if (!Message.duration) {
+				const { sound, status } = await Audio.Sound.createAsync({ uri: newFile }, { shouldPlay: false });
+				//@ts-ignore
+				const duration: number = status?.durationMillis;
+				setMessages((prevMessages: IMessagePro[]) => (prevMessages.map(e => {
+					if (e._id === Message._id) {
+						return { ...e, duration, artwork: artwork?.startsWith('file') ? artwork : undefined, musicArtist: data?.metadata.artist ?? 'Artist', musicName: data?.metadata.name ?? Message.fileName };
+					} else {
+						return e;
+					}
+				})));
+				await sound.unloadAsync();
+			} else {
 				setMessages(e => e.map(message => {
 					if (message._id === Message._id) {
-						return { ...message, availableStatus: availableStatus.available }
+						return { ...message, audio: newFile, availableStatus: availableStatus.available, artwork: artwork?.startsWith('file') ? artwork : undefined, musicArtist: data?.metadata.artist ?? 'Artist', musicName: data?.metadata.name ?? Message.fileName };
 					} else {
-						return message
+						return message;
 					}
 				}));
-			})
-			.catch(error => {
-				console.error(error, 'errrrrrrrr');
-			})
-		const newFile = fileDirectory + Message.fileName;
-		//delete this it at last
-		if (!Message.duration) {
-			const { sound, status } = await Audio.Sound.createAsync({ uri: newFile }, { shouldPlay: false });
-			//@ts-ignore
-			const duration: number = status?.durationMillis;
-			setMessages((prevMessages: IMessagePro[]) => (prevMessages.map(e => {
-				if (e._id === Message._id) {
-					return { ...e, audio: newFile, duration };
-				} else {
-					return e;
-				}
-			})));
-			await sound.unloadAsync();
-		} else {
-			setMessages((prevMessages: IMessagePro[]) => (prevMessages.map(e => {
-				if (e._id === Message._id) {
-					return { ...e, audio: newFile };
-				} else {
-					return e;
-				}
-			})));
+			};
+		} catch (error) {
+			console.error(error, 'errrrrrrrr');
 		}
 	};
+
 
 	//@ts-ignore
 	const color = props.position === 'right' ? '#fff' : colors.text === "#F1F6F9" ? '#fff' : '#000';
@@ -598,7 +604,7 @@ export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setM
 
 	const TransferMode = (<ActivityIndicator style={[styles.iconContainer, { backgroundColor: colors.undetlay }]} size="large" color="#fff" />);
 
-	const AvailableMode = (<TouchableHighlight onPress={isPlaying ? () => stopPlaying({ isForStart: false, isEnded: false }) : () => startPlayingByItem({ item: { audioName: Message.musicName ?? "", id: Message._id, uri: Message.audio ?? '',artist:Message.musicArtist,artwork:Message.artwork }, isMessage: true })} style={[styles.iconContainer, { backgroundColor: colors.undetlay }]}>
+	const AvailableMode = (<TouchableHighlight onPress={isPlaying ? () => stopPlaying({ isForStart: false, isEnded: false }) : () => startPlayingByItem({ item: { audioName: Message.musicName ?? "", id: Message._id, uri: Message.audio ?? '', artist: Message.musicArtist, artwork: Message.artwork }, isMessage: true })} style={[styles.iconContainer, { backgroundColor: colors.undetlay }]}>
 		<Ionicons name={isPlaying ? "pause" : "play"} size={30} color="#fff" style={{ marginRight: isPlaying ? 0 : -4 }} />
 	</TouchableHighlight>);
 
@@ -631,8 +637,8 @@ export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setM
 					{finalMode}
 				</View>
 				<View style={{ marginLeft: 0, marginRight: 'auto', width: 130, overflow: 'hidden' }}>
-					<MovingText disable={isPlaying ? false : true} animationThreshold={15} style={[{ color: color, size: 10 }]}>{Message?.musicName ? Message?.musicName : 'Voice'}</MovingText>
-					<Text numberOfLines={1} style={[{ color: color, fontSize: 7 }]}>{Message?.musicArtist ? Message?.musicArtist : ''}</Text>
+					<MovingText disable={isPlaying ? false : true} animationThreshold={15} style={[{ color: color, size: 10 }]}>{Message?.musicName ? Message?.musicName : Message?.fileName ? Message?.fileName : 'Voice'}</MovingText>
+					<Text numberOfLines={1} style={[{ color: color, fontSize: 12 }]}>{Message?.musicArtist ? Message?.musicArtist : ''}</Text>
 				</View>
 			</View>
 			<View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'flex-end', gap: 10, paddingRight: 10, marginBottom: 5 }}>
