@@ -1,5 +1,5 @@
 import { Socket } from 'socket.io-client';
-import { currentPosition, IMessagePro, LastMessageType, lastTrack, player, playerStatus, User, videoDuration } from './utils/types';
+import { currentPosition, IMessagePro, LastMessageType, lastTrack, locales, player, playerStatus, User, videoDuration } from './utils/types';
 import { create } from 'zustand';
 
 const initialCurrentPosition: currentPosition = {
@@ -74,6 +74,10 @@ interface useVideosDuration {
 	videosDuration: videoDuration[] | []
 	setVideosDuration: (callback: (prev: (videoDuration)[]) => (videoDuration)[]) => void;
 }
+interface useSetLocale {
+	locale: locales
+	setLocale: (callback: (prev: locales) => locales) => void;
+}
 
 export const useMessage = create<useMessage>()((set) => ({
 	messages: [],
@@ -144,4 +148,9 @@ export const useIsPlaying = create<useIsPlaying>()((set) => ({
 export const useVideosDuration = create<useVideosDuration>()((set) => ({
 	videosDuration: [],
 	setVideosDuration: (callback) => set((state) => ({ videosDuration: callback(state.videosDuration) })),
+}));
+
+export const useSetLocale = create<useSetLocale>()((set) => ({
+	locale: 'fa',
+	setLocale: (callback) => set((state) => ({ locale: callback(state.locale) })),
 }));

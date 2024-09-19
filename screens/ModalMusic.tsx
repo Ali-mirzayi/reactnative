@@ -111,7 +111,7 @@ const ModalMusic = () => {
     return (
       <Pressable onPress={() => setShowArtwork(false)} style={[styles.containerArtwork, StyleSheet.absoluteFill]}>
         <BlurView intensity={15} tint='dark' experimentalBlurMethod={'dimezisBlurView'} style={[styles.containerArtwork, StyleSheet.absoluteFill]}>
-          <Image source={{ uri: lastTrack.artwork }} width={250} height={250} />
+          <Image source={{ uri: lastTrack.artwork }} width={290} height={290} />
         </BlurView>
       </Pressable>
     )

@@ -18,6 +18,7 @@ import * as FileSystem from 'expo-file-system';
 import DrawerCore from "../components/Drawer";
 import { storage } from "../mmkv";
 import FloatingMusicPlayer from "../components/FloatingMusicPlayer";
+import { useTranslate } from "../language/useTranslate";
 
 const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) => {
 	const setUser = useUser(state => state.setUser);
@@ -41,6 +42,7 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 	const isPlayerOpen = useIsOpen(state => state.open);
 	const initDarkMode = storage.getBoolean("darkMode");
 	const [darkMode, setDarkMode] = useState(initDarkMode !== undefined ? initDarkMode : true);
+    const { i18n, setLocale, locale } = useTranslate();
 
 	const isFocused = useIsFocused();
 
@@ -286,7 +288,7 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 								<TouchableHighlight style={styles.mr10} underlayColor={"#e3e5ef"} onPress={() => setOpen(true)} >
 									<Ionicons name="menu-sharp" style={styles.menu} color={colors.text} size={25} />
 								</TouchableHighlight>
-								<Text testID="ChatScreen" style={[styles.chatheading, { color: colors.mirza }]}>MirzaGram</Text>
+								<Text testID="ChatScreen" style={[styles.chatheading, { color: colors.mirza,fontSize:locale==='en'?22:27 }]}>{i18n.t("MirzaGram")}</Text>
 							</View>
 							<SearchBar setUsers={setUsers} setScreen={setScreen} />
 						</View>
@@ -315,8 +317,8 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 								</View>
 							) : (
 								<View style={[styles.chatemptyContainer]}>
-									<Text style={[styles.chatemptyText, { color: colors.text }]}>No rooms created!</Text>
-									<Text style={{ color: colors.text }}>Click the icon above to create a Chat room</Text>
+									<Text style={[styles.chatemptyText, { color: colors.text }]}>{i18n.t("NoRooms")}</Text>
+									<Text style={{ color: colors.text,fontSize:locale==='fa'?17:16 }}>{i18n.t("SearchToconnection")}</Text>
 								</View>
 							)
 						}
@@ -346,7 +348,6 @@ const styles = StyleSheet.create({
 		elevation: 4,
 	},
 	chatheading: {
-		fontSize: 22,
 		fontWeight: "bold",
 	},
 	chatheader: {

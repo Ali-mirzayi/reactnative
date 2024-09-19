@@ -1,6 +1,6 @@
 import { Drawer } from 'react-native-drawer-layout';
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import { View, Text, Animated, StyleSheet, Easing, Pressable } from "react-native";
+import { View, Text, Animated, StyleSheet, Easing, Pressable, Button, TouchableHighlight } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import Checkbox from 'expo-checkbox';
 import Link from "../utils/Link";
@@ -12,6 +12,7 @@ import { DrawerCoreType } from "../utils/types";
 import { useBeCheck, useUser } from '../socketContext';
 import switchTheme from 'react-native-theme-switch-animation';
 import sleep from '../utils/wait';
+import { useTranslate } from '../language/useTranslate';
 
 
 export default function DrawerCore({ children, open, setOpen, darkMode, setDarkMode }: DrawerCoreType) {
@@ -20,9 +21,10 @@ export default function DrawerCore({ children, open, setOpen, darkMode, setDarkM
     const { colors } = useTheme();
     const toggleRef = useRef(new Animated.Value(darkMode === true ? 0.5 : 0)).current;
     const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
-    const [isChecked, setChecked] = useState<boolean | undefined>(false);
+    const [isChecked, setChecked] = useState<boolean>(false);
     const navigation = useNavigation();
     const hasMounted = useRef(false);
+    const { i18n, setLocale, locale } = useTranslate();
 
     const DrawerComponent = () => {
         async function onPressHandler() {
@@ -41,53 +43,11 @@ export default function DrawerCore({ children, open, setOpen, darkMode, setDarkM
                     captureType: "layer"
                 },
             })
-
-            // switchTheme({
-            //     switchThemeFunction: () => {
-            //         (async()=>{
-            //             await sleep(1000);
-            //             storage.set("darkMode", darkMode);
-            //         })();
-            //     },
-            //     animationConfig: {
-            //         type: !darkMode ? 'circular' : 'inverted-circular',
-            //         duration: 1000,
-            //         startingPoint: {
-            //             cx: 240,
-            //             cy: 50
-            //         }
-            //     },
-            // })
-            //    (async()=>{  
-            //         await sleep(500);
-            //         storage.set("darkMode", darkMode);
-            //     })();
-
-            //     setDarkMode((prevMode) => {  
-            //         const newMode = !prevMode;  
-            //         (async () => {
-            //             await sleep(1000);
-            //             storage.set("darkMode", newMode);  
-
-            //             switchTheme({  
-            //                 switchThemeFunction: () => {},  
-            //                 animationConfig: {  
-            //                     type: newMode ? 'circular' : 'inverted-circular',  
-            //                     duration: 1000,  
-            //                     startingPoint: {  
-            //                         cx: 240,  
-            //                         cy: 50  
-            //                     }  
-            //                 },  
-            //             });  
-            //         })()
-            //         return newMode;
-            //     });  
         }
 
-        function onValueChange(value: any) {
-            setChecked(value);
-            storage.set("clearAll", value)
+        function onValueChange() {
+            setChecked(e => !e)            
+            storage.set("clearAll", !isChecked);
         }
 
         return (
@@ -120,15 +80,20 @@ export default function DrawerCore({ children, open, setOpen, darkMode, setDarkM
                         </View>
                     </Link>
                 </View>
-                <View style={styles.removeContainer}>
-                    <Text style={{ color: colors.text }}>Remove all data after leave app</Text>
-                    <Checkbox
-                        value={isChecked}
-                        color={isChecked ? '#4630EB' : undefined}
-                        onValueChange={onValueChange}
-                        style={styles.removeCheck}
-                    />
-                </View>
+                <TouchableHighlight style={[styles.ButtonContainer, { width: locale === 'fa' ? '60%' : '70%' }]} onPress={() => setLocale(e => e === 'en' ? 'fa' : 'en')}>
+                    <Text style={[styles.Button, { fontSize: locale === 'fa' ? 22 : 17 }]}>{i18n.t("switchLang")}</Text>
+                </TouchableHighlight>
+                <TouchableHighlight underlayColor={colors.undetlay} onPress={onValueChange} style={{ backgroundColor: isChecked ? '#3e6b64' : 'transparent',marginTop:30}}>
+                    <View style={{alignItems:'center',flexDirection :locale==='en'?'row':'row-reverse',padding:10,gap:5}}>
+                        <Text style={{ color: isChecked ? '#fff' : colors.text }}>{i18n.t("RemoveData")}</Text>
+                        <Checkbox
+                            value={isChecked}
+                            color={isChecked ? '#4630EB' : undefined}
+                            onValueChange={onValueChange}
+                            style={styles.removeCheck}
+                        />
+                    </View>
+                </TouchableHighlight>
             </View>
         )
     };
@@ -208,4 +173,21 @@ const styles = StyleSheet.create({
         width: 25,
         height: 25,
     },
+    ButtonContainer: {
+        marginTop: 20,
+        backgroundColor: "#2DA5E0",
+        borderRadius: 6,
+        overflow: "hidden",
+        width: "75%",
+        marginHorizontal: 'auto'
+    },
+    Button: {
+        color: "white",
+        paddingHorizontal: 20,
+        paddingTop: 7,
+        paddingBottom: 9,
+        backgroundColor: 'transparent',
+        fontWeight: '500',
+        textAlign: "center"
+    }
 });
