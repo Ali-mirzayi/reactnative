@@ -6,6 +6,7 @@ import OutsidePressHandler from 'react-native-outside-press';
 import { User } from '../utils/types';
 import { useSocket, useUser } from '../socketContext';
 import useDebounce from '../hooks/useDebounce';
+import { useTranslate } from '../language/useTranslate';
 
 type props = {
     setUsers: React.Dispatch<React.SetStateAction<[] | User[]>>,
@@ -19,6 +20,7 @@ export default function SearchBar({ setUsers, setScreen }: props) {
     const inputRef = useRef<TextInput>(null);
     const socket = useSocket(state => state.socket);
     const debouncedInputValue = useDebounce(search?.toLocaleLowerCase(), 500);
+    const { i18n } = useTranslate();
 
     const handlePressIn = () => {
         width.value = withTiming(175, { duration: 500 });
@@ -49,7 +51,7 @@ export default function SearchBar({ setUsers, setScreen }: props) {
     return (
         <OutsidePressHandler onOutsidePress={handlePressOut} style={styles.container}>
             <Animated.View style={[styles.inner, { width }]}>
-                <TextInput ref={inputRef} placeholder="Search Users" value={search} onChangeText={handleSearch} style={styles.Input} />
+                <TextInput ref={inputRef} placeholder={i18n.t("SearchUser")} value={search} onChangeText={handleSearch} style={styles.Input} />
                 <TouchableHighlight style={styles.icon} onPress={handlePressIn} underlayColor={"#c8cce0"}>
                     <Ionicons name='search' size={25} color='#3F72AF' />
                 </TouchableHighlight>
@@ -86,6 +88,7 @@ const styles = StyleSheet.create({
         height: 35,
         width: "70%",
         right: 50,
-        paddingLeft: 8
+        paddingLeft: 8,
+        textAlign:'left'
     }
 })

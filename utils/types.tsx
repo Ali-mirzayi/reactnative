@@ -116,3 +116,5 @@ export enum repeatModeEnum {
 export type playerStatus = { isPlaying: boolean, id?: string | number }
 
 export type videoDuration = { duration?: number, id?: string | number }
+
+export type locales = 'en' | 'fa'

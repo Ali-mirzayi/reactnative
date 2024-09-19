@@ -1,14 +1,12 @@
-import { ActivityIndicator, Image, ImageProps, Pressable, StyleSheet, Text, TouchableHighlight, View, Animated as NativeAnimated, PanResponder, PanResponderInstance, TouchableOpacity, Alert } from "react-native";
-import Animated from "react-native-reanimated";
+import { ActivityIndicator, Image, ImageProps, Pressable, StyleSheet, Text, TouchableHighlight, View, PanResponderInstance, TouchableOpacity } from "react-native";
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import { formatMillisecondsToTime } from "../utils/utils";
-import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
-import { Actions, ActionsProps, Bubble, BubbleProps, Composer, GiftedChat, IMessage, InputToolbar, InputToolbarProps, MessageAudioProps, MessageImage, MessageImageProps, MessageProps, MessageVideoProps, Send, SendProps, Time, TimeProps } from "react-native-gifted-chat";
+import { Actions, ActionsProps, Bubble, BubbleProps, Composer, IMessage, InputToolbar, InputToolbarProps, MessageAudioProps, MessageImageProps, MessageProps, MessageVideoProps, Send, SendProps, Time, TimeProps } from "react-native-gifted-chat";
 import { ResizeMode, Video, Audio } from "expo-av";
 import { darkTheme } from "../utils/theme";
-import { availableStatus, currentPosition, IMessagePro, player, RecordingEnum, User, videoDuration } from "../utils/types";
+import { availableStatus, IMessagePro, player, RecordingEnum, User, videoDuration } from "../utils/types";
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Entypo from '@expo/vector-icons/Entypo';
 import Feather from '@expo/vector-icons/Feather';
@@ -20,6 +18,8 @@ import { save, sendMedia, startRecording } from "./SendMedia";
 import MovingText from "./MovingText";
 import { audioListType } from "../hooks/useAudioList";
 import { getAudioMetadata } from "@missingcore/audio-metadata";
+import Animated, { SharedValue } from 'react-native-reanimated';
+
 const wantedTags = ['artist', 'name', 'artwork'] as const;
 
 type RenderChatFooterProps = {
@@ -39,10 +39,11 @@ type RenderChatFooterProps = {
 	pan: Animated.Value,
 	panResponder: PanResponderInstance,
 	permissionResponse: Audio.PermissionResponse | null,
-	videosDuration: [] | videoDuration[]
+	videosDuration: [] | videoDuration[],
+	scale: SharedValue<number>
 }
 
-export function RenderChatFooter({ user, socket, translateY, roomId, setMessages, recording, setRecording, colors, handleAudioPermissions, pan, panResponder, permissionResponse, videosDuration }: RenderChatFooterProps) {
+export function RenderChatFooter({ user, socket, translateY, roomId, setMessages, recording, setRecording, colors, handleAudioPermissions, scale, panResponder, permissionResponse, videosDuration }: RenderChatFooterProps) {
 	const handleCamera = async () => {
 		await ImagePicker.requestCameraPermissionsAsync();
 		let result = await ImagePicker.launchCameraAsync({
@@ -96,15 +97,17 @@ export function RenderChatFooter({ user, socket, translateY, roomId, setMessages
 				<TouchableHighlight onPress={handlePickFile} underlayColor={colors.undetlay} style={[styles.iconContainer, { backgroundColor: colors.container }]}>
 					<Feather name='file' size={30} color={colors.primary} />
 				</TouchableHighlight>
-				<NativeAnimated.View {...panResponder.panHandlers} style={{ transform: [{ translateY: pan }] }}>
-					<TouchableHighlight
-						onPressIn={() => startRecording({ handleAudioPermissions, setRecording, permissionResponse })}
-						style={[styles.iconContainer, { backgroundColor: colors.container }]}
-						underlayColor={colors.undetlay}
-					>
-						<Feather name='mic' size={30} color={colors.primary} />
-					</TouchableHighlight>
-				</NativeAnimated.View>
+				<View style={[styles.iconContainer,{position:'relative'}]}>
+					<Animated.View {...panResponder.panHandlers} style={{ transform: [{ scale }],position:'absolute',left:0 }}>
+						<TouchableHighlight
+							onPressIn={() => startRecording({ handleAudioPermissions, setRecording, permissionResponse })}
+							style={[styles.iconContainer, { backgroundColor: colors.container }]}
+							underlayColor={colors.undetlay}
+						>
+							<Feather name='mic' size={30} color={colors.primary} />
+						</TouchableHighlight>
+					</Animated.View>
+				</View>
 				{
 					recording?.playing ? (
 						<TouchableHighlight onPress={() => setRecording((e) => ({ ...e, playing: false, status: RecordingEnum.cancel }))} style={[styles.trashIconContainer, { backgroundColor: colors.red, opacity: 0.85 }]}>
@@ -740,7 +743,7 @@ const styles = StyleSheet.create({
 	},
 	download: {
 		position: 'absolute',
-		left: 55,
+		left: 52,
 		top: 30,
 		zIndex: 50
 	}

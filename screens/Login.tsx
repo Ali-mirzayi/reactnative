@@ -9,6 +9,7 @@ import { storage } from "../mmkv";
 import LottieView from 'lottie-react-native';
 import useTheme from "../utils/theme";
 import { usePushNotifications } from "../utils/usePushNotifications";
+import { useTranslate } from "../language/useTranslate";
 
 const Login = ({ route, navigation }: StackScreenProps<LoginNavigationProps, 'Login'>) => {
 	const { beCheck } = route?.params || {};
@@ -18,6 +19,7 @@ const Login = ({ route, navigation }: StackScreenProps<LoginNavigationProps, 'Lo
 	const _id = generateID();
 	const { expoPushToken } = usePushNotifications();
 	const socket = useSocket(state => state.socket);
+	const { i18n,locale } = useTranslate();
 
 	const storeUsername = async () => {
 		try {
@@ -53,19 +55,19 @@ const Login = ({ route, navigation }: StackScreenProps<LoginNavigationProps, 'Lo
 	return (
 		<SafeAreaView style={[styles.loginscreen, { backgroundColor: colors.background, }]}>
 			<LottieView autoPlay source={require('../assets/chat.json')} style={styles.ImageContainer} />
-			<Text style={[styles.Mirza, { color: colors.loginMirza }]}>Sign in to MirzaGram</Text>
-			<Text style={[styles.MirzaDesc, { color: colors.text }]}>please enter your username</Text>
+			<Text style={[styles.Mirza, { color: colors.loginMirza,fontSize:locale==='en'?22:27 }]}>{i18n.t("SignIn")}</Text>
+			<Text style={[styles.MirzaDesc, { color: colors.text,fontSize: locale==='en'?15:18 }]}>{i18n.t("EnterUsername")}</Text>
 			<View style={styles.logininputContainer}>
 				<TextInput
 					placeholderTextColor={colors.text}
 					autoCorrect={false}
-					placeholder="user name"
+					placeholder={i18n.t("Username")}
 					style={[styles.logininput, { color: colors.text, borderColor: colors.boarder }]}
 					value={username}
 					onChangeText={setUsername} />
 			</View>
 			<TouchableHighlight style={styles.ButtonContainer} onPress={handleSignIn} underlayColor={"#c8cce0"}>
-				<Text testID="LoginScreen" style={styles.Button}>Let's Chat</Text>
+				<Text testID="LoginScreen" style={styles.Button}>{i18n.t("LetChat")}</Text>
 			</TouchableHighlight>
 		</SafeAreaView>
 	);
@@ -92,7 +94,6 @@ const styles = StyleSheet.create({
 		height: 250,
 	},
 	Mirza: {
-		fontSize: 22,
 		fontWeight: "700",
 		marginTop: 20,
 		marginBottom: 7,
@@ -114,6 +115,7 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 12,
 		fontSize: 18,
 		borderRadius: 4,
+		textAlign:'left'
 	},
 	ButtonContainer: {
 		marginTop: 20,

@@ -2,9 +2,9 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { GiftedChat, IMessage } from 'react-native-gifted-chat'
 import { StackScreenProps } from "@react-navigation/stack";
 import { IMessagePro, RecordingEnum, RootStackParamList } from '../utils/types';
-import { useCurrentContact, useIsOpen, useMessage, usePlayer, usePosition, useSetLastMessage, useSocket, useUser, useVideosDuration } from '../socketContext';
+import { useCurrentContact, useIsOpen, useMessage, useSetLastMessage, useSocket, useUser, useVideosDuration } from '../socketContext';
 import { updateMessage, getRoom } from '../utils/DB';
-import { useSharedValue, withTiming, } from 'react-native-reanimated';
+import { useSharedValue, withRepeat, withSequence, withTiming, } from 'react-native-reanimated';
 import LoadingPage from '../components/LoadingPage';
 import { renderActions, renderBubble, RenderChatFooter, renderInputToolbar, renderMessageAudio, renderMessageFile, RenderMessageImage, renderMessageVideo, renderSend, renderTime } from '../components/Message';
 import useTheme from '../utils/theme';
@@ -14,7 +14,6 @@ import { Audio } from 'expo-av';
 import FloatingMusicPlayer from '../components/FloatingMusicPlayer';
 import { cancelRecording, stopRecording } from '../components/SendMedia';
 import useAudioPlayer from '../hooks/useAudioPlayer';
-// import { getAudioMetadata } from '@missingcore/audio-metadata';
 
 const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>) => {
 	const { contact, roomId }: any = route.params;
@@ -40,17 +39,14 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	const videoRef: any = useRef(null);
 	const [permissionResponse, requestPermission] = Audio.usePermissions();
 	const pan = useRef(new Animated.Value(0)).current;
-	// const lll = 'file:///data/user/0/com.Mirzagram.PushNotifications/cache/DocumentPicker/7aa0a6da-e67f-47c0-a36d-ceaa9b299d19.mp3';
-	// const wantedTags = ['artist', 'name', 'artwork'] as const;
-
-	// const aaa = async () => {
-	// 	const data = await getAudioMetadata(lll, wantedTags);
-	// 	console.log(data)
-	// }
-
-	// useEffect(() => {
-	// 	aaa();
-	// }, []);
+	const scale = useSharedValue(1);
+	
+	if (recording?.playing===true) {  
+	    scale.value = withTiming(1.5, { duration: 300 });
+  
+	  } else {  
+		scale.value = withTiming(1, { duration: 300 });
+	}  
 
 	const panResponder = useRef(
 		PanResponder.create({
@@ -220,7 +216,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 				renderActions={(e) => renderActions(e, { setOpen, open, colors })}
 				renderBubble={(e) => renderBubble(e, { colors })}
 				renderSend={(e) => renderSend(e, { colors })}
-				renderChatFooter={() => RenderChatFooter({ user, socket, translateY, roomId, setMessages, colors, recording, setRecording, handleAudioPermissions, panResponder, pan, permissionResponse, videosDuration })}
+				renderChatFooter={() => RenderChatFooter({ user, socket, translateY, roomId, setMessages, colors, recording, setRecording, handleAudioPermissions, panResponder, pan, permissionResponse, videosDuration,scale })}
 				renderInputToolbar={(e) => renderInputToolbar(e, { colors })}
 				renderTime={(e) => renderTime(e, { colors })}
 				optionTintColor='#fff'
