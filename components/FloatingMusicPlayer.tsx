@@ -4,7 +4,7 @@ import { useIsOpen, useLastTrack, usePlayer, usePosition } from '../socketContex
 import useTheme from '../utils/theme';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { formatMillisecondsToTime } from '../utils/utils';
-import { AVPlaybackStatusSuccess } from 'expo-av';
+import { Audio, AVPlaybackStatusSuccess, InterruptionModeAndroid } from 'expo-av';
 import { useNavigation } from '@react-navigation/native';
 import { storage } from '../mmkv';
 import { repeatModeEnum } from '../utils/types';
@@ -67,6 +67,12 @@ const FloatingMusicPlayer = () => {
         if (player?.track) {
             // @ts-ignore
             player.track.setOnPlaybackStatusUpdate(onPlaybackStatusUpdate);
+            Audio.setAudioModeAsync({
+                staysActiveInBackground: true,
+                interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+                shouldDuckAndroid: true,
+                playThroughEarpieceAndroid: true,
+            });
         }
         setLastTrack((e) => {
             //@ts-ignore

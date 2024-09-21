@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "392861430631",
-    "project_id": "mirzagram-a5243",
-    "storage_bucket": "mirzagram-a5243.appspot.com"
+    "project_number": "598003058905",
+    "project_id": "mirzagram-2d151",
+    "storage_bucket": "mirzagram-2d151.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:392861430631:android:6731a75fc6b129ed9175c2",
+        "mobilesdk_app_id": "1:598003058905:android:28c9e49f2186ba97e956c8",
         "android_client_info": {
-          "package_name": "com.Mirzagram.PushNotifications"
+          "package_name": "com.services.mirzagram"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCJq8oHh3hU2hqf9PjUsPT9fGG9BCVPJqE"
+          "current_key": "AIzaSyBfpVnflDPgxKjUByfS-grT_2tjzFG-rvY"
         }
       ],
       "services": {

@@ -16,7 +16,10 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "userInterfaceStyle": "light"
+      "userInterfaceStyle": "light",
+      "infoPlist": {
+        "UIBackgroundModes": ["audio"]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -24,10 +27,11 @@
         "backgroundColor": "#EEF1FF"
       },
       "permissions": [
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "WAKE_LOCK"
       ],
       "googleServicesFile": "./google-services.json",
-      "package": "com.Mirzagram.PushNotifications",
+      "package": "com.services.mirzagram",
       "userInterfaceStyle": "light"
     },
     "web": {

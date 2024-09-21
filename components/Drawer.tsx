@@ -1,6 +1,6 @@
 import { Drawer } from 'react-native-drawer-layout';
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import { View, Text, Animated, StyleSheet, Easing, Pressable, Button, TouchableHighlight } from "react-native";
+import { View, Text, Animated, StyleSheet, Easing, Pressable, TouchableHighlight } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import Checkbox from 'expo-checkbox';
 import Link from "../utils/Link";
@@ -13,6 +13,7 @@ import { useBeCheck, useUser } from '../socketContext';
 import switchTheme from 'react-native-theme-switch-animation';
 import sleep from '../utils/wait';
 import { useTranslate } from '../language/useTranslate';
+import { startActivityAsync } from 'expo-intent-launcher';
 
 
 export default function DrawerCore({ children, open, setOpen, darkMode, setDarkMode }: DrawerCoreType) {
@@ -46,9 +47,20 @@ export default function DrawerCore({ children, open, setOpen, darkMode, setDarkM
         }
 
         function onValueChange() {
-            setChecked(e => !e)            
+            setChecked(e => !e)
             storage.set("clearAll", !isChecked);
         }
+
+        const openApp = async () => {
+            try {
+                await startActivityAsync('android.intent.action.VIEW', {
+                    data: 'myket://details?id=com.services.mirzagram',
+                    flags: 1,
+                });
+            } catch (error) {
+                console.log(error)
+            }
+        };
 
         return (
             <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -80,11 +92,15 @@ export default function DrawerCore({ children, open, setOpen, darkMode, setDarkM
                         </View>
                     </Link>
                 </View>
+
                 <TouchableHighlight style={[styles.ButtonContainer, { width: locale === 'fa' ? '60%' : '70%' }]} onPress={() => setLocale(e => e === 'en' ? 'fa' : 'en')}>
                     <Text style={[styles.Button, { fontSize: locale === 'fa' ? 22 : 17 }]}>{i18n.t("switchLang")}</Text>
                 </TouchableHighlight>
-                <TouchableHighlight underlayColor={colors.undetlay} onPress={onValueChange} style={{ backgroundColor: isChecked ? '#3e6b64' : 'transparent',marginTop:30}}>
-                    <View style={{alignItems:'center',flexDirection :locale==='en'?'row':'row-reverse',padding:10,gap:5}}>
+                <TouchableHighlight onPress={openApp} style={[styles.ButtonContainer, { width: locale === 'fa' ? '60%' : '70%' }]}>
+                        <Text style={[styles.Button, { fontSize: locale === 'fa' ? 22 : 17 }]}>{i18n.t("OpenMyket")}</Text>
+                </TouchableHighlight>
+                <TouchableHighlight underlayColor={colors.undetlay} onPress={onValueChange} style={{ backgroundColor: isChecked ? '#3e6b64' : 'transparent', marginTop: 30 }}>
+                    <View style={{ alignItems: 'center', flexDirection: locale === 'en' ? 'row' : 'row-reverse', padding: 10, gap: 5 }}>
                         <Text style={{ color: isChecked ? '#fff' : colors.text }}>{i18n.t("RemoveData")}</Text>
                         <Checkbox
                             value={isChecked}

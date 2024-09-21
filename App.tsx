@@ -11,7 +11,7 @@ import baseURL from "./utils/baseURL";
 import useCheckConnection from "./utils/checkConnection";
 import LoadingPage from "./components/LoadingPage";
 import io from 'socket.io-client';
-// import * as Updates from 'expo-updates';
+import * as Updates from 'expo-updates';
 
 function App() {
   const [error, setError] = useState(false);

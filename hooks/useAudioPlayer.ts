@@ -64,16 +64,11 @@ function useAudioPlayer() {
                 item._id === track.id ? { ...item, playing: false } : item
             )
         );
-
-        // setPlayerStatus(() => {
-        //     return { isPlaying: true, id: track.id }
-        // });
     };
 
     const startPlayingByItem = async ({ item, isMessage }: { item: audioListType, isMessage?: boolean }) => {
         if (!item?.uri) return;
         // this is for if startPlayingByItem called from messaging open floatingMusicPlayer
-        // if (isMessage&&item.audioName) setIsOpen(true);
         if (isMessage) setIsOpen(true);
 
         await stopPlaying({ isForStart: true, isEnded: false });

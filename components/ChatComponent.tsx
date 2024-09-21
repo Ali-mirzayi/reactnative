@@ -27,7 +27,7 @@ const ChatComponent = ({ messages, contact, handleNavigation, countNewMessage, l
 			<View style={styles.crightContainer}>
 				<View>
 					<Text style={[styles.cusername, { color: colors.text }]}>{contact.name}</Text>
-					<Text style={[styles.cmessage, { color: colors.text }]}>
+					<Text style={[styles.cmessage, { color: colors.text,textAlign:'left' }]}>
 						{lastMessage ? lastMessage : messages?.text ? messages.text : "Tap to start chatting"}
 					</Text>
 				</View>

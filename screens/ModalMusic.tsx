@@ -29,7 +29,7 @@ const ModalMusic = () => {
   const [showArtwork, setShowArtwork] = useState(false);
 
   const AudioList = useAudioList();
-  const filteredAudioList = AudioList.filter(audio => audio.audioName !== "unknown");
+  const filteredAudioList = AudioList.filter(audio => audio.audioName !== "voice");
 
   const { startPlaying, startPlayingByItem, stopPlaying, playForward } = useAudioPlayer();
 

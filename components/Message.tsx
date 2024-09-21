@@ -578,7 +578,7 @@ export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setM
 				const duration: number = status?.durationMillis;
 				setMessages((prevMessages: IMessagePro[]) => (prevMessages.map(e => {
 					if (e._id === Message._id) {
-						return { ...e, duration, artwork: artwork?.startsWith('file') ? artwork : undefined, musicArtist: data?.metadata.artist ?? 'Artist', musicName: data?.metadata.name ?? Message.fileName };
+						return { ...e, duration, artwork: artwork?.startsWith('file') ? artwork : undefined, musicArtist: data?.metadata.artist ?? '', musicName: data?.metadata.name ?? Message.fileName };
 					} else {
 						return e;
 					}
@@ -587,7 +587,7 @@ export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setM
 			} else {
 				setMessages(e => e.map(message => {
 					if (message._id === Message._id) {
-						return { ...message, audio: newFile, availableStatus: availableStatus.available, artwork: artwork?.startsWith('file') ? artwork : undefined, musicArtist: data?.metadata.artist ?? 'Artist', musicName: data?.metadata.name ?? Message.fileName };
+						return { ...message, audio: newFile, availableStatus: availableStatus.available, artwork: artwork?.startsWith('file') ? artwork : undefined, musicArtist: data?.metadata.artist ?? '', musicName: data?.metadata.name ?? Message.fileName };
 					} else {
 						return message;
 					}
