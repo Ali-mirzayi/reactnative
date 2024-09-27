@@ -1,5 +1,5 @@
 import { Socket } from 'socket.io-client';
-import { currentPosition, IMessagePro, LastMessageType, lastTrack, locales, player, playerStatus, User, videoDuration } from './utils/types';
+import { currentPosition, IMessagePro, LastMessageType, lastTrack, locales, player, playerStatus, remotePlayBackEnum, User, videoDuration } from './utils/types';
 import { create } from 'zustand';
 
 const initialCurrentPosition: currentPosition = {
@@ -46,10 +46,6 @@ interface usePlayer {
 	player: player
 	setPlayer: (callback: (prev: player) => (player)) => void
 }
-interface usePosition {
-	currentPosition: currentPosition
-	setCurrentPosition: (callback: (prev: currentPosition) => (currentPosition)) => void
-}
 
 interface useLastTrack {
 	lastTrack: lastTrack
@@ -77,6 +73,11 @@ interface useVideosDuration {
 interface useSetLocale {
 	locale: locales
 	setLocale: (callback: (prev: locales) => locales) => void;
+}
+
+interface useRemotePlayBack {
+	remotePlayBack: { state: remotePlayBackEnum, position?: number } | undefined
+	setRemotePlayBack: (e: { state: remotePlayBackEnum, position?: number } | undefined) => void
 }
 
 export const useMessage = create<useMessage>()((set) => ({
@@ -124,11 +125,6 @@ export const useBeCheck = create<useBeCheck>()((set) => ({
 	setBeCheck: (e) => set({ beCheck: e })
 }));
 
-export const usePosition = create<usePosition>()((set) => ({
-	currentPosition: initialCurrentPosition,
-	setCurrentPosition: (callback) => set((state) => ({ currentPosition: callback(state.currentPosition) }))
-}));
-
 export const useLastTrack = create<useLastTrack>()((set) => ({
 	lastTrack: initialLastTrack,
 	setLastTrack: (callback) => set((state) => ({ lastTrack: callback(state.lastTrack) })),
@@ -153,4 +149,9 @@ export const useVideosDuration = create<useVideosDuration>()((set) => ({
 export const useSetLocale = create<useSetLocale>()((set) => ({
 	locale: 'fa',
 	setLocale: (callback) => set((state) => ({ locale: callback(state.locale) })),
+}));
+
+export const useRemotePlayBack = create<useRemotePlayBack>()((set) => ({
+	remotePlayBack: undefined,
+	setRemotePlayBack: (e) => set({ remotePlayBack: e })
 }));

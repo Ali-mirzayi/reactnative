@@ -72,12 +72,12 @@ export async function sendMedia({ uri, type, name, mimeType, duration, roomId, s
             }
             const { sound, status } = await Audio.Sound.createAsync({ uri }, { shouldPlay: false });
             // @ts-ignore
-            setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, audio: uri, fileName: name, duration: status?.durationMillis, playing: false, availableStatus: availableStatus.uploading, artwork: artwork?.startsWith('file') ? artwork : undefined, musicArtist: data?.metadata.artist ?? '', musicName: data?.metadata.name ?? name }]));
+            setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, audio: uri, fileName: name, duration: status?.durationMillis/1000, playing: false, availableStatus: availableStatus.uploading, artwork: artwork?.startsWith('file') ? artwork : undefined, musicArtist: data?.metadata.artist ?? '', musicName: data?.metadata.name ?? name }]));
             await sound.unloadAsync();
             const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file' })
             if (response.body === "ok") {
                 // @ts-ignore
-                socket?.emit('sendAudio', { _id: id, text: "", createdAt: new Date(), user, roomId, fileName: name, duration: status?.durationMillis, mimeType, availableStatus: availableStatus.download }, setMessages(e => e.map(message => {
+                socket?.emit('sendAudio', { _id: id, text: "", createdAt: new Date(), user, roomId, fileName: name, duration: status?.durationMillis/1000, mimeType, availableStatus: availableStatus.download }, setMessages(e => e.map(message => {
                     if (message._id === id) {
                         return { ...message, availableStatus: availableStatus.available }
                     } else {

@@ -79,7 +79,6 @@ export type player = {
     playing?: boolean,
     id?: string | number,
     duration?: number,
-    track?: Audio.Sound,
     lastPosition?: number,
     uuid?: string | number,
     artist?: string,
@@ -97,14 +96,15 @@ export type lastTrack = {
     id?: number | string,
     uri?: string,
     artist?: string,
-    artwork?: string
+    artwork?: string,
+    // positi
 };
 
 export enum RecordingEnum {
     "start" = 0,
     "stop" = 1,
     "cancel" = 2,
-}
+};
 
 export enum repeatModeEnum {
     disabledRepeat = 0,
@@ -118,3 +118,11 @@ export type playerStatus = { isPlaying: boolean, id?: string | number }
 export type videoDuration = { duration?: number, id?: string | number }
 
 export type locales = 'en' | 'fa'
+
+export enum remotePlayBackEnum {
+    "play" = 0,
+    "pause" = 1,
+    "next" = 2,
+    "previous" = 3,
+    "seekto" = 4,
+}

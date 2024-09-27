@@ -1,34 +1,29 @@
-import { useIsOpen, useMessage, usePlayer, usePosition } from '../socketContext';
+import { useIsOpen, useMessage, usePlayer } from '../socketContext';
 import { audioListType, useAudioList } from './useAudioList';
 import { Audio } from 'expo-av';
+import TrackPlayer, { useProgress } from 'react-native-track-player';
 
 function useAudioPlayer() {
     const { player, setPlayer } = usePlayer();
-    const { currentPosition, setCurrentPosition } = usePosition();
     const AudioList = useAudioList();
-    const filteredAudioList = AudioList.filter(audio => audio.audioName !== "voice");
+    const filteredAudioList = AudioList.filter(audio => (audio.audioName !== "voice" && audio.audioName !== "unknown"));
     const setMessages = useMessage(state => state.setMessages);
     const track = AudioList.find(audio => audio.id === player?.id);
     const setIsOpen = useIsOpen(state => state.setOpen);
+    const { position } = useProgress();
 
     const stopPlaying = async ({ isForStart, isEnded }: { isForStart: boolean, isEnded: boolean }) => {
-        if (!player?.track) return;
-        const status = await player.track.getStatusAsync();
-        await player.track.stopAsync();
-        await player.track.unloadAsync();
-
-        //@ts-ignore
-        const lastPosition = isEnded ? undefined : status.positionMillis;
+        const { position } = await TrackPlayer.getProgress();
+        const lastPosition = isEnded ? undefined : position;
+        await TrackPlayer.pause();
 
         setPlayer((e) => {
             return { uri: undefined, track: undefined, name: undefined, id: e?.id, uuid: undefined, duration: undefined, lastPosition, playing: isForStart ? true : false, artist: undefined, artwork: undefined };
         });
 
-        setCurrentPosition((e) => ({ position: lastPosition, id: e?.id }));
-
         setMessages(e =>
             e.map((item) =>
-                item._id === player.id ? { ...item, playing: false } : item
+                item._id === player?.id ? { ...item, playing: false } : item
             )
         );
     };
@@ -36,34 +31,34 @@ function useAudioPlayer() {
     const startPlaying = async () => {
         if (!track?.uri) return;
 
+        if (player?.lastPosition) {
+            await TrackPlayer.seekTo(player?.lastPosition);
+            await TrackPlayer.play();
+        } else {
+            await TrackPlayer.play();
+        };
+
         setPlayer((e) => {
             return { ...e, uri: track?.uri, id: track?.id };
         });
 
-        await stopPlaying({ isEnded: false, isForStart: true });
-
         const { sound: newSound, status } = await Audio.Sound.createAsync(
             { uri: track.uri },
-            { isLooping: false, progressUpdateIntervalMillis: 1000, shouldPlay: false }
+            { shouldPlay: false }
         );
-
-        if (player?.lastPosition) {
-            await newSound.playFromPositionAsync(player?.lastPosition)
-        } else {
-            setCurrentPosition(() => ({ id: player?.uuid, position: undefined }));
-            await newSound.playAsync();
-        };
 
         setPlayer((e) => {
             //@ts-ignore
-            return { ...e, track: newSound, name: track.audioName, uuid: track.id, duration: status?.durationMillis, playing: true, artist: track.artist, artwork: track.artwork }
+            return { ...e, name: track.audioName, uuid: track.id, duration: status?.durationMillis / 1000, playing: true, artist: track.artist, artwork: track.artwork }
         });
 
         setMessages(e =>
             e.map((item) =>
-                item._id === track.id ? { ...item, playing: false } : item
+                item._id === track.id ? { ...item, playing: true } : item
             )
         );
+
+        await newSound.unloadAsync();
     };
 
     const startPlayingByItem = async ({ item, isMessage }: { item: audioListType, isMessage?: boolean }) => {
@@ -75,19 +70,29 @@ function useAudioPlayer() {
 
         const { sound: newSound, status } = await Audio.Sound.createAsync(
             { uri: item.uri },
-            { isLooping: false, progressUpdateIntervalMillis: 1000, shouldPlay: false }
+            { shouldPlay: false }
         );
 
-        if (currentPosition.id === item.id && currentPosition.position) {
-            await newSound.playFromPositionAsync(currentPosition.position);
+        await TrackPlayer.setQueue([{
+            url: item.uri,
+            id: item.id,
+            artist: item.artist,
+            artwork: item.artwork,
+            title: item.audioName,
+            //@ts-ignore
+            duration: status.durationMillis / 1000
+        }]);
+
+        if (player?.lastPosition) {
+            await TrackPlayer.seekTo(player?.lastPosition);
+            await TrackPlayer.play();
         } else {
-            await newSound.playAsync();
-            setCurrentPosition(() => ({ id: item.id, position: undefined }));
+            await TrackPlayer.play();
         };
 
         setPlayer(() => {
             //@ts-ignore
-            return { track: newSound, name: item.audioName, uri: item.uri, uuid: item.id, duration: status?.durationMillis, id: item.id, artist: item.artist, artwork: item.artwork, playing: true }
+            return { name: item.audioName, uri: item.uri, uuid: item.id, duration: status?.durationMillis / 1000, id: item.id, artist: item.artist, artwork: item.artwork, playing: true }
         });
 
         setMessages(e =>
@@ -95,6 +100,8 @@ function useAudioPlayer() {
                 m._id === item.id ? { ...m, playing: true } : m
             )
         );
+
+        await newSound.unloadAsync();
     };
 
     const startPlyingList = async ({ indexJump }: { indexJump: number }) => {
@@ -110,14 +117,24 @@ function useAudioPlayer() {
 
         const { sound: newSound, status } = await Audio.Sound.createAsync(
             { uri: forwardTrack.uri },
-            { isLooping: false, progressUpdateIntervalMillis: 1000, shouldPlay: true }
+            { isLooping: false, progressUpdateIntervalMillis: 1000, shouldPlay: false }
         );
 
-        setCurrentPosition(() => ({ id: forwardTrack.id, position: undefined }));
+        await TrackPlayer.setQueue([{
+            url: forwardTrack.uri,
+            id: forwardTrack.id,
+            artist: forwardTrack.artist,
+            artwork: forwardTrack.artwork,
+            title: forwardTrack.audioName,
+            //@ts-ignore
+            duration: status.durationMillis / 1000
+        }]);
+
+        await TrackPlayer.play();
 
         setPlayer(() => {
             //@ts-ignore
-            return { track: newSound, name: forwardTrack.audioName, uri: forwardTrack.uri, uuid: forwardTrack.id, duration: status?.durationMillis, id: forwardTrack.id, artist: forwardTrack.artist, artwork: forwardTrack.artwork, playing: true }
+            return { name: forwardTrack.audioName, uri: forwardTrack.uri, uuid: forwardTrack.id, duration: status?.durationMillis / 1000, id: forwardTrack.id, artist: forwardTrack.artist, artwork: forwardTrack.artwork, playing: true }
         });
 
         setMessages(e =>
@@ -125,6 +142,8 @@ function useAudioPlayer() {
                 item._id === forwardTrack.id ? { ...item, playing: true } : item
             )
         );
+
+        await newSound.unloadAsync();
     };
 
     const shufflePlayList = async () => {
@@ -139,16 +158,27 @@ function useAudioPlayer() {
             return { ...e, uri: forwardTrack.uri, id: forwardTrack.id };
         });
         await stopPlaying({ isEnded: false, isForStart: true });
+
         const { sound: newSound, status } = await Audio.Sound.createAsync(
             { uri: forwardTrack.uri },
-            { isLooping: false, progressUpdateIntervalMillis: 1000, shouldPlay: true }
+            { shouldPlay: false }
         );
 
-        setCurrentPosition(() => ({ id: forwardTrack.id, position: undefined }));
+        await TrackPlayer.setQueue([{
+            url: forwardTrack.uri,
+            id: forwardTrack.id,
+            artist: forwardTrack.artist,
+            artwork: forwardTrack.artwork,
+            title: forwardTrack.audioName,
+            //@ts-ignore
+            duration: status.durationMillis / 1000
+        }]);
+
+        await TrackPlayer.play();
 
         setPlayer(() => {
             //@ts-ignore
-            return { track: newSound, name: forwardTrack.audioName, uri: forwardTrack.uri, uuid: forwardTrack.id, duration: status?.durationMillis, id: forwardTrack.id, artist: forwardTrack.artist, artwork: forwardTrack.artwork, playing: true }
+            return { track: newSound, name: forwardTrack.audioName, uri: forwardTrack.uri, uuid: forwardTrack.id, duration: status?.durationMillis / 1000, id: forwardTrack.id, artist: forwardTrack.artist, artwork: forwardTrack.artwork, playing: true }
         });
 
         setMessages(e =>
@@ -156,40 +186,42 @@ function useAudioPlayer() {
                 item._id === forwardTrack.id ? { ...item, playing: true } : item
             )
         );
-        // setPlayerStatus(()=>{
-        //     return {isPlaying:true,id:forwardTrack.id}
-        // });
+        await newSound.unloadAsync();
     };
 
     const playForward = async ({ indexJump }: { indexJump: 1 | -1 }) => {
         const currentTrackIndex = filteredAudioList.findIndex(audio => audio.id === player?.id);
         if (currentTrackIndex === -1) return;
-        if (indexJump === -1 && Number(currentPosition.position) >= 2000) {
-            player?.track?.playFromPositionAsync(0);
+
+        if (indexJump === -1 && position >= 2) {
+            TrackPlayer.seekTo(0);
             return;
         }
+
         const forwardTrack = filteredAudioList.length === currentTrackIndex + indexJump ? filteredAudioList[0] : filteredAudioList[currentTrackIndex + indexJump];
-        setPlayer((e) => {
-            return { ...e, uri: forwardTrack.uri, id: forwardTrack.id };
-        });
 
         await stopPlaying({ isForStart: true, isEnded: false });
 
         const { sound: newSound, status } = await Audio.Sound.createAsync(
             { uri: forwardTrack.uri },
-            { isLooping: false, progressUpdateIntervalMillis: 1000, shouldPlay: false }
+            { shouldPlay: false }
         );
 
-        if (currentPosition.id === forwardTrack.id && currentPosition.position) {
-            await newSound.playFromPositionAsync(currentPosition.position);
-        } else {
-            await newSound.playAsync();
-            setCurrentPosition(() => ({ id: forwardTrack.id, position: undefined }));
-        }
+        await TrackPlayer.setQueue([{
+            url: forwardTrack.uri,
+            id: forwardTrack.id,
+            artist: forwardTrack.artist,
+            artwork: forwardTrack.artwork,
+            title: forwardTrack.audioName,
+            //@ts-ignore
+            duration: status.durationMillis / 1000
+        }]);
+
+        await TrackPlayer.play();
 
         setPlayer(() => {
             //@ts-ignore
-            return { track: newSound, name: forwardTrack.audioName, uri: forwardTrack.uri, uuid: forwardTrack.id, duration: status?.durationMillis, id: forwardTrack.id, artist: forwardTrack.artist, artwork: forwardTrack.artwork, playing: true }
+            return { track: newSound, name: forwardTrack.audioName, uri: forwardTrack.uri, uuid: forwardTrack.id, duration: status?.durationMillis / 1000, id: forwardTrack.id, artist: forwardTrack.artist, artwork: forwardTrack.artwork, playing: true }
         });
 
         setMessages(e =>
@@ -197,9 +229,7 @@ function useAudioPlayer() {
                 item._id === forwardTrack.id ? { ...item, playing: true } : item
             )
         );
-        // setPlayerStatus(()=>{
-        //     return {isPlaying:true,id:forwardTrack.id}
-        // });
+        await newSound.unloadAsync();
     };
 
     return { startPlaying, startPlayingByItem, startPlyingList, stopPlaying, shufflePlayList, playForward }

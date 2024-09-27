@@ -5,7 +5,7 @@ import SearchBar from "../components/SearchBar";
 import { Room, User, ChatNavigationProps, IMessagePro, CountNewMessageType } from "../utils/types";
 import { DrawerScreenProps } from '@react-navigation/drawer';
 import { Ionicons } from "@expo/vector-icons";
-import { useIsOpen, useMessage, useSetLastMessage, useSocket, useUser } from "../socketContext";
+import { useIsOpen, useSetLastMessage, useSocket, useUser } from "../socketContext";
 import { getAllRooms, getRoom, insertRoom, updateMessage } from "../utils/DB";
 import Toast from "react-native-toast-message";
 import LoadingPage from "../components/LoadingPage";
@@ -120,7 +120,8 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 			if (expoPushToken && user) {
 				//@ts-ignor
 				user['token'] = expoPushToken
-				setUser(user)
+				setUser(user);
+				storage.set('user', JSON.stringify({ name: user.name, _id:user._id, avatar: '', token: expoPushToken }));
 			};
 
 			const cleanRoom = freshRooms.map(room => ({

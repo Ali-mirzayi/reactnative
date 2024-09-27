@@ -4,7 +4,7 @@ import { StackScreenProps } from "@react-navigation/stack";
 import { IMessagePro, RecordingEnum, RootStackParamList } from '../utils/types';
 import { useCurrentContact, useIsOpen, useMessage, useSetLastMessage, useSocket, useUser, useVideosDuration } from '../socketContext';
 import { updateMessage, getRoom } from '../utils/DB';
-import { useSharedValue, withRepeat, withSequence, withTiming, } from 'react-native-reanimated';
+import { useSharedValue, withTiming, } from 'react-native-reanimated';
 import LoadingPage from '../components/LoadingPage';
 import { renderActions, renderBubble, RenderChatFooter, renderInputToolbar, renderMessageAudio, renderMessageFile, RenderMessageImage, renderMessageVideo, renderSend, renderTime } from '../components/Message';
 import useTheme from '../utils/theme';
@@ -40,13 +40,13 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	const [permissionResponse, requestPermission] = Audio.usePermissions();
 	const pan = useRef(new Animated.Value(0)).current;
 	const scale = useSharedValue(1);
-	
-	if (recording?.playing===true) {  
-	    scale.value = withTiming(1.5, { duration: 300 });
-  
-	  } else {  
+
+	if (recording?.playing === true) {
+		scale.value = withTiming(1.5, { duration: 300 });
+
+	} else {
 		scale.value = withTiming(1, { duration: 300 });
-	}  
+	}
 
 	const panResponder = useRef(
 		PanResponder.create({
@@ -66,13 +66,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 					pan,
 					{ toValue: 0, useNativeDriver: true },
 				).start();
-			},
-			// onPanResponderTerminate: (evt, gestureState) => {
-			// 	pan.flattenOffset();
-			// 	pan.extractOffset();
-			// 	pan.removeAllListeners();
-			// 	pan.resetAnimation();
-			// },
+			}
 		})
 	).current;
 
@@ -173,8 +167,7 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 	}, []);
 
 	const onSend = (newMessage: IMessagePro[]) => {
-		if ((!socket)) return;
-		// if ((!status || !socket)) return;
+		if ((!status || !socket)) return;
 		socket.emit('sendMessage', { ...newMessage[0], user, roomId }, setMessages((prevMessages: IMessage[]) => GiftedChat.append(prevMessages, [...newMessage])));
 		handleLastMessages({ roomId, newMessage: newMessage[0].text })
 	};
@@ -216,11 +209,11 @@ const Messaging = ({ route }: StackScreenProps<RootStackParamList, 'Messaging'>)
 				renderActions={(e) => renderActions(e, { setOpen, open, colors })}
 				renderBubble={(e) => renderBubble(e, { colors })}
 				renderSend={(e) => renderSend(e, { colors })}
-				renderChatFooter={() => RenderChatFooter({ user, socket, translateY, roomId, setMessages, colors, recording, setRecording, handleAudioPermissions, panResponder, pan, permissionResponse, videosDuration,scale })}
+				renderChatFooter={() => RenderChatFooter({ user, socket, translateY, roomId, setMessages, colors, recording, setRecording, handleAudioPermissions, panResponder, pan, permissionResponse, videosDuration, scale })}
 				renderInputToolbar={(e) => renderInputToolbar(e, { colors })}
 				renderTime={(e) => renderTime(e, { colors })}
 				optionTintColor='#fff'
-			// shouldUpdateMessage={shouldUpdateMessage}
+				shouldUpdateMessage={shouldUpdateMessage}
 			/>
 		</View>
 	);

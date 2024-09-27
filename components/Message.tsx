@@ -6,7 +6,7 @@ import * as FileSystem from 'expo-file-system';
 import { Actions, ActionsProps, Bubble, BubbleProps, Composer, IMessage, InputToolbar, InputToolbarProps, MessageAudioProps, MessageImageProps, MessageProps, MessageVideoProps, Send, SendProps, Time, TimeProps } from "react-native-gifted-chat";
 import { ResizeMode, Video, Audio } from "expo-av";
 import { darkTheme } from "../utils/theme";
-import { availableStatus, IMessagePro, player, RecordingEnum, User, videoDuration } from "../utils/types";
+import { availableStatus, IMessagePro, RecordingEnum, User, videoDuration } from "../utils/types";
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Entypo from '@expo/vector-icons/Entypo';
 import Feather from '@expo/vector-icons/Feather';
@@ -478,9 +478,6 @@ export function renderMessageVideo(props: MessageVideoProps<IMessagePro>, { setM
 
 	const setDuration = (e: any) => {
 		const newDuration = e?.durationMillis;
-		// if (!vidDuration?.duration) {
-		// 	setVideosDuration(v => [...v, { duration: newDuration, id: Message._id }]);
-		// };
 		if (!duration) {
 			setMessages(m => m.map(e => {
 				if (e._id === Message._id) {
@@ -489,18 +486,7 @@ export function renderMessageVideo(props: MessageVideoProps<IMessagePro>, { setM
 					return e
 				}
 			}))
-		}
-		// if (duration) {
-		// 	setVideosDuration(v => v.map(n => {
-		// 		if (n.id === duration.id) {
-		// 			return { duration: newDuration, id: n.id }
-		// 		} else {
-		// 			return n
-		// 		}
-		// 	}))
-		// } else {
-		// 	setVideosDuration(v => [...v, { duration: newDuration, id: Message._id }]);
-		// }
+		};
 	};
 
 	return (
@@ -575,7 +561,7 @@ export const renderMessageAudio = (props: MessageAudioProps<IMessagePro>, { setM
 			if (!Message.duration) {
 				const { sound, status } = await Audio.Sound.createAsync({ uri: newFile }, { shouldPlay: false });
 				//@ts-ignore
-				const duration: number = status?.durationMillis;
+				const duration: number = status?.durationMillis/1000;
 				setMessages((prevMessages: IMessagePro[]) => (prevMessages.map(e => {
 					if (e._id === Message._id) {
 						return { ...e, duration, artwork: artwork?.startsWith('file') ? artwork : undefined, musicArtist: data?.metadata.artist ?? '', musicName: data?.metadata.name ?? Message.fileName };

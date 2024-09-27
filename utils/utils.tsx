@@ -15,10 +15,10 @@ export const time = (date: string | undefined) => {
     return `${hour}:${mins}`
 };
 
-export const formatMillisecondsToTime = (durationMillis: number | undefined) => {  
-    if (durationMillis === undefined) return;  
+export const formatMillisecondsToTime = (durationSecond: number | undefined) => {  
+    if (durationSecond === undefined) return;  
 
-    const totalSeconds = Math.floor(durationMillis / 1000);  
+    const totalSeconds = Math.floor(durationSecond);  
     const minutes = Math.floor(totalSeconds / 60);  
     const seconds = totalSeconds % 60;  
 

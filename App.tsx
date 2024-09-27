@@ -4,23 +4,27 @@ import { useAssets } from 'expo-asset';
 import Navigation from "./Navigation";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { EventProvider } from 'react-native-outside-press';
-import { useSocket } from "./socketContext";
+import { useRemotePlayBack, useSocket } from "./socketContext";
 import { useEffect, useState } from "react";
 import Toast, { ErrorToast } from 'react-native-toast-message';
 import baseURL from "./utils/baseURL";
 import useCheckConnection from "./utils/checkConnection";
 import LoadingPage from "./components/LoadingPage";
 import io from 'socket.io-client';
-import * as Updates from 'expo-updates';
+import TrackPlayer, { Capability, AppKilledPlaybackBehavior } from 'react-native-track-player';
+import { PlaybackService } from "./service";
+// import * as Updates from 'expo-updates';
 
 function App() {
   const [error, setError] = useState(false);
   const setSocket = useSocket(state => state.setSocket);
+  const setRemotePlayBack = useRemotePlayBack(state => state.setRemotePlayBack);
 
   I18nManager.forceRTL(false);
   I18nManager.allowRTL(false);
 
   useCheckConnection(setError);
+
 
   // async function onFetchUpdateAsync() {
   //   try {
@@ -43,11 +47,45 @@ function App() {
   //   }
   // }
 
+  const setupPlayer = async () => {
+    try {
+      await TrackPlayer.setupPlayer();
+      await TrackPlayer.updateOptions({
+        capabilities: [
+          Capability.Play,
+          Capability.Pause,
+          Capability.SkipToNext,
+          Capability.SkipToPrevious,
+          Capability.SeekTo
+        ],
+        compactCapabilities: [
+          Capability.Play,
+          Capability.Pause,
+          Capability.SkipToNext,
+          Capability.SkipToPrevious,
+          Capability.SeekTo
+        ],
+        notificationCapabilities: [
+          Capability.Play,
+          Capability.Pause,
+          Capability.SkipToNext,
+          Capability.SkipToPrevious,
+          Capability.SeekTo
+        ],
+        android: {
+          appKilledPlaybackBehavior: AppKilledPlaybackBehavior.ContinuePlayback
+        },
+      });
+    } catch (error) { console.log(error); }
+  };
+
   useEffect(() => {
     // Connect to the Socket.IO server
     const newSocket = io(baseURL());
     setSocket(newSocket);
     // onFetchUpdateAsync();
+    setupPlayer();
+    TrackPlayer.registerPlaybackService(() => () => PlaybackService({ setRemotePlayBack }));
 
     return () => {
       newSocket.disconnect();
@@ -67,8 +105,6 @@ function App() {
       />
     )
   };
-
-  // if (!isSetup) { return (<LoadingPage active/>) }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

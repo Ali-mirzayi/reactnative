@@ -1,10 +1,9 @@
 import { View, Text, StyleSheet, TouchableHighlight, FlatList, Pressable, TextInput, Image } from 'react-native'
 import React, { useEffect, useRef, useState } from 'react'
-import { useCurrentContact, useLastTrack, usePlayer, usePosition } from '../socketContext';
+import { useCurrentContact, useLastTrack, usePlayer } from '../socketContext';
 import Slider from '@react-native-community/slider';
 import { formatMillisecondsToTime } from '../utils/utils';
 import { audioListType, useAudioList } from '../hooks/useAudioList';
-import { Audio } from 'expo-av';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import useTheme from '../utils/theme';
 import { useNavigation } from '@react-navigation/native';
@@ -13,11 +12,12 @@ import { storage } from '../mmkv';
 import { repeatModeEnum } from '../utils/types';
 import useAudioPlayer from '../hooks/useAudioPlayer';
 import { BlurView } from 'expo-blur';
+import TrackPlayer, { useProgress } from 'react-native-track-player';
 
 const ModalMusic = () => {
   const player = usePlayer(state => state.player);
+  const setPlayer = usePlayer(state => state.setPlayer);
   const { lastTrack, setLastTrack } = useLastTrack();
-  const { currentPosition, setCurrentPosition } = usePosition();
   const isPlaying = player?.playing;
   const { colors } = useTheme();
   const contact = useCurrentContact(state => state.contact);
@@ -27,16 +27,17 @@ const ModalMusic = () => {
   const [repeatMode, setRepeatMode] = useState<repeatModeEnum | undefined>(storage.getNumber('repeatMode'));
   const searchInput = useRef<TextInput>(null);
   const [showArtwork, setShowArtwork] = useState(false);
+  const { position, duration } = useProgress();
 
   const AudioList = useAudioList();
-  const filteredAudioList = AudioList.filter(audio => audio.audioName !== "voice");
+  const filteredAudioList = AudioList.filter(audio => (audio.audioName !== "voice" && audio.audioName !== "unknown"));
 
   const { startPlaying, startPlayingByItem, stopPlaying, playForward } = useAudioPlayer();
 
   const time = lastTrack?.duration ? formatMillisecondsToTime(lastTrack?.duration) : 'unknown';
 
-  //@ts-ignore
-  const currentPositionTime = (currentPosition?.position > 1) && (player?.id === currentPosition?.id) ? `${formatMillisecondsToTime(currentPosition.position)}` : '00:00';
+  const currentPositionTime = position ? `${formatMillisecondsToTime(position)}` : player?.lastPosition ? `${formatMillisecondsToTime(player?.lastPosition)}` : '00:00';
+
 
   const handleSearch = (e: string) => {
     const res = filteredAudioList.filter(track => track.audioName.toLowerCase().includes(e.toLowerCase()));
@@ -56,19 +57,22 @@ const ModalMusic = () => {
           </View>
           <View>
             <Text style={{ color: colors.text }}>{item.audioName}</Text>
-            <Text style={{ color: colors.lightText,fontSize:12 }}>{item.artist}</Text>
+            <Text style={{ color: colors.lightText, fontSize: 12 }}>{item.artist}</Text>
           </View>
         </View>
       </TouchableHighlight>
     )
   };
 
-  const sliderValue = (currentPosition?.position && lastTrack?.duration) ? currentPosition?.position / lastTrack?.duration : 0;
+  //@ts-ignore
+  const sliderValue = (position && lastTrack?.duration) ? position / lastTrack?.duration : player?.lastPosition / lastTrack?.duration;
+
   const onSlidingComplete = async (value: number) => {
-    //@ts-ignore
-    const pos = value * lastTrack.duration;
-    setCurrentPosition(() => ({ position: pos, id: player?.id }));
-    await player?.track?.setPositionAsync(pos);
+    const pos = value * duration;
+    setPlayer((e) => {
+      return { ...e, lastPosition: pos };
+    });
+    await TrackPlayer.seekTo(pos);
   };
 
   const handleBack = () => {
@@ -130,7 +134,7 @@ const ModalMusic = () => {
       {showArtwork && lastTrack.artwork ? <Artwork /> : false}
       <View style={{ flexDirection: 'row', backgroundColor: colors.undetlay, height: 50, alignItems: 'center', justifyContent: "flex-start", paddingHorizontal: 20 }}>
         <Ionicons onPress={handleBack} name="arrow-back-outline" size={29} color={colors.text} />
-        <TextInput placeholder='Search' ref={searchInput} cursorColor={colors.boarder} onChangeText={handleSearch} placeholderTextColor={colors.boarder} style={{ width: "87%", marginLeft: 12, fontSize: 20, color: colors.text, display: openSearch ? 'flex' : 'none' }} />
+        <TextInput placeholder='Search' ref={searchInput} cursorColor={colors.lightText} onChangeText={handleSearch} placeholderTextColor={colors.lightText} style={{ width: "87%", marginLeft: 12, fontSize: 20, color: colors.text, display: openSearch ? 'flex' : 'none' }} />
         {!openSearch &&
           <>
             <Text style={{ color: colors.text, fontSize: 23, fontWeight: '700', marginLeft: 12 }}>{contact?.name}</Text>
@@ -141,7 +145,7 @@ const ModalMusic = () => {
           </>
         }
       </View>
-      <View style={{ marginTop: 'auto' }}>
+      <View style={{ marginTop: 'auto', paddingTop: 234 }}>
         {search ?
           <FlatList
             data={search}
@@ -161,7 +165,7 @@ const ModalMusic = () => {
         <View style={styles.infoController}>
           <View style={{ marginRight: 'auto' }}>
             <Text style={{ color: colors.text }}>{lastTrack?.name}</Text>
-            <Text style={{ color: colors.lightText,fontSize:12}}>{lastTrack?.artist}</Text>
+            <Text style={{ color: colors.lightText, fontSize: 12 }}>{lastTrack?.artist}</Text>
           </View>
           <View style={{ width: 55, height: 55, marginLeft: 'auto', borderRadius: 9, overflow: 'hidden' }}>
             {lastTrack.artwork ? <Pressable onPress={() => setShowArtwork(true)}>
