@@ -2,21 +2,21 @@
   "expo": {
     "name": "Mirzagram",
     "slug": "my-app",
-    "version": "1.5.4",
+    "version": "1.5.6",
     "orientation": "portrait",
     "icon": "./assets/mirza256clean.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/mirza512.png",
       "resizeMode": "contain",
-      "backgroundColor": "#EEF1FF"
+      "backgroundColor": "#dadef0"
     },
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
       "supportsTablet": true,
-      "userInterfaceStyle": "light",
+      "userInterfaceStyle": "automatic",
       "infoPlist": {
         "UIBackgroundModes": ["audio"]
       }
@@ -24,7 +24,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/mirza256clean.png",
-        "backgroundColor": "#EEF1FF"
+        "backgroundColor": "#dadef0"
       },
       "permissions": [
         "android.permission.RECORD_AUDIO",
@@ -32,7 +32,8 @@
       ],
       "googleServicesFile": "./google-services.json",
       "package": "com.services.mirzagram",
-      "userInterfaceStyle": "light"
+      "userInterfaceStyle": "automatic",
+      "versionCode": "3"
     },
     "web": {
       "favicon": "./assets/favicon.png"

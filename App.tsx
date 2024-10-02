@@ -1,30 +1,31 @@
-import "react-native-gesture-handler"
-import { StatusBar, I18nManager } from 'react-native';
 import { useAssets } from 'expo-asset';
-import Navigation from "./Navigation";
+import { useEffect, useState } from "react";
+import { I18nManager, StatusBar } from 'react-native';
+import "react-native-gesture-handler";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { EventProvider } from 'react-native-outside-press';
-import { useRemotePlayBack, useSocket } from "./socketContext";
-import { useEffect, useState } from "react";
 import Toast, { ErrorToast } from 'react-native-toast-message';
-import baseURL from "./utils/baseURL";
-import useCheckConnection from "./utils/checkConnection";
-import LoadingPage from "./components/LoadingPage";
+import TrackPlayer, { AppKilledPlaybackBehavior, Capability } from 'react-native-track-player';
 import io from 'socket.io-client';
-import TrackPlayer, { Capability, AppKilledPlaybackBehavior } from 'react-native-track-player';
+import LoadingPage from "./components/LoadingPage";
+import useCheckConnection from "./hooks/useCheckConnection";
+import Navigation from "./Navigation";
 import { PlaybackService } from "./service";
+import { useRemotePlayBack, useSocket } from "./socketContext";
+import baseURL from "./utils/baseURL";
+import useSocketConnection from './hooks/useSocketConnection';
 // import * as Updates from 'expo-updates';
 
 function App() {
   const [error, setError] = useState(false);
-  const setSocket = useSocket(state => state.setSocket);
+  // const setSocket = useSocket(state => state.setSocket);
   const setRemotePlayBack = useRemotePlayBack(state => state.setRemotePlayBack);
 
   I18nManager.forceRTL(false);
   I18nManager.allowRTL(false);
 
   useCheckConnection(setError);
-
+  // useSocketConnection(setError);
 
   // async function onFetchUpdateAsync() {
   //   try {
@@ -45,7 +46,7 @@ function App() {
   //     });
   //     console.log(`Error fetching latest Expo update: ${error}`);
   //   }
-  // }
+  // };
 
   const setupPlayer = async () => {
     try {
@@ -80,16 +81,9 @@ function App() {
   };
 
   useEffect(() => {
-    // Connect to the Socket.IO server
-    const newSocket = io(baseURL());
-    setSocket(newSocket);
     // onFetchUpdateAsync();
     setupPlayer();
     TrackPlayer.registerPlaybackService(() => () => PlaybackService({ setRemotePlayBack }));
-
-    return () => {
-      newSocket.disconnect();
-    };
   }, []);
 
   const toastConfig = {
@@ -105,7 +99,7 @@ function App() {
       />
     )
   };
-
+  // style={{backgroundColor:'red',flex:1}}
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <EventProvider>

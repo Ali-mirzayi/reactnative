@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useLayoutEffect } from "react";
-import { View, Text, FlatList, StyleSheet, TouchableHighlight, useColorScheme } from "react-native";
+import { View, Text, FlatList, StyleSheet, TouchableHighlight } from "react-native";
 import baseURL from "../utils/baseURL";
 import SearchBar from "../components/SearchBar";
 import { Room, User, ChatNavigationProps, IMessagePro, CountNewMessageType } from "../utils/types";
 import { DrawerScreenProps } from '@react-navigation/drawer';
 import { Ionicons } from "@expo/vector-icons";
-import { useIsOpen, useSetLastMessage, useSocket, useUser } from "../socketContext";
+import { useIsOpen, useMessage, useSetLastMessage, useSocket, useUser } from "../socketContext";
 import { getAllRooms, getRoom, insertRoom, updateMessage } from "../utils/DB";
 import Toast from "react-native-toast-message";
 import LoadingPage from "../components/LoadingPage";
@@ -42,7 +42,8 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 	const isPlayerOpen = useIsOpen(state => state.open);
 	const initDarkMode = storage.getBoolean("darkMode");
 	const [darkMode, setDarkMode] = useState(initDarkMode !== undefined ? initDarkMode : true);
-    const { i18n, setLocale, locale } = useTranslate();
+	const { i18n, locale } = useTranslate();
+	const { messages, setMessages } = useMessage();
 
 	const isFocused = useIsFocused();
 
@@ -116,12 +117,12 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 
 	useEffect(() => {
 		getAllRooms().then((result: Room[] | any) => {
-			const freshRooms:Room[] = result.map((e: any) => JSON.parse(e.data));
+			const freshRooms: Room[] = result.map((e: any) => JSON.parse(e.data));
 			if (expoPushToken && user) {
 				//@ts-ignor
 				user['token'] = expoPushToken
 				setUser(user);
-				storage.set('user', JSON.stringify({ name: user.name, _id:user._id, avatar: '', token: expoPushToken }));
+				storage.set('user', JSON.stringify({ name: user.name, _id: user._id, avatar: '', token: expoPushToken }));
 			};
 
 			const cleanRoom = freshRooms.map(room => ({
@@ -155,6 +156,7 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 	useEffect(() => {
 		if (!socket) return;
 		socket.on('chatNewMessage', async (data: IMessagePro & { roomId: string }) => {
+			console.log('first');
 			const { roomId, ...newMessage } = data;
 			const selectedRoom = await getRoom(roomId);
 			if (newMessage.image) {
@@ -217,6 +219,7 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 			const roomMessage: Room[] = selectedRoom.map((e) => JSON.parse(e.data))[0]?.messages;
 			const newRoomMessage = [newMessage, ...roomMessage];
 			const contact = newMessage.user;
+			socket.emit("recivedMessage", { messageId: newMessage._id, roomId, contact, contactId: contact._id });
 			//@ts-ignore
 			await updateMessage({ id: roomId, users: [user, contact], messages: newRoomMessage });
 			if (isFocused || currentRoomId !== roomId) {
@@ -224,7 +227,31 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 			};
 		});
 
-		if (!isFocused || !user) return;
+		if (!user) return;
+
+		socket.on("recivedMessage", async ({ messageId, contact, roomId }) => {
+			try {
+				const result = await getRoom(roomId);
+				if (result.length > 0) {
+					const roomMessage: IMessagePro[] = result.map((e: any) => JSON.parse(e.data))[0]?.messages;
+					const newMessages = roomMessage.map(message => {
+						if (message._id === messageId) {
+							return { ...message, received: true, sent: true };
+						} else {
+							return message;
+						}
+					});
+					setMessages(() => newMessages);
+					await updateMessage({ id: roomId, users: [user, contact], messages: newMessages });
+				}
+				setPending(false);
+			} catch (error) {
+				console.log(error, 'v2');
+				setPending(false);
+			}
+		});
+
+		if (!isFocused) return;
 		socket.on("connected", (e: any) => {
 			socket.emit('joinInRooms', user._id);
 			socket.emit('setSocketId', { 'socketId': socket.id, 'userId': user._id, 'userRoomId': undefined });
@@ -237,6 +264,7 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 		return () => {
 			socket.off('chatNewMessage');
 			socket.off('connected');
+			socket.off('recivedMessage');
 			socket.off("findRoomResponse", handleFindRoomResponse);
 			socket.off('createRoomResponse', handleCreateRoomResponse);
 			socket.off("newRoom", setter);
@@ -274,7 +302,7 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 	if (notifData && loading) { return (<LoadingPage active={true} />) }
 
 	return (
-		<View style={{ flex: 1 }}>
+		<View style={{ flex: 1, backgroundColor: colors.background }}>
 			<LoadingPage active={isPending} />
 			<DrawerCore
 				open={open}
@@ -282,14 +310,14 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 				darkMode={darkMode}
 				setDarkMode={setDarkMode}
 			>
-				<View style={[styles.chatscreen, { backgroundColor: colors.background }]}>
+				<View style={styles.chatscreen}>
 					<View style={[styles.chattopContainer, { backgroundColor: colors.card }]}>
 						<View style={styles.chatheader}>
 							<View style={styles.burgerView}>
 								<TouchableHighlight style={styles.mr10} underlayColor={"#e3e5ef"} onPress={() => setOpen(true)} >
 									<Ionicons name="menu-sharp" style={styles.menu} color={colors.text} size={25} />
 								</TouchableHighlight>
-								<Text testID="ChatScreen" style={[styles.chatheading, { color: colors.mirza,fontSize:locale==='en'?22:27 }]}>{i18n.t("MirzaGram")}</Text>
+								<Text testID="ChatScreen" style={[styles.chatheading, { color: colors.mirza, fontSize: locale === 'en' ? 22 : 27 }]}>{i18n.t("MirzaGram")}</Text>
 							</View>
 							<SearchBar setUsers={setUsers} setScreen={setScreen} />
 						</View>
@@ -319,7 +347,7 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 							) : (
 								<View style={[styles.chatemptyContainer]}>
 									<Text style={[styles.chatemptyText, { color: colors.text }]}>{i18n.t("NoRooms")}</Text>
-									<Text style={{ color: colors.text,fontSize:locale==='fa'?17:16 }}>{i18n.t("SearchToconnection")}</Text>
+									<Text style={{ color: colors.text, fontSize: locale === 'fa' ? 17 : 16 }}>{i18n.t("SearchToconnection")}</Text>
 								</View>
 							)
 						}

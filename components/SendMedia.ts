@@ -28,25 +28,52 @@ type sendMediaProps = {
 
 export async function sendMedia({ uri, type, name, mimeType, duration, roomId, setMessages, user, socket, videosDuration }: sendMediaProps) {
     const id = generateID();
+
+    setMessages(e => e.map(message => {
+        if (message._id === id) {
+            return { ...message, availableStatus: availableStatus.error }
+        } else {
+            return message;
+        }
+    }));
+    // console.log('Error uploading image: response not ok', response.body);
+
     if (type === 'image' && uri) {
         setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, image: uri, mimeType, availableStatus: availableStatus.uploading }]));
-        const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file', mimeType });
-        if (response.body === "ok") {
-            socket?.emit('sendImage', { _id: id, text: "", createdAt: new Date(), user, roomId, mimeType, availableStatus: availableStatus.download }, setMessages(e => e.map(message => {
+        try {
+            const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file', mimeType });
+            if (response.body === "ok") {
+                socket?.emit('sendImage', { _id: id, text: "", createdAt: new Date(), user, roomId, mimeType, availableStatus: availableStatus.download }, setMessages(e => e.map(message => {
+                    if (message._id === id) {
+                        return { ...message, availableStatus: availableStatus.available }
+                    } else {
+                        return message;
+                    }
+                })));
+            } else {
+                setMessages(e => e.map(message => {
+                    if (message._id === id) {
+                        return { ...message, availableStatus: availableStatus.error }
+                    } else {
+                        return message;
+                    }
+                }));
+                console.log('Error uploading image: response not ok', response.body);
+            }
+        } catch (error) {
+            setMessages(e => e.map(message => {
                 if (message._id === id) {
-                    return { ...message, availableStatus: availableStatus.available }
+                    return { ...message, availableStatus: availableStatus.error }
                 } else {
-                    return message
+                    return message;
                 }
-            })));
-        } else {
-            console.log('error uploading image')
+            }));
+            console.error('Error occurred during upload:', error);
         }
     } else if (type === 'video' && uri) {
         setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, video: uri, mimeType, availableStatus: availableStatus.uploading }]));
         const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file', mimeType })
         if (response.body === "ok") {
-            // console.log(videosDuration,'first',videosDuration?.find(e=>e.id===id),id)
             socket?.emit('sendVideo', { _id: id, text: "", createdAt: new Date(), user, roomId, mimeType, availableStatus: availableStatus.download }, setMessages(e => e.map(message => {
                 if (message._id === id) {
                     return { ...message, availableStatus: availableStatus.available }
@@ -72,12 +99,12 @@ export async function sendMedia({ uri, type, name, mimeType, duration, roomId, s
             }
             const { sound, status } = await Audio.Sound.createAsync({ uri }, { shouldPlay: false });
             // @ts-ignore
-            setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, audio: uri, fileName: name, duration: status?.durationMillis/1000, playing: false, availableStatus: availableStatus.uploading, artwork: artwork?.startsWith('file') ? artwork : undefined, musicArtist: data?.metadata.artist ?? '', musicName: data?.metadata.name ?? name }]));
+            setMessages((prevMessages: IMessagePro[]) => GiftedChat.append(prevMessages, [{ _id: id, text: "", createdAt: new Date(), user, audio: uri, fileName: name, duration: status?.durationMillis / 1000, playing: false, availableStatus: availableStatus.uploading, artwork: artwork?.startsWith('file') ? artwork : undefined, musicArtist: data?.metadata.artist ?? '', musicName: data?.metadata.name ?? name }]));
             await sound.unloadAsync();
             const response = await FileSystem.uploadAsync(`${baseURL()}/upload`, uri, { uploadType: FileSystem.FileSystemUploadType.MULTIPART, httpMethod: 'POST', fieldName: 'file' })
             if (response.body === "ok") {
                 // @ts-ignore
-                socket?.emit('sendAudio', { _id: id, text: "", createdAt: new Date(), user, roomId, fileName: name, duration: status?.durationMillis/1000, mimeType, availableStatus: availableStatus.download }, setMessages(e => e.map(message => {
+                socket?.emit('sendAudio', { _id: id, text: "", createdAt: new Date(), user, roomId, fileName: name, duration: status?.durationMillis / 1000, mimeType, availableStatus: availableStatus.download }, setMessages(e => e.map(message => {
                     if (message._id === id) {
                         return { ...message, availableStatus: availableStatus.available }
                     } else {
@@ -120,17 +147,15 @@ export async function sendMedia({ uri, type, name, mimeType, duration, roomId, s
 };
 
 type startRecordingProps = {
-    setRecording: React.Dispatch<React.SetStateAction<{
-        playing: boolean;
-        status: RecordingEnum;
-    } | undefined>>,
+    setRecording: React.Dispatch<React.SetStateAction<RecordingEnum>>,
     handleAudioPermissions: () => Promise<boolean>,
-    permissionResponse: Audio.PermissionResponse | null
+    permissionResponse: Audio.PermissionResponse | null,
+    recording: RecordingEnum
 };
 
 export async function startRecording({ setRecording, handleAudioPermissions, permissionResponse }: startRecordingProps) {
     try {
-        setRecording({ playing: true, status: RecordingEnum.start });
+        setRecording(RecordingEnum.start);
         if (permissionResponse?.status !== 'granted') {
             await handleAudioPermissions();
             return;
@@ -142,43 +167,42 @@ export async function startRecording({ setRecording, handleAudioPermissions, per
         await recordingObg.startAsync();
     } catch (err) {
         recordingObg = undefined;
-        setRecording({ playing: false, status: RecordingEnum.cancel });
+        setRecording(RecordingEnum.cancel);
     }
 };
 
 type stopRecordingProps = {
-    setRecording: React.Dispatch<React.SetStateAction<{
-        playing: boolean;
-        status: RecordingEnum;
-    } | undefined>>,
-    recording: undefined | { record?: Audio.Recording, playing: boolean },
-    user: User,
-    roomId: any,
-    socket: any,
-    setMessages: (callback: (prev: IMessagePro[] | []) => (IMessagePro[] | [])) => void,
+    setRecording: React.Dispatch<React.SetStateAction<RecordingEnum>>
+    SendAudio: ({ uri, duration }: {
+        uri: any;
+        duration: any;
+    }) => Promise<void>
 };
+// type stopRecordingProps = {
+//     setRecording: React.Dispatch<React.SetStateAction<RecordingEnum>>
+//     user: User,
+//     roomId: any,
+//     socket: any,
+//     setMessages: (callback: (prev: IMessagePro[] | []) => (IMessagePro[] | [])) => void,
+// };
 
-
-export async function stopRecording({ setRecording, roomId, setMessages, socket, user }: stopRecordingProps) {
-    setRecording({ playing: false, status: RecordingEnum.stop });
+export async function stopRecording({ setRecording, SendAudio }: stopRecordingProps) {
+    setRecording(RecordingEnum.stop);
     await recordingObg?.stopAndUnloadAsync();
-    const duration = recordingObg?._finalDurationMillis
+    const duration = recordingObg?._finalDurationMillis ? recordingObg?._finalDurationMillis / 1000 : 0;
     const uri = recordingObg?.getURI();
-    sendMedia({ uri, type: "audio", duration, setMessages, roomId, socket, user, name: "voice" });
+    SendAudio({ uri, duration });
+    // sendMedia({ uri, type: "audio", duration, setMessages, roomId, socket, user, name: "voice" });
     recordingObg = undefined;
 };
 
 type cancelRecordingProps = {
-    setRecording: React.Dispatch<React.SetStateAction<{
-        playing: boolean;
-        status: RecordingEnum;
-    } | undefined>>,
-    recording: undefined | { record?: Audio.Recording, playing: boolean }
+    setRecording: React.Dispatch<React.SetStateAction<RecordingEnum>>,
 };
 
 
 export async function cancelRecording({ setRecording }: cancelRecordingProps) {
-    setRecording({ playing: false, status: RecordingEnum.stop });
+    setRecording(RecordingEnum.stop);
     await recordingObg?.stopAndUnloadAsync();
     recordingObg = undefined;
 };

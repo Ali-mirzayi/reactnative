@@ -1,10 +1,11 @@
+import React from 'react';
 import { NavigationContainer } from '@react-navigation/native'
 import Login from "./screens/Login";
 import { CardStyleInterpolators, createStackNavigator } from '@react-navigation/stack';
 import Messaging from "./screens/Messaging";
 import Chat from "./screens/Chat";
 import LoginPrev from './screens/LoginPrev';
-import { useColorScheme, Easing } from 'react-native';
+import { useColorScheme, Easing, View } from 'react-native';
 import { TransitionSpec } from '@react-navigation/stack/lib/typescript/src/types';
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { ChatNavigationProps, LoginNavigationProps, RootStackParamList } from './utils/types';
@@ -16,6 +17,7 @@ import baseURL from './utils/baseURL';
 import * as FileSystem from 'expo-file-system';
 import { fileDirectory } from './utils/directories';
 import ModalMusic from './screens/ModalMusic';
+import useTheme from './utils/theme';
 
 
 const config: TransitionSpec = {
@@ -119,6 +121,7 @@ export default function Navigation() {
     const initDarkMode = storage.getBoolean("darkMode");
     const scheme = (colorScheme === 'dark' ? true : false);
     const fin = initDarkMode !== undefined ? initDarkMode : scheme;
+    const { colors } = useTheme();
 
     useEffect(() => {
         // this function called in chat screen
