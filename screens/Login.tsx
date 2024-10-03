@@ -19,7 +19,7 @@ const Login = ({ route, navigation }: StackScreenProps<LoginNavigationProps, 'Lo
 	const _id = generateID();
 	const { expoPushToken } = usePushNotifications();
 	const socket = useSocket(state => state.socket);
-	const { i18n,locale } = useTranslate();
+	const { i18n, locale } = useTranslate();
 
 	const storeUsername = async () => {
 		try {
@@ -35,7 +35,8 @@ const Login = ({ route, navigation }: StackScreenProps<LoginNavigationProps, 'Lo
 			if (json?.isOK === true) {
 				storage.set('user', JSON.stringify({ name: username, _id, avatar: '', token: expoPushToken }));
 				setUser({ _id: _id, name: username, avatar: '', token: expoPushToken });
-				socket?.emit('setSocketId', { 'socketId': socket.id, 'userId': _id, 'userRoomId': undefined },navigation.navigate('Chat', { beCheck }));
+				socket?.emit('setSocketId', _id, navigation.navigate('Chat', { beCheck }));
+				// socket?.emit('setSocketId', { 'socketId': socket.id, 'userId': _id, 'userRoomId': undefined },navigation.navigate('Chat', { beCheck }));
 			} else {
 				Alert.alert("Error! invalid username");
 			}
@@ -55,8 +56,8 @@ const Login = ({ route, navigation }: StackScreenProps<LoginNavigationProps, 'Lo
 	return (
 		<SafeAreaView style={[styles.loginscreen, { backgroundColor: colors.background, }]}>
 			<LottieView autoPlay source={require('../assets/chat.json')} style={styles.ImageContainer} />
-			<Text style={[styles.Mirza, { color: colors.loginMirza,fontSize:locale==='en'?22:27 }]}>{i18n.t("SignIn")}</Text>
-			<Text style={[styles.MirzaDesc, { color: colors.text,fontSize: locale==='en'?15:18 }]}>{i18n.t("EnterUsername")}</Text>
+			<Text style={[styles.Mirza, { color: colors.loginMirza, fontSize: locale === 'en' ? 22 : 27 }]}>{i18n.t("SignIn")}</Text>
+			<Text style={[styles.MirzaDesc, { color: colors.text, fontSize: locale === 'en' ? 15 : 18 }]}>{i18n.t("EnterUsername")}</Text>
 			<View style={styles.logininputContainer}>
 				<TextInput
 					placeholderTextColor={colors.text}
@@ -115,7 +116,7 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 12,
 		fontSize: 18,
 		borderRadius: 4,
-		textAlign:'left'
+		textAlign: 'left'
 	},
 	ButtonContainer: {
 		marginTop: 20,

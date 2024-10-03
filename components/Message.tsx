@@ -54,8 +54,11 @@ export function RenderChatFooter({ user, socket, translateY, roomId, setMessages
 			preferredAssetRepresentationMode: ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Current
 		});
 		if (!result.canceled) {
-			sendMedia({ uri: result.assets[0].uri, type: result.assets[0].type, setMessages, roomId, socket, user, mimeType: result.assets[0].mimeType });
-
+			if (result.assets[0].type === "image") {
+				SendImage({ uri: result.assets[0].uri, mimeType: result.assets[0].mimeType });
+			} else if (result.assets[0].type === "video") {
+				SendVideo({ uri: result.assets[0].uri, mimeType: result.assets[0].mimeType });
+			}
 		};
 	};
 
@@ -83,7 +86,6 @@ export function RenderChatFooter({ user, socket, translateY, roomId, setMessages
 			});
 			if (!result.canceled) {
 				SendFile({ uri: result.assets[0].uri, name: result.assets[0].name, mimeType: result.assets[0].mimeType });
-				// sendMedia({ uri: result.assets[0].uri, type: "file", name: result.assets[0].name, mimeType: result.assets[0].mimeType, setMessages, roomId, socket, user });
 			};
 		} catch (error) {
 			console.log(error);
@@ -527,7 +529,7 @@ export function renderMessageVideo(props: MessageVideoProps<IMessagePro>, { setM
 	};
 
 	const setDuration = (e: any) => {
-		const newDuration = e?.durationMillis;
+		const newDuration = e?.durationMillis / 1000;
 		if (!duration) {
 			setMessages(m => m.map(e => {
 				if (e._id === Message._id) {

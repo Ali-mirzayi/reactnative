@@ -46,7 +46,7 @@ export type User = {
     _id: string;
     name: string;
     avatar: string;
-    token: Notifications.ExpoPushToken | undefined;
+    token?: Notifications.ExpoPushToken | undefined;
 };
 
 export type Room = {

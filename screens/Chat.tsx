@@ -43,7 +43,7 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 	const initDarkMode = storage.getBoolean("darkMode");
 	const [darkMode, setDarkMode] = useState(initDarkMode !== undefined ? initDarkMode : true);
 	const { i18n, locale } = useTranslate();
-	const { messages, setMessages } = useMessage();
+	const setMessages = useMessage(state => state.setMessages);
 
 	const isFocused = useIsFocused();
 
@@ -66,7 +66,7 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 
 	function setter(data: Room) {
 		insertRoom(data);
-		socket?.emit('joinInRoom', data.id);
+		// socket?.emit('joinInRoom', data.id);
 		setRooms(e => [...e, data]);
 	};
 
@@ -156,8 +156,14 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 	useEffect(() => {
 		if (!socket) return;
 		socket.on('chatNewMessage', async (data: IMessagePro & { roomId: string }) => {
-			console.log('first');
 			const { roomId, ...newMessage } = data;
+			if (!rooms.find(room => room.id === roomId)) {
+				if(!user)return;
+				//@ts-ignore
+				const newRoom:Room = { id: roomId, users: [user, newMessage.user], messages: [] };
+				insertRoom(newRoom);
+				setRooms(e => [...e, newRoom]);
+			};
 			const selectedRoom = await getRoom(roomId);
 			if (newMessage.image) {
 				await ensureDirExists();
@@ -252,13 +258,12 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 		});
 
 		if (!isFocused) return;
-		socket.on("connected", (e: any) => {
-			socket.emit('joinInRooms', user._id);
-			socket.emit('setSocketId', { 'socketId': socket.id, 'userId': user._id, 'userRoomId': undefined });
+		socket.on("connected", () => {
+			socket.emit('setSocketIdAndjoin', user._id);
 		});
 
 		socket.on("createRoomResponse", handleCreateRoomResponse);
-		socket.on("newRoom", setter);
+		// socket.on("newRoom", setter);
 		socket.on("findRoomResponse", handleFindRoomResponse);
 
 		return () => {
@@ -268,6 +273,8 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 			socket.off("findRoomResponse", handleFindRoomResponse);
 			socket.off('createRoomResponse', handleCreateRoomResponse);
 			socket.off("newRoom", setter);
+			// socket.off('setSocketIdAndjoin');
+
 		};
 	}, [socket, isFocused]);
 
