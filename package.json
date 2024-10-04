@@ -14,6 +14,7 @@
     "test": "jest --watch",
     "updateSnapshots": "jest -u --coverage=false"
   },
+  "author": "Ali Mirzaei Zadeh <alimirzaei7997@gmail.com>",  
   "jest": {
     "preset": "jest-expo",
     "setupFiles": [
