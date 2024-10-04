@@ -7,7 +7,11 @@
       "android": {
         "buildType": "apk"
       },
-      "channel": "preview"
+      "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_BASE_URL": "https://mirza.iran.liara.run",
+        "EXPO_PUBLIC_SOCKET_PASS": "zQS5wPm16P9n"
+      }
     },
     "preview2": {
       "android": {

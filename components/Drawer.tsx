@@ -1,6 +1,6 @@
 import { Drawer } from 'react-native-drawer-layout';
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import { View, Text, Animated, StyleSheet, Easing, Pressable, TouchableHighlight } from "react-native";
+import { View, Text, Animated, StyleSheet, Easing, Pressable, TouchableHighlight, ScrollView, Dimensions } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import Checkbox from 'expo-checkbox';
 import Link from "../utils/Link";
@@ -15,7 +15,6 @@ import sleep from '../utils/wait';
 import { useTranslate } from '../language/useTranslate';
 import { startActivityAsync } from 'expo-intent-launcher';
 
-
 export default function DrawerCore({ children, open, setOpen, darkMode, setDarkMode }: DrawerCoreType) {
     const user = useUser(state => state.user);
     const beCheck = useBeCheck(state => state.beCheck);
@@ -26,6 +25,8 @@ export default function DrawerCore({ children, open, setOpen, darkMode, setDarkM
     const navigation = useNavigation();
     const hasMounted = useRef(false);
     const { i18n, setLocale, locale } = useTranslate();
+    const screenDimensions = Dimensions.get('window');
+
 
     const DrawerComponent = () => {
         async function onPressHandler() {
@@ -44,12 +45,12 @@ export default function DrawerCore({ children, open, setOpen, darkMode, setDarkM
                     captureType: "layer"
                 },
             })
-        }
+        };
 
         function onValueChange() {
             setChecked(e => !e)
             storage.set("clearAll", !isChecked);
-        }
+        };
 
         const openApp = async () => {
             try {
@@ -63,7 +64,8 @@ export default function DrawerCore({ children, open, setOpen, darkMode, setDarkM
         };
 
         return (
-            <View style={{ flex: 1, backgroundColor: colors.background }}>
+            <ScrollView style={{ flex: 1, backgroundColor: colors.red }}>
+            <View style={{ flex: 1,height:screenDimensions.height, backgroundColor: colors.background }}>
                 <Text style={[styles.chatheading, styles.user, { color: colors.mirza }]}>{user?.name}</Text>
                 <Pressable onPress={onPressHandler} style={{ zIndex: 9999, margin: 10 }} >
                     <AnimatedLottieView
@@ -111,6 +113,7 @@ export default function DrawerCore({ children, open, setOpen, darkMode, setDarkM
                     </View>
                 </TouchableHighlight>
             </View>
+             </ScrollView>
         )
     };
 

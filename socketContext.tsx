@@ -1,5 +1,5 @@
 import { Socket } from 'socket.io-client';
-import { currentPosition, IMessagePro, LastMessageType, lastTrack, locales, player, playerStatus, remotePlayBackEnum, User, videoDuration } from './utils/types';
+import { currentPosition, IMessagePro, LastMessageType, lastTrack, locales, player, playerStatus, remotePlayBackEnum, Room, User, videoDuration } from './utils/types';
 import { create } from 'zustand';
 
 const initialCurrentPosition: currentPosition = {
@@ -80,6 +80,12 @@ interface useRemotePlayBack {
 	setRemotePlayBack: (e: { state: remotePlayBackEnum, position?: number } | undefined) => void
 }
 
+
+interface useSetRooms {
+	rooms: Room[] | []
+	setRooms: (callback: (prev: Room[] | []) => (Room[] | [])) => void
+}
+
 export const useMessage = create<useMessage>()((set) => ({
 	messages: [],
 	setMessages: (callback) => set((state) => ({ messages: callback(state.messages) }))
@@ -154,4 +160,9 @@ export const useSetLocale = create<useSetLocale>()((set) => ({
 export const useRemotePlayBack = create<useRemotePlayBack>()((set) => ({
 	remotePlayBack: undefined,
 	setRemotePlayBack: (e) => set({ remotePlayBack: e })
+}));
+
+export const useSetRooms = create<useSetRooms>()((set) => ({
+	rooms: [],
+	setRooms: (callback) => set((state) => ({ rooms: callback(state.rooms) })),
 }));

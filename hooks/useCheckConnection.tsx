@@ -5,29 +5,18 @@ import baseURL from '../utils/baseURL';
 import io from 'socket.io-client';
 import { useSocket } from '../socketContext';
 
-
 export default function useCheckConnection(setError: React.Dispatch<React.SetStateAction<boolean>>) {
     const netInfo = useNetInfo({ reachabilityUrl: `${baseURL()}/api` });
     const setSocket = useSocket(state => state.setSocket);
 
     useEffect(() => {
         const newSocket = io(baseURL(), {
-            autoConnect: true,
-            reconnection: false,
+            auth: {token: process.env.EXPO_PUBLIC_SOCKET_PASS}
         });
         setSocket(newSocket);
         const checkConnection = () => {
             if (!newSocket.connected) {
                 newSocket.connect();
-                const showToast = () => {
-                    Toast.show({
-                        type: 'error',
-                        text1: 'Socket Can`t connect',
-                        autoHide: false,
-                    });
-                    setError(true);
-                };
-                showToast();
             }
 
             if (netInfo.isConnected === false) {
