@@ -11,21 +11,17 @@ import LoadingPage from "./components/LoadingPage";
 import useCheckConnection from "./hooks/useCheckConnection";
 import Navigation from "./Navigation";
 import { PlaybackService } from "./service";
-import { useRemotePlayBack, useSocket } from "./socketContext";
-import baseURL from "./utils/baseURL";
-import useSocketConnection from './hooks/useSocketConnection';
+import { useRemotePlayBack } from "./socketContext";
 // import * as Updates from 'expo-updates';
 
 function App() {
   const [error, setError] = useState(false);
-  // const setSocket = useSocket(state => state.setSocket);
   const setRemotePlayBack = useRemotePlayBack(state => state.setRemotePlayBack);
 
   I18nManager.forceRTL(false);
   I18nManager.allowRTL(false);
 
   useCheckConnection(setError);
-  // useSocketConnection(setError);
 
   // async function onFetchUpdateAsync() {
   //   try {

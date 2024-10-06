@@ -15,22 +15,49 @@ export const time = (date: string | undefined) => {
     return `${hour}:${mins}`
 };
 
-export const formatMillisecondsToTime = (durationSecond: number | undefined) => {  
-    if (durationSecond === undefined) return;  
+export const formatMillisecondsToTime = (durationSecond: number | undefined) => {
+    if (durationSecond === undefined) return;
 
-    const totalSeconds = Math.floor(durationSecond);  
-    const minutes = Math.floor(totalSeconds / 60);  
-    const seconds = totalSeconds % 60;  
+    const totalSeconds = Math.floor(durationSecond);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
 
-    const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;  
-    const formattedSeconds = seconds < 10 ? '0' + seconds : seconds;  
+    const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;
+    const formattedSeconds = seconds < 10 ? '0' + seconds : seconds;
 
-    return `${formattedMinutes}:${formattedSeconds}`;  
+    return `${formattedMinutes}:${formattedSeconds}`;
 }
 
 export const isMusicFile = (filename: string | undefined) => {
     if (filename === undefined) return;
-    const musicExtensions = ['.mp3', '.wav', '.aac', '.flac', '.ogg', '.m4a'];  
-    const lowerCaseFilename = filename.toLowerCase();  
+    const musicExtensions = ['.mp3', '.wav', '.aac', '.flac', '.ogg', '.m4a'];
+    const lowerCaseFilename = filename.toLowerCase();
     return musicExtensions.some(extension => lowerCaseFilename.endsWith(extension));
-};  
+};
+
+export function formatBytes({ bytes, format }: { bytes: number, format?: 'MB' | 'KB' }) {
+
+    const megabytes = bytes / (1024 * 1024);
+    const kilobytes = bytes / 1024;
+
+    if (format) {
+        if (format === 'MB') {
+            return { formattedbytes: megabytes.toFixed(1) };
+        };
+        if (format === 'KB') {
+            return { formattedbytes: kilobytes.toFixed(1) };
+        };
+    }
+
+    if (megabytes >= 1) {
+        return {
+            formattedbytes: megabytes.toFixed(1),
+            format: 'MB'
+        };
+    } else {
+        return {
+            formattedbytes: kilobytes.toFixed(1),
+            format: 'KB'
+        };
+    }
+}  

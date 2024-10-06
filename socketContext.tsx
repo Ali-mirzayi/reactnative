@@ -1,5 +1,5 @@
 import { Socket } from 'socket.io-client';
-import { currentPosition, IMessagePro, LastMessageType, lastTrack, locales, player, playerStatus, remotePlayBackEnum, Room, User, videoDuration } from './utils/types';
+import { currentPosition, IMessagePro, LastMessageType, lastTrack, locales, player, playerStatus, remotePlayBackEnum, Room, transferredProgress, User, videoDuration } from './utils/types';
 import { create } from 'zustand';
 
 const initialCurrentPosition: currentPosition = {
@@ -13,6 +13,22 @@ const initialLastTrack: lastTrack = {
 	name: undefined,
 	uri: undefined
 };
+
+//@ts-ignore
+const useThrottle = (fn, delay) => {  
+	//@ts-ignore
+	let timeout;  
+	//@ts-ignore
+	return (...args) => {  
+		//@ts-ignore
+	  if (!timeout) {  
+		fn(...args);  
+		timeout = setTimeout(() => {  
+		  timeout = null;  
+		}, delay);  
+	  }  
+	};  
+  };
 
 interface useMessage {
 	messages: IMessagePro[] | [],
@@ -66,10 +82,6 @@ interface useIsPlaying {
 	playerStatus: playerStatus
 	setPlayerStatus: (callback: (prev: playerStatus) => (playerStatus)) => void
 }
-interface useVideosDuration {
-	videosDuration: videoDuration[] | []
-	setVideosDuration: (callback: (prev: (videoDuration)[]) => (videoDuration)[]) => void;
-}
 interface useSetLocale {
 	locale: locales
 	setLocale: (callback: (prev: locales) => locales) => void;
@@ -80,11 +92,11 @@ interface useRemotePlayBack {
 	setRemotePlayBack: (e: { state: remotePlayBackEnum, position?: number } | undefined) => void
 }
 
-
-interface useSetRooms {
-	rooms: Room[] | []
-	setRooms: (callback: (prev: Room[] | []) => (Room[] | [])) => void
-}
+interface useTransferredProgress {
+	progress: transferredProgress;
+	setProgressThrottled: (callback: (prev: transferredProgress) => transferredProgress) => void;
+	setProgress: (callback: (prev: transferredProgress) => transferredProgress) => void;
+};
 
 export const useMessage = create<useMessage>()((set) => ({
 	messages: [],
@@ -147,11 +159,6 @@ export const useIsPlaying = create<useIsPlaying>()((set) => ({
 	setPlayerStatus: (callback) => set((state) => ({ playerStatus: callback(state.playerStatus) })),
 }));
 
-export const useVideosDuration = create<useVideosDuration>()((set) => ({
-	videosDuration: [],
-	setVideosDuration: (callback) => set((state) => ({ videosDuration: callback(state.videosDuration) })),
-}));
-
 export const useSetLocale = create<useSetLocale>()((set) => ({
 	locale: 'fa',
 	setLocale: (callback) => set((state) => ({ locale: callback(state.locale) })),
@@ -162,7 +169,10 @@ export const useRemotePlayBack = create<useRemotePlayBack>()((set) => ({
 	setRemotePlayBack: (e) => set({ remotePlayBack: e })
 }));
 
-export const useSetRooms = create<useSetRooms>()((set) => ({
-	rooms: [],
-	setRooms: (callback) => set((state) => ({ rooms: callback(state.rooms) })),
+export const useTransferredProgress = create<useTransferredProgress>()((set) => ({
+	progress: [],
+	setProgressThrottled: useThrottle((callback:any) => set((state) => ({  
+		progress: callback(state.progress),  
+	  })), 1000),
+	setProgress: (callback) => set((state) => ({ progress: callback(state.progress) })),
 }));

@@ -5,6 +5,7 @@ node_modules/
 
 android/
 eas.json
+google-services.json
 
 # Expo
 .expo/

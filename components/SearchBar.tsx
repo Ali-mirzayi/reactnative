@@ -7,6 +7,7 @@ import { User } from '../utils/types';
 import { useSocket, useUser } from '../socketContext';
 import useDebounce from '../hooks/useDebounce';
 import { useTranslate } from '../language/useTranslate';
+import { useIsFocused } from '@react-navigation/native';
 
 type props = {
     setUsers: React.Dispatch<React.SetStateAction<[] | User[]>>,
@@ -21,6 +22,7 @@ export default function SearchBar({ setUsers, setScreen }: props) {
     const socket = useSocket(state => state.socket);
     const debouncedInputValue = useDebounce(search?.toLocaleLowerCase(), 500);
     const { i18n } = useTranslate();
+    const isFocused = useIsFocused();
 
     const handlePressIn = () => {
         width.value = withTiming(175, { duration: 500 });
@@ -47,6 +49,13 @@ export default function SearchBar({ setUsers, setScreen }: props) {
         socket?.emit("findUser", { search: debouncedInputValue, user: user });
         socket?.on("findUser", (roomChats: any) => setUsers(roomChats));
     }, [debouncedInputValue]);
+
+    useEffect(() => {
+        if (isFocused) return;
+        setSearch(undefined);
+        setUsers([]);
+        setScreen("rooms");
+    }, [isFocused]);
 
     return (
         <OutsidePressHandler onOutsidePress={handlePressOut} style={styles.container}>
@@ -89,6 +98,6 @@ const styles = StyleSheet.create({
         width: "70%",
         right: 50,
         paddingLeft: 8,
-        textAlign:'left'
+        textAlign: 'left'
     }
 })

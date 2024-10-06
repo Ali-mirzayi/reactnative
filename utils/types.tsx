@@ -1,6 +1,5 @@
 import { IMessage } from "react-native-gifted-chat";
 import * as Notifications from "expo-notifications";
-import { Audio } from "expo-av";
 
 export enum availableStatus {
     "available" = 0,
@@ -39,7 +38,8 @@ export type IMessagePro = IMessage & {
     availableStatus?: availableStatus,
     musicName?: string,
     artwork?: string,
-    musicArtist?: string
+    musicArtist?: string,
+    size?: string,
 }
 
 export type User = {
@@ -97,7 +97,6 @@ export type lastTrack = {
     uri?: string,
     artist?: string,
     artwork?: string,
-    // positi
 };
 
 export enum RecordingEnum {
@@ -127,3 +126,5 @@ export enum remotePlayBackEnum {
     "previous" = 3,
     "seekto" = 4,
 }
+
+export type transferredProgress = {id?: string | number,transferred?:string,size?:string}[] | [];

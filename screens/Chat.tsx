@@ -5,7 +5,7 @@ import SearchBar from "../components/SearchBar";
 import { Room, User, ChatNavigationProps, IMessagePro, CountNewMessageType } from "../utils/types";
 import { DrawerScreenProps } from '@react-navigation/drawer';
 import { Ionicons } from "@expo/vector-icons";
-import { useIsOpen, useMessage, useSetLastMessage, useSetRooms, useSocket, useUser } from "../socketContext";
+import { useIsOpen, useMessage, useSetLastMessage, useSocket, useUser } from "../socketContext";
 import { getAllRooms, getRoom, insertRoom, updateMessage } from "../utils/DB";
 import Toast from "react-native-toast-message";
 import LoadingPage from "../components/LoadingPage";
@@ -46,7 +46,6 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 	const setMessages = useMessage(state => state.setMessages);
 
 	const isFocused = useIsFocused();
-	// const {rooms, setRooms} = useSetRooms();
 
 	const pressUserHandler = async ({ contact }: { contact: User | undefined }) => {
 		const roomIfExists = rooms.find(e => e.users[0]._id === contact?._id || e.users[1]._id === contact?._id);
@@ -63,12 +62,6 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 		setCurrentRoomId(roomId);
 		navigation.navigate("Messaging", { contact, roomId });
 		handleCountNewMessages({ roomId, erase: true });
-	};
-
-	function setter(data: Room) {
-		// insertRoom(data);
-		// socket?.emit('joinInRoom', data.id);
-		// setRooms(e => [...e, data]);
 	};
 
 	const handleLastMessages = ({ roomId, newMessage }: { roomId: string, newMessage: string }) => {
@@ -146,7 +139,6 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 
 			if (result.length > 0) {
 				setRooms(freshRooms);
-				// setRooms(()=>freshRooms);
 			}
 		}).catch(() => Toast.show({
 			type: 'error',
@@ -156,26 +148,22 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 	}, [expoPushToken]);
 
 	useEffect(() => {
-		if (!socket) return;
+		if (!socket || !user) return;
 		socket.on('chatNewMessage', async (data: IMessagePro & { roomId: string }) => {
-			// console.log('chatNewMessage',user);
 			const { roomId, ...newMessage } = data;
 			if (!rooms.find(room => room.id === roomId)) {
-				if (!user) return;
 				//@ts-ignore
 				const newRoom: Room = { id: roomId, users: [user, newMessage.user], messages: [] };
-				// insertRoom(newRoom);
-				// setRooms(e => [...e, newRoom]);
 				setRooms(prevRooms => {
 					if (prevRooms.find(room => room.id === roomId)) {
 						console.log('update2');
 						handleCountNewMessages({ roomId, erase: false });
-						return prevRooms;  // No change  
+						return prevRooms;
 					};
 					console.log('update3');
 					handleCountNewMessages({ roomId, erase: false });
 					insertRoom(newRoom);
-					return [...prevRooms, newRoom];  // Only update if a new room is added  
+					return [...prevRooms, newRoom];
 				});
 			};
 			const selectedRoom = await getRoom(roomId);
@@ -248,8 +236,6 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 			};
 		});
 
-		if (!user) return;
-
 		socket.on("recivedMessage", async ({ messageId, contact, roomId }) => {
 			try {
 				const result = await getRoom(roomId);
@@ -278,7 +264,6 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 		});
 
 		socket.on("createRoomResponse", handleCreateRoomResponse);
-		socket.on("newRoom", setter);
 		socket.on("findRoomResponse", handleFindRoomResponse);
 
 		return () => {
@@ -287,9 +272,6 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 			socket.off('recivedMessage');
 			socket.off("findRoomResponse", handleFindRoomResponse);
 			socket.off('createRoomResponse', handleCreateRoomResponse);
-			socket.off("newRoom", setter);
-			// socket.off('setSocketIdAndjoin');
-
 		};
 	}, [socket, isFocused]);
 
@@ -364,12 +346,12 @@ const Chat = ({ navigation }: DrawerScreenProps<ChatNavigationProps, 'Chat'>) =>
 										extraData={lastMessage}
 										scrollEnabled
 									/>
-							) : (
+							) : screen === "rooms" && rooms.length === 0 ? (
 								<View style={[styles.chatemptyContainer]}>
 									<Text style={[styles.chatemptyText, { color: colors.text }]}>{i18n.t("NoRooms")}</Text>
 									<Text style={{ color: colors.text, fontSize: locale === 'fa' ? 17 : 16 }}>{i18n.t("SearchToconnection")}</Text>
 								</View>
-							)
+							) : <View />
 						}
 					</View>
 				</View>
@@ -423,6 +405,7 @@ const styles = StyleSheet.create({
 		// height: "80%",
 		alignItems: "center",
 		justifyContent: "center",
+		flex:1
 	},
 	chatemptyText: {
 		fontWeight: "bold", fontSize: 24, paddingBottom: 30
